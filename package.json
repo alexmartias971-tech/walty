@@ -1,0 +1,21 @@
+{
+  "name": "walti",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Walti — cartes de fidélité digitales Apple & Google Wallet pour les commerces de Guadeloupe",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/unbounded": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
+    "@supabase/supabase-js": "^2.117.2",
+    "next": "16.3.7",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "engines": { "node": ">=20" }
+}

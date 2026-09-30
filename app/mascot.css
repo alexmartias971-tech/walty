@@ -1,0 +1,63 @@
+/* ═══ WALTI — animations de la mascotte ═══ */
+.walti { overflow: visible; --px: 0; --py: 0; }
+.walti .w-eyes, .walti .w-shadow, .walti .w-imprint, .walti .w-slot-next, .walti .w-question, .walti .w-zzz text { transform-box: fill-box; }
+
+.walti .w-bob { animation: w-bob 3.4s ease-in-out infinite; transform-box: view-box; transform-origin: 130px 290px; }
+.walti .w-card { animation: w-peek 3.4s ease-in-out infinite; }
+.walti .w-eyes { transform-origin: center; animation: w-blink 4.6s infinite; }
+.walti .w-pupils { transform: translate(calc(var(--px) * 1px), calc(var(--py) * 1px)); transition: transform .25s ease-out; }
+.walti .w-shadow { animation: w-shadow 3.4s ease-in-out infinite; transform-origin: center; }
+.walti .w-slot-next { animation: w-slot 2.8s ease-in-out infinite; transform-origin: center; }
+
+/* pose stamp : il arme puis tamponne */
+.walti--stamp .w-thump { transform-box: view-box; transform-origin: 206px 178px; animation: w-thump 2.8s var(--ease) infinite; }
+.walti--stamp .w-imprint { transform-box: fill-box; transform-origin: center; animation: w-imprint 2.8s ease-out infinite; }
+.walti--stamp .w-body { transform-box: view-box; transform-origin: 130px 250px; animation: w-squash 2.8s ease-in-out infinite; }
+
+/* pose wave */
+.walti--wave .w-wave { transform-box: view-box; transform-origin: 206px 180px; animation: w-wave 1.6s ease-in-out infinite; }
+
+/* pose sit : les jambes balancent */
+.walti--sit .w-leg { transform-box: view-box; animation: w-swing 1.8s ease-in-out infinite; }
+.walti--sit .w-leg-l { transform-origin: 106px 240px; }
+.walti--sit .w-leg-r { transform-origin: 154px 240px; animation-delay: -.9s; }
+.walti--sit .w-bob { animation: none; }
+
+/* pose sleep */
+.walti--sleep .w-bob { animation-duration: 5s; }
+.walti--sleep .w-zzz text { animation: w-z 3s ease-in-out infinite; }
+.walti--sleep .w-zzz text:nth-child(2) { animation-delay: .5s; }
+.walti--sleep .w-zzz text:nth-child(3) { animation-delay: 1s; }
+
+/* pose lost */
+.walti--lost .w-question { transform-box: fill-box; transform-origin: center; animation: w-q 2.2s var(--spring) infinite; }
+.walti--lost .w-card { animation: w-look 4s ease-in-out infinite; }
+
+/* pose peek : la carte monte et redescend derrière le bord */
+.walti--peek .w-card { animation: w-peek-strong 4s ease-in-out infinite; }
+.walti--peek .w-bob { animation: none; }
+
+/* survol : il saute */
+.walti:hover .w-bob { animation: w-jump .7s var(--spring); }
+
+@keyframes w-bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+@keyframes w-shadow { 0%, 100% { transform: scaleX(1); opacity: .4 } 50% { transform: scaleX(.86); opacity: .28 } }
+@keyframes w-peek { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+@keyframes w-peek-strong { 0%, 100% { transform: translateY(14px) } 35%, 70% { transform: translateY(0) } }
+@keyframes w-blink { 0%, 90%, 100% { transform: scaleY(1) } 93% { transform: scaleY(.08) } 96% { transform: scaleY(1) } }
+@keyframes w-thump {
+  0%, 20% { transform: rotate(0) }
+  42% { transform: rotate(-26deg) }
+  52% { transform: rotate(16deg) }
+  58% { transform: rotate(11deg) }
+  75%, 100% { transform: rotate(0) }
+}
+@keyframes w-squash { 0%, 48%, 64%, 100% { transform: scale(1, 1) } 54% { transform: scale(1.04, .95) } }
+@keyframes w-imprint { 0%, 50% { opacity: 0; transform: scale(.4) } 56% { opacity: 1; transform: scale(1.15) } 64% { transform: scale(1) } 88% { opacity: 1 } 100% { opacity: 0; transform: scale(1) } }
+@keyframes w-slot { 0%, 50% { fill: none; stroke: #c9b8ef } 56%, 90% { fill: #2de2c4; stroke: #2de2c4 } 100% { fill: none; stroke: #c9b8ef } }
+@keyframes w-wave { 0%, 100% { transform: rotate(-10deg) } 50% { transform: rotate(14deg) } }
+@keyframes w-swing { 0%, 100% { transform: rotate(-16deg) } 50% { transform: rotate(16deg) } }
+@keyframes w-z { 0% { opacity: 0; transform: translateY(6px) } 40% { opacity: 1 } 100% { opacity: 0; transform: translateY(-10px) } }
+@keyframes w-q { 0%, 100% { transform: rotate(-8deg) scale(1) } 50% { transform: rotate(8deg) scale(1.08) } }
+@keyframes w-look { 0%, 100% { transform: translateX(0) } 30% { transform: translateX(-4px) } 65% { transform: translateX(4px) } }
+@keyframes w-jump { 0% { transform: translateY(0) } 40% { transform: translateY(-26px) scale(1.02, .98) } 70% { transform: translateY(0) scale(1.04, .95) } 100% { transform: none } }
