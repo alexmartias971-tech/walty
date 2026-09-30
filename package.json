@@ -11,11 +11,12 @@
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource-variable/unbounded": "^5.3.0",
-    "@fontsource/instrument-serif": "^5.3.0",
     "@supabase/supabase-js": "^2.117.2",
     "next": "16.3.7",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

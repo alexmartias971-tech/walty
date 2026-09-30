@@ -7,9 +7,10 @@ import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import { submitLead, SECTORS, COMMUNES, isDemo } from "@/lib/store";
 
-const PLAN_LABELS = { essentiel: "Essentiel (29 €/mois)", premium: "Premium (49 €/mois)", enseigne: "Enseigne (dès 79 €/mois)", fondateur: "Offre fondateurs" };
+const PLAN_LABELS = { essentiel: "Essentiel (29 €/mois)", premium: "Premium (49 €/mois)", enseigne: "Enseigne (dès 79 €/mois)", fondateur: "Tarif fondateur" };
 
-export default function ContactForm() {
+/** Formulaire de demande de démo. `compact` = version courte de la page d'accueil. */
+export default function ContactForm({ compact = false }) {
   const params = useSearchParams();
   const plan = PLAN_LABELS[params.get("formule")] || "";
   const [state, setState] = useState({ status: "idle", error: "" });
@@ -20,7 +21,7 @@ export default function ContactForm() {
     if (fd.get("website")) return; // pot de miel anti-robots
     const data = Object.fromEntries(fd.entries());
     if (!data.phone && !data.email) {
-      setState({ status: "idle", error: "Laissez au moins un téléphone ou un e-mail pour qu'on puisse vous répondre." });
+      setState({ status: "idle", error: "Laissez au moins un numéro ou un e-mail pour qu'on puisse vous répondre." });
       return;
     }
     setState({ status: "sending", error: "" });
@@ -35,67 +36,81 @@ export default function ContactForm() {
   if (state.status === "sent") {
     return (
       <div className="form-card glass success">
-        <Mascot pose="stamp" size={200} title="Walti tamponne votre demande" />
-        <h2 className="display-s">Demande bien reçue !</h2>
-        <p className="muted" style={{ maxWidth: 420 }}>On vous recontacte sous 24 h ouvrées, par le moyen que vous avez choisi. À très vite.</p>
+        <Mascot pose="stamp" size={190} impact={false} title="Walti tamponne votre demande" />
+        <h2 className="display-s">C'est noté !</h2>
+        <p className="muted" style={{ maxWidth: 420 }}>On vous rappelle sous 24 h ouvrées pour caler le rendez-vous. À très vite.</p>
         {state.demo && (
-          <p className="notice" style={{ maxWidth: 460 }}>Mode démo : la demande est enregistrée dans ce navigateur uniquement. Vous pouvez la voir dans l'<Link href="/admin" style={{ textDecoration: "underline" }}>espace admin</Link>.</p>
+          <p className="notice" style={{ maxWidth: 460 }}>Aperçu : la demande est enregistrée dans ce navigateur uniquement. Vous la retrouvez dans l'<Link href="/admin" style={{ textDecoration: "underline" }}>espace admin</Link>.</p>
         )}
       </div>
     );
   }
 
   return (
-    <form className="form-card glass" onSubmit={onSubmit} noValidate={false}>
+    <form className="form-card glass" onSubmit={onSubmit}>
       {plan && <span className="chip chip-orange" style={{ justifySelf: "start" }}>Formule : {plan}</span>}
       <div className="form-row">
         <div className="field">
-          <label htmlFor="contact_name">Votre prénom et nom *</label>
-          <input id="contact_name" name="contact_name" className="input" required autoComplete="name" maxLength={120} placeholder="Maëlys Durand" />
+          <label htmlFor="contact_name">Prénom et nom *</label>
+          <input id="contact_name" name="contact_name" className="input" required autoComplete="name" maxLength={120} />
         </div>
         <div className="field">
-          <label htmlFor="business">Nom du commerce *</label>
-          <input id="business" name="business" className="input" required autoComplete="organization" maxLength={120} placeholder="Le Bokit du Lagon" />
+          <label htmlFor="business">Votre commerce *</label>
+          <input id="business" name="business" className="input" required autoComplete="organization" maxLength={120} placeholder="Ex. : snack, onglerie, karting…" />
         </div>
       </div>
+      {!compact && (
+        <div className="form-row">
+          <div className="field">
+            <label htmlFor="sector">Activité</label>
+            <select id="sector" name="sector" className="select" defaultValue="">
+              <option value="" disabled>Choisir…</option>
+              {SECTORS.map((s) => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="city">Commune</label>
+            <select id="city" name="city" className="select" defaultValue="">
+              <option value="" disabled>Choisir…</option>
+              {COMMUNES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
       <div className="form-row">
         <div className="field">
-          <label htmlFor="sector">Activité</label>
-          <select id="sector" name="sector" className="select" defaultValue="">
-            <option value="" disabled>Choisir…</option>
-            {SECTORS.map((s) => <option key={s}>{s}</option>)}
-          </select>
+          <label htmlFor="phone">Téléphone{compact ? " *" : ""}</label>
+          <input id="phone" name="phone" type="tel" className="input" autoComplete="tel" maxLength={30} placeholder="0690 00 00 00" required={compact} />
         </div>
-        <div className="field">
-          <label htmlFor="city">Commune</label>
-          <select id="city" name="city" className="select" defaultValue="">
-            <option value="" disabled>Choisir…</option>
-            {COMMUNES.map((c) => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="form-row">
-        <div className="field">
-          <label htmlFor="phone">Téléphone</label>
-          <input id="phone" name="phone" type="tel" className="input" autoComplete="tel" maxLength={30} placeholder="0690 00 00 00" />
-        </div>
-        <div className="field">
-          <label htmlFor="email">E-mail</label>
-          <input id="email" name="email" type="email" className="input" autoComplete="email" maxLength={160} placeholder="vous@commerce.fr" />
-        </div>
+        {compact ? (
+          <div className="field">
+            <label htmlFor="city">Commune</label>
+            <select id="city" name="city" className="select" defaultValue="">
+              <option value="" disabled>Choisir…</option>
+              {COMMUNES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div className="field">
+            <label htmlFor="email">E-mail</label>
+            <input id="email" name="email" type="email" className="input" autoComplete="email" maxLength={160} placeholder="vous@commerce.fr" />
+          </div>
+        )}
       </div>
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", marginBottom: 8 }}>On vous répond comment ?</legend>
+        <legend style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", marginBottom: 8 }}>On vous recontacte par</legend>
         <div className="radio-row">
           {["WhatsApp", "Appel", "E-mail"].map((c, i) => (
             <label key={c}><input type="radio" name="preferred_channel" value={c} defaultChecked={i === 0} /><span>{c}</span></label>
           ))}
         </div>
       </fieldset>
-      <div className="field">
-        <label htmlFor="message">Votre message</label>
-        <textarea id="message" name="message" className="textarea" maxLength={2000} placeholder="Ex. : j'ai une roulotte à Sainte-Anne, je veux remplacer mes cartons avant la saison." />
-      </div>
+      {!compact && (
+        <div className="field">
+          <label htmlFor="message">Un mot sur votre commerce ?</label>
+          <textarea id="message" name="message" className="textarea" maxLength={2000} placeholder="Ex. : j'ai une roulotte à Sainte-Anne, je veux remplacer mes cartons avant la saison." />
+        </div>
+      )}
       <div className="hp" aria-hidden="true">
         <label htmlFor="website">Ne pas remplir</label>
         <input id="website" name="website" tabIndex={-1} autoComplete="off" />
@@ -105,13 +120,13 @@ export default function ContactForm() {
         <span>J'accepte que Walti utilise ces informations pour me recontacter au sujet de ma demande. *</span>
       </label>
       {state.error && <p className="notice" role="alert">{state.error}</p>}
-      <button type="submit" className="btn btn-primary" disabled={state.status === "sending"} style={{ justifySelf: "start" }}>
-        {state.status === "sending" ? "Envoi…" : <>Envoyer ma demande <span className="arrow"><Icon name="arrow" size={16} /></span></>}
+      <button type="submit" className="btn btn-primary btn-lg" disabled={state.status === "sending"}>
+        {state.status === "sending" ? "Envoi…" : <>Réserver ma démo gratuite <span className="arrow"><Icon name="arrow" size={16} /></span></>}
       </button>
       <p className="form-legal">
-        * Champs obligatoires. Les informations recueillies sont destinées uniquement à Walti pour répondre à votre demande et, si vous devenez client, gérer la relation commerciale. Elles sont conservées 3 ans après notre dernier échange. Vous pouvez à tout moment y accéder, les rectifier, les effacer ou vous opposer à leur utilisation. En savoir plus dans notre <Link href="/confidentialite">politique de confidentialité</Link>.
+        Vos informations servent uniquement à vous recontacter, et sont conservées 3 ans au plus après notre dernier échange. Vous pouvez les consulter, les corriger ou les faire effacer à tout moment. Détails dans la <Link href="/confidentialite">politique de confidentialité</Link>.
+        {isDemo && " (Aperçu : les demandes restent dans votre navigateur.)"}
       </p>
-      {isDemo && <p className="faint" style={{ fontSize: 12 }}>Aperçu en mode démo : les demandes restent dans votre navigateur.</p>}
     </form>
   );
 }

@@ -20,7 +20,7 @@ export default function ContactPage() {
       <PageHero
         index="C1"
         label="Contact"
-        title={<>On passe <span className="serif grad-text">vous voir ?</span></>}
+        title={<>On passe <span className="serif">vous voir</span> ?</>}
         lead="15 minutes, sur place, avec une carte de démonstration à votre nom installée sur votre téléphone. Sans engagement."
       />
       <section className="frame">

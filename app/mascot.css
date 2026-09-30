@@ -1,63 +1,144 @@
-/* ═══ WALTI — animations de la mascotte ═══ */
+/* ═══ WALTI — animations de la mascotte (v2) ═══
+   Principes : pieds plantés, anticipation, écrasement/étirement,
+   mouvement secondaire (la carte suit le corps avec un temps de retard). */
+
 .walti { overflow: visible; --px: 0; --py: 0; }
-.walti .w-eyes, .walti .w-shadow, .walti .w-imprint, .walti .w-slot-next, .walti .w-question, .walti .w-zzz text { transform-box: fill-box; }
+.walti .w-rig, .walti .w-body, .walti .w-card, .walti .w-arm-r, .walti .w-arm-l, .walti .w-shadow, .walti .w-shin, .walti .w-legshadow { transform-box: view-box; }
+.walti .w-eyes, .walti .w-eyes-in, .walti .w-impact, .walti .w-slot-next, .walti .w-question, .walti .w-zzz text, .walti .w-snore { transform-box: fill-box; transform-origin: center; }
 
-.walti .w-bob { animation: w-bob 3.4s ease-in-out infinite; transform-box: view-box; transform-origin: 130px 290px; }
-.walti .w-card { animation: w-peek 3.4s ease-in-out infinite; }
-.walti .w-eyes { transform-origin: center; animation: w-blink 4.6s infinite; }
-.walti .w-pupils { transform: translate(calc(var(--px) * 1px), calc(var(--py) * 1px)); transition: transform .25s ease-out; }
-.walti .w-shadow { animation: w-shadow 3.4s ease-in-out infinite; transform-origin: center; }
-.walti .w-slot-next { animation: w-slot 2.8s ease-in-out infinite; transform-origin: center; }
+/* repères de pivot */
+.walti .w-rig { transform-origin: 130px 288px; }
+.walti .w-body { transform-origin: 130px 246px; }
+.walti .w-card { transform-origin: 130px 120px; }
+.walti .w-arm-r { transform-origin: 206px 179px; }
+.walti .w-arm-l { transform-origin: 56px 184px; }
+.walti .w-shadow { transform-origin: 130px 288px; }
 
-/* pose stamp : il arme puis tamponne */
-.walti--stamp .w-thump { transform-box: view-box; transform-origin: 206px 178px; animation: w-thump 2.8s var(--ease) infinite; }
-.walti--stamp .w-imprint { transform-box: fill-box; transform-origin: center; animation: w-imprint 2.8s ease-out infinite; }
-.walti--stamp .w-body { transform-box: view-box; transform-origin: 130px 250px; animation: w-squash 2.8s ease-in-out infinite; }
+/* ── Commun ── */
+.walti .w-eyes { animation: w-blink 5.2s infinite; }
+.walti .w-pupils { transform: translate(calc(var(--px) * 1px), calc(var(--py) * 1px)); transition: transform .35s cubic-bezier(.3,.7,.4,1); }
+.walti .w-body { animation: w-breathe 3.6s ease-in-out infinite; }
+.walti .w-card { animation: w-card-breathe 3.6s ease-in-out infinite; animation-delay: -.25s; }
+.walti .w-slot-next { animation: w-slot 3s ease-in-out infinite; }
 
-/* pose wave */
-.walti--wave .w-wave { transform-box: view-box; transform-origin: 206px 180px; animation: w-wave 1.6s ease-in-out infinite; }
+/* ── Pose : tamponne (boucle de 3 s) ── */
+.walti--stamp .w-body { animation: w-stamp-body 3s cubic-bezier(.4,0,.2,1) infinite; }
+.walti--stamp .w-arm-r { animation: w-stamp-arm 3s cubic-bezier(.4,0,.2,1) infinite; }
+.walti--stamp .w-card { animation: w-stamp-card 3s cubic-bezier(.4,0,.2,1) infinite; }
+.walti--stamp .w-eyes-in { animation: w-squint 3s infinite; }
+.walti--stamp .w-impact { animation: w-impact 3s ease-out infinite; opacity: 0; }
+.walti--stamp .w-shadow { animation: w-stamp-shadow 3s ease-in-out infinite; }
 
-/* pose sit : les jambes balancent */
-.walti--sit .w-leg { transform-box: view-box; animation: w-swing 1.8s ease-in-out infinite; }
-.walti--sit .w-leg-l { transform-origin: 106px 240px; }
-.walti--sit .w-leg-r { transform-origin: 154px 240px; animation-delay: -.9s; }
-.walti--sit .w-bob { animation: none; }
+/* ── Pose : salue ── */
+.walti--wave .w-arm-r { animation: w-wave 1.3s ease-in-out infinite; }
+.walti--wave .w-body { animation: w-sway 2.6s ease-in-out infinite; }
+.walti--wave .w-card { animation: w-sway-card 2.6s ease-in-out infinite; animation-delay: -.2s; }
 
-/* pose sleep */
-.walti--sleep .w-bob { animation-duration: 5s; }
+/* ── Pose : assis (les tibias balancent vers nous : ils raccourcissent en perspective) ── */
+.walti--sit .w-shin-l { animation: w-swing 1.9s ease-in-out infinite; }
+.walti--sit .w-shin-r { animation: w-swing 1.9s ease-in-out infinite; animation-delay: -.95s; }
+.walti--sit .w-legshadow-l { transform-origin: 112px 300px; animation: w-swing-shadow 1.9s ease-in-out infinite; }
+.walti--sit .w-legshadow-r { transform-origin: 162px 300px; animation: w-swing-shadow 1.9s ease-in-out infinite; animation-delay: -.95s; }
+.walti--sit .w-card { animation: w-look 7s ease-in-out infinite; }
+
+/* ── Pose : dort ── */
+.walti--sleep .w-body { animation-duration: 5s; }
+.walti--sleep .w-card { animation-duration: 5s; }
+.walti--sleep .w-snore { animation: w-snore 5s ease-in-out infinite; }
 .walti--sleep .w-zzz text { animation: w-z 3s ease-in-out infinite; }
 .walti--sleep .w-zzz text:nth-child(2) { animation-delay: .5s; }
 .walti--sleep .w-zzz text:nth-child(3) { animation-delay: 1s; }
 
-/* pose lost */
-.walti--lost .w-question { transform-box: fill-box; transform-origin: center; animation: w-q 2.2s var(--spring) infinite; }
+/* ── Pose : perdu ── */
 .walti--lost .w-card { animation: w-look 4s ease-in-out infinite; }
+.walti--lost .w-question { animation: w-q 2.4s cubic-bezier(.34,1.56,.64,1) infinite; }
 
-/* pose peek : la carte monte et redescend derrière le bord */
-.walti--peek .w-card { animation: w-peek-strong 4s ease-in-out infinite; }
-.walti--peek .w-bob { animation: none; }
+/* ── Pose : jette un œil ── */
+.walti--peek .w-card { transform-origin: 130px 124px; animation: w-peek 5s cubic-bezier(.34,1.3,.64,1) infinite; }
+.walti--peek .w-body { animation: none; }
 
-/* survol : il saute */
-.walti:hover .w-bob { animation: w-jump .7s var(--spring); }
+/* ── Survol : petit saut (sauf assis / caché) ── */
+.walti--stamp:hover .w-rig, .walti--wave:hover .w-rig, .walti--lost:hover .w-rig { animation: w-hop .8s cubic-bezier(.3,.7,.4,1); }
+.walti--stamp:hover .w-shadow, .walti--wave:hover .w-shadow, .walti--lost:hover .w-shadow { animation: w-hop-shadow .8s cubic-bezier(.3,.7,.4,1); }
+.walti--sit:hover .w-shin { animation-duration: .9s; }
 
-@keyframes w-bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
-@keyframes w-shadow { 0%, 100% { transform: scaleX(1); opacity: .4 } 50% { transform: scaleX(.86); opacity: .28 } }
-@keyframes w-peek { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
-@keyframes w-peek-strong { 0%, 100% { transform: translateY(14px) } 35%, 70% { transform: translateY(0) } }
-@keyframes w-blink { 0%, 90%, 100% { transform: scaleY(1) } 93% { transform: scaleY(.08) } 96% { transform: scaleY(1) } }
-@keyframes w-thump {
-  0%, 20% { transform: rotate(0) }
-  42% { transform: rotate(-26deg) }
-  52% { transform: rotate(16deg) }
-  58% { transform: rotate(11deg) }
-  75%, 100% { transform: rotate(0) }
+/* ═══ Images clés ═══ */
+@keyframes w-blink {
+  0%, 42%, 46%, 49%, 88%, 100% { transform: scaleY(1) }
+  44%, 47.5% { transform: scaleY(.08) }
+  90% { transform: scaleY(.08) }
 }
-@keyframes w-squash { 0%, 48%, 64%, 100% { transform: scale(1, 1) } 54% { transform: scale(1.04, .95) } }
-@keyframes w-imprint { 0%, 50% { opacity: 0; transform: scale(.4) } 56% { opacity: 1; transform: scale(1.15) } 64% { transform: scale(1) } 88% { opacity: 1 } 100% { opacity: 0; transform: scale(1) } }
-@keyframes w-slot { 0%, 50% { fill: none; stroke: #c9b8ef } 56%, 90% { fill: #2de2c4; stroke: #2de2c4 } 100% { fill: none; stroke: #c9b8ef } }
-@keyframes w-wave { 0%, 100% { transform: rotate(-10deg) } 50% { transform: rotate(14deg) } }
-@keyframes w-swing { 0%, 100% { transform: rotate(-16deg) } 50% { transform: rotate(16deg) } }
+@keyframes w-breathe { 0%, 100% { transform: scale(1, 1) } 50% { transform: scale(1.012, .986) } }
+@keyframes w-card-breathe { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(1.5px) } }
+
+@keyframes w-stamp-body {
+  0%, 18% { transform: rotate(0) scale(1, 1) }
+  40% { transform: rotate(-3deg) scale(.985, 1.03) }
+  47% { transform: rotate(-4deg) scale(.97, 1.05) }
+  51% { transform: rotate(1.5deg) scale(1.07, .9) }
+  57% { transform: rotate(-.5deg) scale(.98, 1.03) }
+  64% { transform: rotate(0) scale(1.01, .99) }
+  72%, 100% { transform: rotate(0) scale(1, 1) }
+}
+@keyframes w-stamp-arm {
+  0%, 18% { transform: rotate(0) }
+  45% { transform: rotate(-34deg) }
+  51% { transform: rotate(9deg) }
+  57% { transform: rotate(4deg) }
+  66% { transform: rotate(6deg) }
+  80%, 100% { transform: rotate(0) }
+}
+@keyframes w-stamp-card {
+  0%, 40% { transform: translateY(0) rotate(0) }
+  47% { transform: translateY(3px) rotate(1.5deg) }
+  51% { transform: translateY(5px) rotate(0) }
+  56% { transform: translateY(-11px) rotate(-3deg) }
+  63% { transform: translateY(2px) rotate(1deg) }
+  70% { transform: translateY(-1px) rotate(0) }
+  76%, 100% { transform: translateY(0) rotate(0) }
+}
+@keyframes w-squint { 0%, 49%, 58%, 100% { transform: scaleY(1) } 51%, 55% { transform: scaleY(.55) } }
+@keyframes w-impact { 0%, 50% { opacity: 0; transform: scale(.5) } 52% { opacity: 1; transform: scale(1) } 64% { opacity: 0; transform: scale(1.35) } 100% { opacity: 0 } }
+@keyframes w-stamp-shadow { 0%, 45% { transform: scaleX(1) } 51% { transform: scaleX(1.06) } 60%, 100% { transform: scaleX(1) } }
+@keyframes w-slot {
+  0%, 50% { fill: none; stroke: #c4b3ec }
+  52% { fill: #2de2c4; stroke: #2de2c4 }
+  94% { fill: #2de2c4; stroke: #2de2c4 }
+  100% { fill: none; stroke: #c4b3ec }
+}
+
+@keyframes w-wave { 0%, 100% { transform: rotate(-12deg) } 50% { transform: rotate(16deg) } }
+@keyframes w-sway { 0%, 100% { transform: rotate(-1.4deg) } 50% { transform: rotate(1.4deg) } }
+@keyframes w-sway-card { 0%, 100% { transform: rotate(1.5deg) } 50% { transform: rotate(-1.5deg) } }
+
+@keyframes w-swing {
+  0%, 100% { transform: scaleY(1) rotate(0) }
+  25% { transform: scaleY(.84) rotate(-3deg) }
+  50% { transform: scaleY(.72) rotate(0) }
+  75% { transform: scaleY(.84) rotate(3deg) }
+}
+@keyframes w-swing-shadow { 0%, 100% { transform: translateY(0) scale(1); opacity: .36 } 50% { transform: translateY(10px) scale(1.25, .8); opacity: .16 } }
+@keyframes w-look { 0%, 100% { transform: rotate(0) translateX(0) } 20% { transform: rotate(-3deg) translateX(-3px) } 30% { transform: rotate(-3deg) translateX(-3px) } 55% { transform: rotate(3deg) translateX(3px) } 65% { transform: rotate(3deg) translateX(3px) } 80% { transform: rotate(0) } }
+
+@keyframes w-snore { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.35, 1.2) } }
 @keyframes w-z { 0% { opacity: 0; transform: translateY(6px) } 40% { opacity: 1 } 100% { opacity: 0; transform: translateY(-10px) } }
-@keyframes w-q { 0%, 100% { transform: rotate(-8deg) scale(1) } 50% { transform: rotate(8deg) scale(1.08) } }
-@keyframes w-look { 0%, 100% { transform: translateX(0) } 30% { transform: translateX(-4px) } 65% { transform: translateX(4px) } }
-@keyframes w-jump { 0% { transform: translateY(0) } 40% { transform: translateY(-26px) scale(1.02, .98) } 70% { transform: translateY(0) scale(1.04, .95) } 100% { transform: none } }
+@keyframes w-q { 0%, 100% { transform: rotate(-8deg) translateY(0) } 50% { transform: rotate(8deg) translateY(-4px) } }
+
+@keyframes w-peek {
+  0%, 12% { transform: translateY(70px) }
+  22% { transform: translateY(-6px) }
+  28%, 70% { transform: translateY(0) }
+  76% { transform: translateY(-4px) }
+  88%, 100% { transform: translateY(70px) }
+}
+
+@keyframes w-hop {
+  0% { transform: none }
+  16% { transform: scale(1.08, .88) }
+  42% { transform: translateY(-30px) scale(.94, 1.08) }
+  60% { transform: translateY(-32px) scale(1, 1) }
+  80% { transform: translateY(0) scale(1.08, .9) }
+  90% { transform: scale(.98, 1.02) }
+  100% { transform: none }
+}
+@keyframes w-hop-shadow { 0%, 16% { transform: scale(1); opacity: 1 } 50% { transform: scale(.62); opacity: .45 } 80%, 100% { transform: scale(1); opacity: 1 } }

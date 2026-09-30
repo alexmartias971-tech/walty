@@ -5,15 +5,16 @@ import { site, legal } from "@/lib/site.config";
 
 export default function Footer() {
   return (
-    <footer className="footer frame">
+    <footer className="footer">
+      <Mascot pose="peek" size={130} className="footer-peek" title="Walti vous regarde partir" />
       <div className="rails">
         <div className="footer-grid">
-          <div className="stack" style={{ "--gap": "20px" }}>
-            <Logo size={40} />
-            <p className="muted" style={{ maxWidth: 360 }}>
-              La carte de fidélité digitale des commerces de Guadeloupe. Créée pour vous, installée chez vous, dans le téléphone de vos clients.
+          <div className="stack" style={{ "--gap": "18px" }}>
+            <Logo size={38} />
+            <p className="muted" style={{ maxWidth: 340 }}>
+              La carte de fidélité des commerces de Guadeloupe, dans le téléphone de vos clients.
             </p>
-            <p className="faint" style={{ fontSize: 13 }}>{site.contact.zone}</p>
+            <p className="faint" style={{ fontSize: 13 }}>{site.contact.hours} · {site.contact.zone}</p>
           </div>
           <div>
             <h4>Walti</h4>
@@ -31,24 +32,15 @@ export default function Footer() {
               <li><Link href="/mentions-legales">Mentions légales</Link></li>
               <li><Link href="/confidentialite">Confidentialité</Link></li>
               <li><Link href="/cgv">CGV</Link></li>
-              <li><Link href="/cgu">CGU du site</Link></li>
+              <li><Link href="/cgu">Conditions d'utilisation</Link></li>
               <li><Link href="/cookies">Cookies</Link></li>
             </ul>
           </div>
-          <div className="footer-mascot">
-            <h4>Une question ?</h4>
-            <p className="muted" style={{ marginBottom: 18 }}>On se déplace dans toute la Guadeloupe pour vous montrer la carte en vrai.</p>
-            <Link href="/contact" className="btn btn-primary btn-sm">Prendre rendez-vous</Link>
-          </div>
-        </div>
-        <div className="footer-giant-wrap">
-          <div className="footer-giant" aria-hidden="true">walti</div>
-          <Mascot pose="peek" size={150} className="footer-peek" title="Walti vous regarde partir" />
         </div>
       </div>
       <div className="footer-bottom">
         <span>© {new Date().getFullYear()} Walti · {legal.vat}</span>
-        <span>Apple Wallet est une marque d'Apple Inc. Google Wallet est une marque de Google LLC. Walti n'est affilié ni à Apple ni à Google.</span>
+        <span>Apple Wallet est une marque d'Apple Inc., Google Wallet une marque de Google LLC. Walti n'est affilié à aucune des deux.</span>
       </div>
     </footer>
   );

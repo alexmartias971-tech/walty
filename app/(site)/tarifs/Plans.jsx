@@ -10,7 +10,7 @@ export default function Plans() {
   const [yearly, setYearly] = useState(false);
   return (
     <>
-      <div className="row" style={{ justifyContent: "center", marginBottom: 150 }}>
+      <div className="row" style={{ justifyContent: "center", marginBottom: 200 }}>
         <div className="billing glass" role="group" aria-label="Période de paiement">
           <button aria-pressed={!yearly} onClick={() => setYearly(false)}>Mensuel</button>
           <button aria-pressed={yearly} onClick={() => setYearly(true)}>Annuel <em>2 mois offerts</em></button>
@@ -21,11 +21,13 @@ export default function Plans() {
           const showYear = yearly && p.yearly;
           return (
             <article key={p.id} className={`plan glass ${p.featured ? "featured" : ""}`}>
-              {p.featured && <Mascot pose="sit" size={140} className="price-sitter" title="Walti recommande Premium" />}
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <h2 className="display-s">{p.name}</h2>
-                {p.featured && <span className="chip chip-orange">Recommandée</span>}
-              </div>
+              {p.featured && (
+                <div className="sitter" aria-hidden="true">
+                  <span className="bubble">Celle-là, je la conseille !</span>
+                  <Mascot pose="sit" size={180} className="sitter-mascot" title="Walti est assis sur la formule Premium" />
+                </div>
+              )}
+              <h2 className="display-s">{p.name}</h2>
               <p className="muted" style={{ fontSize: 14, marginTop: -8 }}>{p.for}</p>
               <div>
                 <div className="price-num">

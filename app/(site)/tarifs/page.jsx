@@ -15,7 +15,7 @@ export default function TarifsPage() {
       <PageHero
         index="T1"
         label="Tarifs"
-        title={<>Le prix d'un bokit <span className="serif grad-text">par semaine.</span></>}
+        title={<>Le prix d'un bokit <span className="serif">par semaine</span>.</>}
         lead="Trois formules claires, sans engagement pour Essentiel et Premium. Pas de frais cachés, pas de coût par notification. Installation sur place en Guadeloupe."
       />
 
@@ -40,8 +40,8 @@ export default function TarifsPage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>01</b> — Quelle formule pour moi ?</span>
-            <h2 className="display-m reveal">Choisissez selon <span className="serif orange">votre quotidien.</span></h2>
+            <span className="label">Quelle formule pour moi ?</span>
+            <h2 className="display-m reveal">Laquelle <span className="serif">vous correspond</span> ?</h2>
           </div>
           <div className="table-wrap reveal">
             <table className="cmp">
@@ -62,7 +62,7 @@ export default function TarifsPage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>02</b> — Comparatif détaillé</span>
+            <span className="label">Comparatif détaillé</span>
             <p className="lead">La différence entre Essentiel et Premium, c'est 20 € par mois. Un seul client de plus par mois qui dépense 20 € la rembourse.</p>
           </div>
           <div className="table-wrap reveal">
@@ -98,7 +98,7 @@ export default function TarifsPage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>03</b> — Options à la carte</span>
+            <span className="label">Options à la carte</span>
             <p className="lead">Pour aller plus loin, sans changer de formule.</p>
           </div>
           <div className="grid cols-3">
@@ -116,7 +116,7 @@ export default function TarifsPage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>04</b> — Questions sur les prix</span>
+            <span className="label">Questions sur les prix</span>
             <h2 className="display-m">Pas de petites lignes.</h2>
           </div>
           <div className="faq">

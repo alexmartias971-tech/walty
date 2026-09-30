@@ -24,7 +24,7 @@ export default function MarquePage() {
       <PageHero
         index="B1"
         label="Identité de marque"
-        title={<>Le <span className="serif grad-text">crépuscule</span> caribéen.</>}
+        title={<>Le <span className="serif">crépuscule</span> caribéen.</>}
         lead="L'heure où la Guadeloupe est la plus belle, et celle où les clients rentrent chez eux. Toute l'identité Walti part de ce moment : la chaleur du soleil couchant, le violet de la nuit qui tombe, et le lagon qui reste lumineux."
       >
         <div className="glass" style={{ padding: 40, borderRadius: 32, display: "grid", placeItems: "center", gap: 20 }}>
@@ -37,7 +37,7 @@ export default function MarquePage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>01</b> — Le concept</span>
+            <span className="label">Le concept</span>
             <p className="lead">Une marque qui claque sans crier. Vive comme les couleurs de l'île, mais tenue par une grille rigoureuse, pour inspirer confiance à un commerçant qui confie ses clients.</p>
           </div>
           <div className="grid cols-3">
@@ -60,8 +60,8 @@ export default function MarquePage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>02</b> — Couleurs</span>
-            <h2 className="display-m reveal">7 couleurs, <span className="serif orange">un dégradé.</span></h2>
+            <span className="label">Couleurs</span>
+            <h2 className="display-m reveal">7 couleurs, <span className="serif">un dégradé</span>.</h2>
           </div>
           <div className="swatches">
             {palette.map((c) => (
@@ -103,25 +103,25 @@ export default function MarquePage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>03</b> — Typographies</span>
-            <p className="lead">Trois voix. Unbounded pour frapper, Manrope pour expliquer, Instrument Serif en italique pour le mot qui fait sourire. Jamais plus d'un mot en italique par titre.</p>
+            <span className="label">Typographies</span>
+            <p className="lead">Deux polices, et un geste. Unbounded pour frapper, Manrope pour expliquer, et un trait de feutre orange sous le mot qui compte, comme on le ferait à la main sur une affiche de comptoir. Un seul mot souligné par titre.</p>
           </div>
           <div className="type-specimen">
             <div>
-              <small className="label"><b>Titres</b> — Unbounded</small>
+              <small className="label">Titres · Unbounded</small>
               <div className="aa" style={{ fontFamily: "var(--f-display)", fontWeight: 700, letterSpacing: "-0.06em" }}>Aa</div>
               <p style={{ fontFamily: "var(--f-display)", fontWeight: 600, fontSize: 28, letterSpacing: "-0.04em", lineHeight: 1.05 }}>Faites-les revenir.</p>
               <p className="muted" style={{ fontSize: 13 }}>Large, arrondie, pleine d'énergie. Graisse 600 à 800, interlettrage serré (-3 à -6 %).</p>
             </div>
             <div>
-              <small className="label"><b>Texte</b> — Manrope</small>
+              <small className="label">Texte · Manrope</small>
               <div className="aa" style={{ fontWeight: 700 }}>Aa</div>
               <p className="muted" style={{ fontSize: 13 }}>Lisible sur mobile, moderne sans être froide. Graisse 400 à 700.</p>
             </div>
             <div>
-              <small className="label"><b>Émotion</b> — Instrument Serif</small>
-              <div className="aa serif" style={{ color: "var(--mangue)" }}>Aa</div>
-              <p className="muted" style={{ fontSize: 13 }}>Italique uniquement, pour un mot : « revenir », « chez vous ».</p>
+              <small className="label">Le trait de feutre</small>
+              <div style={{ fontFamily: "var(--f-display)", fontWeight: 650, fontSize: 44, letterSpacing: "-0.05em", lineHeight: 1.1 }}>On vient <span className="serif">chez vous</span>.</div>
+              <p className="muted" style={{ fontSize: 13 }}>Un seul mot par titre. Jamais sur un bouton.</p>
             </div>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function MarquePage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>04</b> — Logo</span>
+            <span className="label">Logo</span>
             <p className="lead">Le symbole reprend la mascotte : la carte avec ses deux yeux qui dépasse de la poche. Dans le logotype, le point du « i » est un tampon.</p>
           </div>
           <div className="logo-stage">
@@ -174,19 +174,19 @@ export default function MarquePage() {
         <div className="rails section">
           <div className="notif-grid">
             <div className="stack" style={{ "--gap": "22px" }}>
-              <span className="label"><b>05</b> — Verre, 3D et grille</span>
-              <h2 className="display-m reveal">Du verre sur <span className="serif grad-text">une grille stricte.</span></h2>
-              <p className="lead">Les surfaces sont en verre dépoli, comme les dernières interfaces iPhone : flou de 22 px, bord blanc à 16 %, reflet en haut à gauche. Derrière, des soleils flous donnent la profondeur. Mais tout est posé sur une grille visible : lignes de 1 px, repères « + », sections numérotées entre crochets.</p>
+              <span className="label">Verre, 3D et grille</span>
+              <h2 className="display-m reveal">Du verre sur <span className="serif">une grille stricte</span>.</h2>
+              <p className="lead">Les surfaces sont en verre dépoli, comme les dernières interfaces iPhone : flou de 22 px, bord blanc à 16 %, reflet en haut à gauche. Un seul soleil flou donne la profondeur. Tout est posé sur une grille discrète : des lignes de 1 px, beaucoup d'air, et un seul appel à l'action par écran.</p>
               <ul className="list">
                 <li><span className="check">1</span>Le site est cadré, la mascotte ne l'est jamais : elle déborde, s'assoit, dépasse des bords.</li>
-                <li><span className="check">2</span>Chaque section a un numéro et un label : [ 01 — Le constat ].</li>
+                <li><span className="check">2</span>Un seul bouton principal par écran : « Réserver ma démo gratuite ».</li>
                 <li><span className="check">3</span>Les cartes Wallet sont les seuls objets en « vraie » 3D (perspective, ombre portée).</li>
               </ul>
             </div>
             <div className="reveal" style={{ position: "relative", minHeight: 420, display: "grid", placeItems: "center" }}>
               <div className="sun" style={{ width: 300, height: 300, left: "10%", top: "8%" }} aria-hidden="true" />
               <div className="glass" style={{ position: "relative", width: "min(100%, 380px)", padding: 28, borderRadius: 28, display: "grid", gap: 16 }}>
-                <span className="label"><b>Verre</b> — composant</span>
+                <span className="label">Composant verre</span>
                 <WalletCard theme="plage" compact />
                 <p className="muted" style={{ fontSize: 14 }}>backdrop-filter : blur(22px) saturate(170 %) · bordure rgba(255,255,255,.16)</p>
               </div>
@@ -199,12 +199,12 @@ export default function MarquePage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>06</b> — La mascotte</span>
-            <h2 className="display-m reveal">Voici <span className="serif orange">Walti.</span></h2>
+            <span className="label">La mascotte</span>
+            <h2 className="display-m reveal">Voici <span className="serif">Walti</span>.</h2>
           </div>
 
           <div className="mascot-board">
-            <span className="label" style={{ position: "absolute", top: 20, left: 24 }}><b>Projet</b> — planche personnage v1</span>
+            <span className="label" style={{ position: "absolute", top: 20, left: 24 }}>Planche personnage · v2</span>
             <div className="mascot-hero" style={{ marginTop: 30 }}>
               <div className="anatomy" style={{ flexDirection: "column", alignItems: "center", gap: 20 }}>
                 <Mascot pose="stamp" size={320} title="Walti, planche d'anatomie" />
@@ -252,38 +252,39 @@ export default function MarquePage() {
           </div>
 
           <div className="section-head" style={{ marginTop: 72, marginBottom: 32 }}>
-            <span className="label"><b>06.1</b> — Où il apparaît</span>
+            <span className="label">Où il apparaît</span>
             <p className="lead">Sur le site, Walti casse la grille aux moments clés. Jamais plus d'une apparition par écran.</p>
           </div>
           <div className="where-map">
             {[
-              ["Accueil · haut", "En grand, il tamponne la carte du téléphone. Le 4e tampon s'allume en lagon au même moment."],
-              ["Accueil · étapes", "Il dépasse du bloc « Vos clients la scannent »."],
-              ["Tarifs", "Assis sur la formule Premium, jambes qui balancent."],
-              ["Appel à l'action", "Il salue au-dessus du soleil couchant."],
-              ["Contact", "Il tamponne la demande quand elle est envoyée."],
-              ["Pied de page", "Seule sa carte dépasse, il vous regarde partir."],
+              ["Accueil · haut", "Debout à côté du téléphone, sur le même sol. Il arme, frappe la carte, et le 4e tampon s'allume au même instant."],
+              ["Tarifs", "Vraiment assis sur le bord de la carte Premium : mains agrippées, jambes qui balancent, ombres sur la carte."],
+              ["Demande de démo", "Il salue à côté du formulaire, puis tamponne la demande une fois envoyée."],
+              ["Pied de page", "Seule sa carte dépasse du bord, il vous regarde partir."],
+              ["Page produit", "Il tamponne une carte en gros plan."],
               ["Page 404", "Perdu, avec un point d'interrogation."],
               ["Admin", "Il dort quand une liste est vide."],
+              ["Survol", "Il saute : écrasement, envol, réception. Son ombre rétrécit en l'air."],
             ].map(([t, d]) => (
               <div key={t}><b>{t}</b><span>{d}</span></div>
             ))}
           </div>
 
           <div className="section-head" style={{ marginTop: 72, marginBottom: 32 }}>
-            <span className="label"><b>06.2</b> — Brief animation 3D</span>
+            <span className="label">Brief animation 3D</span>
             <p className="lead">Pour la future version 3D (Spline, Blender ou Rive), voici les animations déjà prototypées sur le site.</p>
           </div>
           <div className="table-wrap">
             <table className="cmp">
               <thead><tr><th>Animation</th><th>Déclencheur</th><th>Durée</th><th>Détail</th></tr></thead>
               <tbody>
-                <tr><td>Clignement</td><td>Automatique</td><td>Toutes les 4 à 5 s</td><td>Les yeux se ferment sur la carte (échelle verticale à 8 %).</td></tr>
-                <tr><td>Coup de tampon</td><td>En boucle (pose Tamponne)</td><td>2,8 s</td><td>Il arme le bras (-26°), frappe (+16°), le corps s'écrase légèrement, une marque lagon apparaît.</td></tr>
-                <tr><td>Respiration</td><td>Automatique</td><td>3,4 s</td><td>Le corps monte de 6 px, la carte remonte de 4 px, l'ombre se resserre.</td></tr>
-                <tr><td>Regard</td><td>Mouvement de la souris</td><td>Continu</td><td>Les reflets des yeux suivent le curseur.</td></tr>
-                <tr><td>Saut</td><td>Survol</td><td>0,7 s</td><td>Saut de 26 px avec écrasement à la réception.</td></tr>
-                <tr><td>Coucou</td><td>Pose Jette un œil</td><td>4 s</td><td>La carte sort de derrière un bord, les mains agrippées.</td></tr>
+                <tr><td>Clignement</td><td>Automatique</td><td>Toutes les 5 s</td><td>Double clignement de temps en temps, comme un vrai regard.</td></tr>
+                <tr><td>Coup de tampon</td><td>En boucle (pose Tamponne)</td><td>3 s</td><td>Anticipation (le corps recule, le bras s'arme à -34°), frappe (+9°), écrasement du corps depuis les pieds, la carte rebondit hors de la poche avec un temps de retard, les yeux se plissent au choc.</td></tr>
+                <tr><td>Respiration</td><td>Automatique</td><td>3,6 s</td><td>Le corps s'écrase et s'étire de 1,4 % depuis les hanches. Les pieds ne quittent jamais le sol.</td></tr>
+                <tr><td>Jambes (assis)</td><td>En boucle</td><td>1,9 s</td><td>Les tibias balancent vers nous : ils raccourcissent en perspective, leur ombre sur la carte s'étire et pâlit.</td></tr>
+                <tr><td>Regard</td><td>Mouvement de la souris</td><td>Continu</td><td>Les reflets des yeux suivent le curseur avec un léger retard.</td></tr>
+                <tr><td>Saut</td><td>Survol</td><td>0,8 s</td><td>Écrasement, envol de 32 px en s'étirant, réception écrasée. L'ombre au sol rétrécit pendant le saut.</td></tr>
+                <tr><td>Coucou</td><td>Pose Jette un œil</td><td>5 s</td><td>La carte jaillit de derrière le bord avec un petit dépassement, reste, puis redescend.</td></tr>
               </tbody>
             </table>
           </div>
@@ -295,8 +296,8 @@ export default function MarquePage() {
         <div className="rails section">
           <div className="local-grid">
             <div className="stack" style={{ "--gap": "22px" }}>
-              <span className="label"><b>07</b> — Ton de voix</span>
-              <h2 className="display-m">Chaleureux, direct, <span className="serif">d'ici.</span></h2>
+              <span className="label">Ton de voix</span>
+              <h2 className="display-m">Chaleureux, direct, <span className="serif">d'ici</span>.</h2>
               <p className="lead">On vouvoie les commerçants, on tutoie leurs clients dans les notifications. Des phrases courtes, des exemples locaux (bokits, Carnaval, plage), jamais de jargon technique.</p>
             </div>
             <div className="grid cols-2 local-cells">

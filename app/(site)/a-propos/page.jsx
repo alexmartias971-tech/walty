@@ -14,7 +14,7 @@ export default function AProposPage() {
       <PageHero
         index="A1"
         label="À propos"
-        title={<>Né ici. <span className="serif grad-text">Pour ici.</span></>}
+        title={<>Une idée née <span className="serif">au comptoir</span>.</>}
         lead="Walti est né d'un constat simple, fait sur le terrain, dans les commerces de Guadeloupe : les cartons à tampons se perdent, et les solutions digitales sont soit trop chères, soit pensées pour l'Hexagone."
       >
         <div style={{ display: "flex", justifyContent: "center" }}>
@@ -26,7 +26,7 @@ export default function AProposPage() {
         <div className="rails section">
           <div className="notif-grid">
             <div className="stack" style={{ "--gap": "28px" }}>
-              <span className="label"><b>01</b> — Notre histoire</span>
+              <span className="label">Notre histoire</span>
               <p className="big-quote reveal">« Un commerce qui fidélise, c'est un commerce qui dure. »</p>
             </div>
             <div className="stack reveal" style={{ "--gap": "18px" }} data-delay="1">
@@ -41,8 +41,8 @@ export default function AProposPage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>02</b> — Ce qui nous guide</span>
-            <h2 className="display-m reveal">Quatre promesses. <span className="serif orange">Tenues.</span></h2>
+            <span className="label">Ce qui nous guide</span>
+            <h2 className="display-m reveal">Ce à quoi on <span className="serif">tient</span>.</h2>
           </div>
           <div className="grid cols-4 values">
             {[
@@ -53,7 +53,6 @@ export default function AProposPage() {
             ].map((v, i) => (
               <div key={v.t} className="cell value reveal" data-delay={i + 1}>
                 <span className="idx">0{i + 1}</span>
-                <span className="step-icon"><Icon name={v.i} size={22} /></span>
                 <h3>{v.t}</h3>
                 <p className="muted">{v.d}</p>
               </div>
@@ -66,10 +65,10 @@ export default function AProposPage() {
         <div className="rails section">
           <div className="local-grid">
             <div className="stack" style={{ "--gap": "24px" }}>
-              <span className="label"><b>03</b> — Notre terrain</span>
-              <h2 className="display-m">De Pointe-à-Pitre <span className="serif">à Marie-Galante.</span></h2>
+              <span className="label">Notre terrain</span>
+              <h2 className="display-m">De Pointe-à-Pitre à <span className="serif">Marie-Galante</span>.</h2>
               <p className="lead">Roulottes de plage, snacks de bord de route, ongleries, karting, coffee shops : Walti a été pensé pour les commerces qui font vivre l'île, avec des prix adaptés à l'économie locale.</p>
-              <Link href="/contact" className="btn btn-dark" style={{ justifySelf: "start" }}>On passe vous voir <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
+              <Link href="/#demo" className="btn btn-dark" style={{ justifySelf: "start" }}>On passe vous voir <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
             </div>
             <div className="grid cols-2 local-cells">
               {[

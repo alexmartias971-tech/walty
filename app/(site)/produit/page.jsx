@@ -27,8 +27,8 @@ export default function ProduitPage() {
       <PageHero
         index="P1"
         label="Le produit"
-        title={<>Une carte. <span className="serif grad-text">Zéro papier.</span> Des clients qui reviennent.</>}
-        lead="Walti, c'est une carte de fidélité qui vit dans le téléphone de vos clients, et un outil simple pour votre équipe. On s'occupe de tout le reste."
+        title={<>Tout ce que fait <span className="serif">votre carte</span>.</>}
+        lead="Une carte dans le téléphone de vos clients, un outil tout simple pour votre équipe au comptoir. Le reste, c'est nous qui nous en occupons."
       >
         <div style={{ display: "flex", justifyContent: "center", position: "relative" }}>
           <Phone theme="lagon" notif={{ app: "Coffee Plage", text: "Ton 5e tampon est là ☕ Plus que 3 avant ton matcha glacé offert." }} />
@@ -39,14 +39,13 @@ export default function ProduitPage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>01</b> — Ce qui est inclus</span>
+            <span className="label">Ce qui est inclus</span>
             <p className="lead">Tout ce qu'il faut pour transformer un client de passage en habitué, sans rien installer dans votre caisse.</p>
           </div>
           <div className="grid cols-4">
             {features.map((f, i) => (
               <div key={f.t} className="cell feature reveal" data-delay={(i % 4) + 1}>
                 <span className="idx">{String(i + 1).padStart(2, "0")}</span>
-                <span className="step-icon"><Icon name={f.i} size={22} /></span>
                 <h3>{f.t}</h3>
                 <p>{f.d}</p>
               </div>
@@ -60,8 +59,8 @@ export default function ProduitPage() {
         <div className="rails section">
           <div className="notif-grid">
             <div className="stack" style={{ "--gap": "24px" }}>
-              <span className="label"><b>02</b> — Sécurité</span>
-              <h2 className="display-m reveal">Un tampon, c'est un vrai passage. <span className="serif orange">Point.</span></h2>
+              <span className="label">Sécurité</span>
+              <h2 className="display-m reveal">Un tampon = <span className="serif">un vrai passage</span>.</h2>
               <p className="lead reveal">Avec un carton, n'importe qui peut ajouter un tampon avec un stylo. Avec Walti, chaque tampon est enregistré, daté, et ajouté par votre équipe.</p>
               <ol className="list reveal" style={{ counterReset: "s" }}>
                 {[
@@ -77,7 +76,7 @@ export default function ProduitPage() {
             <div className="reveal" data-delay="2" style={{ position: "relative", display: "grid", placeItems: "center", minHeight: 460 }}>
               <div className="sun" style={{ width: 380, height: 380, opacity: 0.8 }} aria-hidden="true" />
               <WalletCard theme="plage" animateStamp style={{ position: "relative", transform: "rotate(-4deg)" }} />
-              <Mascot pose="stamp" size={220} style={{ position: "absolute", right: "-10px", bottom: "-20px" }} title="Walti ajoute un tampon" />
+              <Mascot pose="stamp" size={230} style={{ position: "absolute", right: "-10px", bottom: "-10px" }} title="Walti ajoute un tampon" />
             </div>
           </div>
         </div>
@@ -87,8 +86,8 @@ export default function ProduitPage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>03</b> — Mécaniques</span>
-            <h2 className="display-m reveal">La récompense qui colle à <span className="serif grad-text">votre commerce.</span></h2>
+            <span className="label">Mécaniques</span>
+            <h2 className="display-m reveal">La récompense qui colle à <span className="serif">votre commerce</span>.</h2>
           </div>
           <div className="grid cols-4">
             {[
@@ -111,7 +110,7 @@ export default function ProduitPage() {
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label"><b>04</b> — Comparatif</span>
+            <span className="label">Comparatif</span>
             <h2 className="display-m reveal">Carton, appli, ou Walti ?</h2>
           </div>
           <div className="table-wrap reveal">
@@ -147,8 +146,8 @@ export default function ProduitPage() {
         <div className="rails section">
           <div className="local-grid">
             <div className="stack" style={{ "--gap": "24px" }}>
-              <span className="label"><b>05</b> — Vos données</span>
-              <h2 className="display-m">Vos clients <span className="serif">vous appartiennent.</span></h2>
+              <span className="label">Vos données</span>
+              <h2 className="display-m">Vos clients <span className="serif">restent à vous</span>.</h2>
               <p className="lead">Walti traite les données de vos clients pour votre compte, en tant que sous-traitant au sens du RGPD. Elles ne sont jamais revendues ni utilisées pour autre chose. Si vous partez, vous récupérez votre fichier.</p>
             </div>
             <div className="grid cols-2 local-cells">
@@ -169,18 +168,14 @@ export default function ProduitPage() {
         </div>
       </section>
 
-      <section className="frame cta-final">
-        <div className="rails section">
-          <div className="cta-box">
-            <div className="sun cta-sun" aria-hidden="true" />
-            <div className="cta-inner">
-              <h2 className="display-l">Voyez-la <span className="serif">en vrai.</span></h2>
-              <p className="lead" style={{ margin: "0 auto" }}>On vous installe une carte de démonstration à votre nom, sur votre téléphone, pendant le rendez-vous.</p>
-              <div className="row" style={{ justifyContent: "center", "--gap": "12px" }}>
-                <Link href="/contact" className="btn btn-light">Demander une démo <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
-                <Link href="/tarifs" className="btn btn-ghost">Voir les tarifs</Link>
-              </div>
-            </div>
+      <section className="frame">
+        <div className="rails section end-cta">
+          <Mascot pose="wave" size={170} title="Walti vous salue" />
+          <h2 className="display-l">Voyez-la <span className="serif">en vrai</span>.</h2>
+          <p className="lead">On vous installe une carte d'essai à votre nom, sur votre téléphone, pendant le rendez-vous.</p>
+          <div className="row" style={{ justifyContent: "center", "--gap": "22px" }}>
+            <Link href="/#demo" className="btn btn-primary btn-lg">Réserver ma démo gratuite <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
+            <Link href="/tarifs" className="text-link">Voir les tarifs</Link>
           </div>
         </div>
       </section>

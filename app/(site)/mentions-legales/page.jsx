@@ -45,7 +45,7 @@ export default function MentionsLegales() {
       <p>Le traitement de vos données est décrit dans la <Link href="/confidentialite">politique de confidentialité</Link>. Ce site n'utilise aucun cookie publicitaire ni de mesure d'audience : voir la page <Link href="/cookies">cookies</Link>.</p>
 
       <h2>6. Crédits</h2>
-      <p>Conception, identité visuelle et mascotte : Walti. Polices Unbounded, Manrope et Instrument Serif, sous licence SIL Open Font License, hébergées directement sur ce site (aucun appel à un service tiers).</p>
+      <p>Conception, identité visuelle et mascotte : Walti. Polices Unbounded et Manrope, sous licence SIL Open Font License, hébergées directement sur ce site (aucun appel à un service tiers).</p>
 
       <h2>7. Droit applicable</h2>
       <p>Les présentes mentions sont régies par le droit français. Tout litige relève des juridictions compétentes du ressort de la cour d'appel de Basse-Terre.</p>
