@@ -16,7 +16,7 @@ export const metadata = {
     type: "website",
     locale: "fr_FR",
     siteName: "Walti",
-    title: "Walti · Faites-les revenir.",
+    title: "Walti · La carte de fidélité digitale",
     description: site.description,
   },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },

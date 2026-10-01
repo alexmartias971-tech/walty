@@ -20,7 +20,7 @@ export default function DashPreview() {
           </div>
         ))}
       </div>
-      <div>
+      <div className="dash-bars">
         <p style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>Passages par semaine</p>
         <div className="bars" role="img" aria-label={`Passages par semaine : ${demoStats.weekly.join(", ")}`}>
           {demoStats.weekly.map((v, i) => (

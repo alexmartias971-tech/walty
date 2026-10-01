@@ -14,7 +14,7 @@ export default function Footer() {
             <p className="muted" style={{ maxWidth: 340 }}>
               La carte de fidélité des commerces de Guadeloupe, dans le téléphone de vos clients.
             </p>
-            <p className="faint" style={{ fontSize: 13 }}>{site.contact.hours} · {site.contact.zone}</p>
+            <p className="faint footer-hours" style={{ fontSize: 13 }}>{site.contact.hours} · {site.contact.zone}</p>
           </div>
           <div>
             <h4>Walti</h4>

@@ -20,21 +20,24 @@ export default function Home() {
         <div className="rails hero-rails">
           <div className="hero-grid">
             <div className="hero-copy">
-              <span className="label reveal">Carte de fidélité pour les commerces de Guadeloupe</span>
+              <ul className="wallet-badges reveal" aria-label="Compatible avec">
+                <li><Icon name="phone" size={15} /> Apple Wallet</li>
+                <li><Icon name="phone" size={15} /> Google Wallet</li>
+              </ul>
               <h1 className="display-xl hero-title reveal" data-delay="1">
-                <span className="nw">Faites-les</span> <span className="grad-text">revenir.</span>
+                La carte de fidélité <span className="grad-text">digitale</span>.
               </h1>
               <p className="hero-lead reveal" data-delay="2">
-                Votre carte de fidélité, directement dans le téléphone de vos clients. Fini les cartons perdus.
+                Vos clients la gardent dans leur téléphone. Un tampon à chaque passage, un cadeau au bout.
               </p>
               <div className="hero-actions reveal" data-delay="3">
                 <Link href="/creer" className="btn btn-primary btn-lg">Créer ma carte <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
                 <Link href="/contact" className="btn btn-dark btn-lg">Réserver une démo</Link>
               </div>
               <ul className="reassure reveal" data-delay="4">
+                <li><Icon name="check" size={17} stroke={2.4} /> Sans appli à télécharger</li>
                 {trialDays > 0 && <li><Icon name="check" size={17} stroke={2.4} /> {trialDays} jours gratuits</li>}
                 <li><Icon name="check" size={17} stroke={2.4} /> Sans engagement</li>
-                <li><Icon name="check" size={17} stroke={2.4} /> Moins d'1 € par jour</li>
               </ul>
             </div>
             <div className="stage" aria-hidden="true">
@@ -106,7 +109,7 @@ export default function Home() {
                 </div>
               </div>
               <ul className="list">
-                {["Perdue, oubliée, passée à la machine", "Facile à tricher avec un stylo", "Vous ne savez pas qui revient"].map((t) => (
+                {["Perdu, oublié, passé à la machine", "Facile à tricher", "Vous ne savez pas qui revient"].map((t) => (
                   <li key={t}><span className="check x"><Icon name="x" size={12} stroke={2.6} /></span>{t}</li>
                 ))}
               </ul>
@@ -115,7 +118,7 @@ export default function Home() {
               <span className="ba-tag orange">AVEC WALTI</span>
               <div className="ba-visual" aria-hidden="true"><WalletCard theme="hibiscus" /></div>
               <ul className="list">
-                {["Toujours dans le téléphone", "Tamponnée par votre équipe, impossible à tricher", "Vous voyez vos chiffres"].map((t) => (
+                {["Toujours dans le téléphone", "Impossible à tricher", "Vous voyez vos chiffres"].map((t) => (
                   <li key={t} style={{ color: "var(--ink)", fontWeight: 600 }}><span className="check"><Icon name="check" size={12} stroke={2.6} /></span>{t}</li>
                 ))}
               </ul>
@@ -125,7 +128,7 @@ export default function Home() {
       </section>
 
       {/* ═════ 4. MESSAGES (bloc sombre) ═════ */}
-      <section className="frame dark">
+      <section className="frame dark msg-band">
         <div className="rails section duo">
           <div className="reveal" aria-hidden="true">
             <div className="lock">
@@ -153,7 +156,7 @@ export default function Home() {
       </section>
 
       {/* ═════ 5. VOS CHIFFRES ═════ */}
-      <section className="frame alt">
+      <section className="frame alt dash-band">
         <div className="rails section duo flip">
           <div className="stack" style={{ "--gap": "20px" }}>
             <span className="label">Votre espace commerçant</span>

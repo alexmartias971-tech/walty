@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Mascot from "./Mascot";
 import Icon from "./Icon";
 import { plans, highlights, trialDays } from "@/lib/offer";
@@ -9,6 +9,30 @@ import { plans, highlights, trialDays } from "@/lib/offer";
 /** Les 3 formules. Ce qui manque est barré : la différence se voit d'un coup d'œil. */
 export default function PriceCards({ toggle = false }) {
   const [yearly, setYearly] = useState(false);
+  const [active, setActive] = useState(1);
+  const row = useRef(null);
+  // Sur téléphone et tablette, les cartes défilent de côté : on ouvre sur Premium
+  useEffect(() => {
+    const el = row.current;
+    if (!el || window.innerWidth >= 960) return;
+    const f = el.querySelector(".featured");
+    if (f) el.scrollLeft = f.offsetLeft - (el.clientWidth - f.clientWidth) / 2;
+    const on = () => {
+      const cards = [...el.children];
+      const mid = el.scrollLeft + el.clientWidth / 2;
+      let best = 0, d = Infinity;
+      cards.forEach((c, i) => { const cd = Math.abs(c.offsetLeft + c.clientWidth / 2 - mid); if (cd < d) { d = cd; best = i; } });
+      setActive(best);
+    };
+    on();
+    el.addEventListener("scroll", on, { passive: true });
+    return () => el.removeEventListener("scroll", on);
+  }, []);
+  function go(i) {
+    const el = row.current;
+    const c = el?.children[i];
+    if (c) el.scrollTo({ left: c.offsetLeft - (el.clientWidth - c.clientWidth) / 2, behavior: "smooth" });
+  }
   return (
     <>
       {toggle && (
@@ -19,7 +43,12 @@ export default function PriceCards({ toggle = false }) {
           </div>
         </div>
       )}
-      <div className="price-row">
+      <div className="price-dots" aria-label="Formules">
+        {plans.map((p, i) => (
+          <button key={p.id} type="button" className={i === active ? "on" : ""} onClick={() => go(i)} aria-label={`Voir ${p.name}`} aria-current={i === active ? "true" : undefined}>{p.name}</button>
+        ))}
+      </div>
+      <div className="price-row" ref={row}>
         {plans.map((p) => (
           <article key={p.id} className={`price-card ${p.featured ? "featured" : ""}`}>
             {p.featured && (

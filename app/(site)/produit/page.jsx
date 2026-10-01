@@ -75,7 +75,7 @@ export default function ProduitPage() {
             </ol>
             <p className="muted">Deux scans trop rapprochés ? Le second est refusé.</p>
           </div>
-          <div className="reveal" data-delay="2" style={{ position: "relative", display: "grid", placeItems: "center", minHeight: 440 }}>
+          <div className="reveal triche-visual" data-delay="2" style={{ position: "relative", display: "grid", placeItems: "center", minHeight: 440 }}>
             <div className="sun" style={{ width: 360, height: 360, opacity: 0.7 }} aria-hidden="true" />
             <WalletCard theme="plage" animateStamp style={{ position: "relative", transform: "rotate(-4deg)" }} />
             <Mascot pose="stamp" size={220} style={{ position: "absolute", right: "-6px", bottom: "-10px" }} title="Walti ajoute un tampon" />

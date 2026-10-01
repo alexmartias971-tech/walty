@@ -1,7 +1,7 @@
 # Walti — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 4 (thème sombre, « Créer ma carte » complet).
+Site Next.js prêt pour GitHub → Vercel. Version 5 (thème sombre, « Créer ma carte » complet, accueil explicite, adapté téléphone et tablette).
 
 ## Ce qu'il y a dedans
 
@@ -22,7 +22,7 @@ Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, 
 
 ## 1. Mettre en ligne (sans rien installer)
 
-1. Dézippez le fichier `walti-site-v4.zip`.
+1. Dézippez le fichier `walti-site-v5.zip`.
 2. Sur GitHub, ouvrez votre dépôt existant (ex. `walty`) → **Add file → Upload files**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**. Les fichiers existants sont remplacés.
 3. Vercel redéploie tout seul si le dépôt est relié au projet. Sinon : **Add New → Project** → importez le dépôt → **Deploy**.
 
