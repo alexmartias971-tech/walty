@@ -50,11 +50,6 @@ export default function ContactPage() {
                   ))}
                 </ol>
               </div>
-              <div className="info-card glass">
-                <h2 className="display-s" style={{ fontSize: 20 }}>Pressé ?</h2>
-                <p className="muted" style={{ fontSize: 15 }}>Créez votre carte vous-même en 10 minutes. On l'active sous 24 h.</p>
-                <Link href="/creer" className="btn btn-primary">Créer ma carte</Link>
-              </div>
             </aside>
           </div>
         </div>

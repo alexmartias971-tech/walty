@@ -6,7 +6,8 @@ import Icon from "@/components/Icon";
 import PriceCards from "@/components/PriceCards";
 import DashPreview from "@/components/DashPreview";
 import Fork from "@/components/Fork";
-import { founderOffer, vatNotice, trialDays } from "@/lib/offer";
+import WalletBadges from "@/components/WalletBadges";
+import { founderOffer, trialDays } from "@/lib/offer";
 
 export default function Home() {
   return (
@@ -21,8 +22,8 @@ export default function Home() {
           <div className="hero-grid">
             <div className="hero-copy">
               <ul className="wallet-badges reveal" aria-label="Compatible avec">
-                <li><Icon name="phone" size={15} /> Apple Wallet</li>
-                <li><Icon name="phone" size={15} /> Google Wallet</li>
+                <li><Icon name="check" size={14} stroke={2.4} /> Compatible Apple Wallet</li>
+                <li><Icon name="check" size={14} stroke={2.4} /> Compatible Google Wallet</li>
               </ul>
               <h1 className="display-xl hero-title reveal" data-delay="1">
                 La carte de fidélité <span className="grad-text">digitale</span>.
@@ -31,8 +32,8 @@ export default function Home() {
                 Vos clients la gardent dans leur téléphone. Un tampon à chaque passage, un cadeau au bout.
               </p>
               <div className="hero-actions reveal" data-delay="3">
-                <Link href="/creer" className="btn btn-primary btn-lg">Créer ma carte <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
-                <Link href="/contact" className="btn btn-dark btn-lg">Réserver une démo</Link>
+                <Link href="/contact" className="btn btn-primary btn-lg">Réserver une démo <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
+                <Link href="/creer" className="btn btn-dark btn-lg">Créer ma carte <span className="soon-tag">Bientôt</span></Link>
               </div>
               <ul className="reassure reveal" data-delay="4">
                 <li><Icon name="check" size={17} stroke={2.4} /> Sans appli à télécharger</li>
@@ -40,11 +41,14 @@ export default function Home() {
                 <li><Icon name="check" size={17} stroke={2.4} /> Sans engagement</li>
               </ul>
             </div>
-            <div className="stage" aria-hidden="true">
-              <div className="stage-floor" />
-              <div className="stage-phone"><Phone theme="plage" cardBottom={-6} /></div>
-              <span className="stamp-pop">+1</span>
-              <Mascot pose="stamp" size={320} impact={false} className="stage-mascot" title="Walti ajoute un tampon sur la carte" />
+            <div className="hero-visual">
+              <div className="stage" aria-hidden="true">
+                <div className="stage-floor" />
+                <div className="stage-phone"><Phone theme="plage" cardBottom={-6} /></div>
+                <span className="stamp-pop">+1</span>
+                <Mascot pose="stamp" size={320} impact={false} className="stage-mascot" title="Walti ajoute un tampon sur la carte" />
+              </div>
+              <WalletBadges />
             </div>
           </div>
         </div>
@@ -61,8 +65,8 @@ export default function Home() {
             <li className="how-step reveal">
               <div className="how-visual"><WalletCard theme="lagon" compact /></div>
               <span className="how-n">1</span>
-              <h3>Vous créez votre carte</h3>
-              <p>Tampons, points, cashback… à vos couleurs. 10 minutes.</p>
+              <h3>On crée votre carte</h3>
+              <p>Vos couleurs, votre logo, votre cadeau. On s'occupe de tout.</p>
             </li>
             <li className="how-step reveal" data-delay="1">
               <div className="how-visual">
@@ -177,7 +181,7 @@ export default function Home() {
           </div>
           <PriceCards />
           <div className="price-foot">
-            <p>{founderOffer} {vatNotice}</p>
+            <p>{founderOffer}</p>
             <Link href="/tarifs" className="text-link">Tout comparer</Link>
           </div>
         </div>

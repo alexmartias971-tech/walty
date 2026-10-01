@@ -14,7 +14,7 @@ export default function NotFound() {
           <div className="nf-code">404</div>
           <h1 className="display-s">Cette page s'est perdue en chemin.</h1>
           <p className="lead" style={{ margin: "0 auto" }}>Même Walti ne la retrouve pas.</p>
-          <div className="row" style={{ justifyContent: "center" }}><Link href="/" className="btn btn-primary">Retour à l'accueil</Link><Link href="/creer" className="btn btn-ghost">Créer ma carte</Link></div>
+          <div className="row" style={{ justifyContent: "center" }}><Link href="/" className="btn btn-primary">Retour à l'accueil</Link><Link href="/contact" className="btn btn-ghost">Réserver une démo</Link></div>
         </div>
       </main>
     </>

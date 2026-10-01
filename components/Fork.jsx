@@ -14,22 +14,22 @@ export default function Fork({ title = "Comment voulez-vous commencer ?" }) {
         <div className="fork-mascot" aria-hidden="true"><Mascot pose="wave" size={150} title="Walti vous salue" /></div>
         <div className="fork">
           <div className="fork-card self">
-            <h3>Je crée ma carte moi-même</h3>
+            <h3>On vient chez vous</h3>
             <ul>
-              <li><Icon name="check" size={18} stroke={2.4} /> Prête en 10 minutes</li>
-              {trialDays > 0 && <li><Icon name="check" size={18} stroke={2.4} /> {trialDays} jours gratuits</li>}
-              <li><Icon name="check" size={18} stroke={2.4} /> Sans carte bancaire</li>
+              <li><Icon name="check" size={18} stroke={2.4} /> 15 minutes, démo gratuite</li>
+              <li><Icon name="check" size={18} stroke={2.4} /> On crée et installe votre carte</li>
+              {trialDays > 0 && <li><Icon name="check" size={18} stroke={2.4} /> {trialDays} jours offerts, sans engagement</li>}
             </ul>
-            <Link href="/creer" className="btn btn-light btn-lg stretch">Créer ma carte <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
+            <Link href="/contact" className="btn btn-light btn-lg stretch">Réserver une démo <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
           </div>
           <div className="fork-card help">
-            <h3>Je préfère qu'on vienne</h3>
+            <h3>Je crée ma carte moi-même <span className="soon-tag">Bientôt</span></h3>
             <ul>
-              <li><Icon name="check" size={18} stroke={2.4} /> 15 minutes chez vous</li>
-              <li><Icon name="check" size={18} stroke={2.4} /> On installe tout</li>
-              <li><Icon name="check" size={18} stroke={2.4} /> Sans engagement</li>
+              <li><Icon name="sparkle" size={18} /> Vous décrivez votre commerce</li>
+              <li><Icon name="sparkle" size={18} /> Notre agent IA crée votre carte</li>
+              <li><Icon name="sparkle" size={18} /> En 2 minutes</li>
             </ul>
-            <Link href="/contact" className="btn btn-primary btn-lg stretch">Réserver une démo</Link>
+            <Link href="/creer" className="btn btn-ghost btn-lg stretch">Être prévenu</Link>
           </div>
         </div>
       </div>

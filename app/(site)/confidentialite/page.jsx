@@ -32,6 +32,12 @@ export default function Confidentialite() {
               <td>3 ans à compter de notre dernier échange ; durée du contrat si vous devenez client</td>
             </tr>
             <tr>
+              <td>Vous prévenir de l'ouverture de « Créer ma carte » (liste d'attente)</td>
+              <td>E-mail ou téléphone, nom du commerce (facultatif), formule envisagée</td>
+              <td>Votre consentement, en vous inscrivant (6.1.a). Retirable à tout moment.</td>
+              <td>Jusqu'au lancement, puis 6 mois</td>
+            </tr>
+            <tr>
               <td>Espace commerçant (connexion à votre carte et à vos chiffres)</td>
               <td>E-mail de connexion, mot de passe (stocké chiffré par notre hébergeur de base de données), formule</td>
               <td>Exécution du contrat (6.1.b)</td>

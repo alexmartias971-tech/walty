@@ -21,8 +21,8 @@ export default function StickyCta() {
   if (["/contact", "/creer", "/espace"].includes(pathname)) return null;
   return (
     <div className={`sticky-cta ${show ? "on" : ""}`} aria-hidden={!show}>
-      <Link href="/creer" className="btn btn-primary" tabIndex={show ? 0 : -1}>Créer ma carte</Link>
-      <Link href="/contact" className="btn btn-dark" tabIndex={show ? 0 : -1}>Démo gratuite</Link>
+      <Link href="/contact" className="btn btn-primary" tabIndex={show ? 0 : -1}>Réserver une démo</Link>
+      <Link href="/creer" className="btn btn-dark" tabIndex={show ? 0 : -1}>Créer ma carte <span className="soon-tag">Bientôt</span></Link>
     </div>
   );
 }

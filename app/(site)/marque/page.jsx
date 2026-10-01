@@ -176,7 +176,7 @@ export default function MarquePage() {
             <h2 className="display-m reveal">Sobre, cadré, <span className="serif">peu de mots</span>.</h2>
             <ul className="list">
               <li><span className="check">1</span>Une idée par bloc. Un titre de 3 à 5 mots, une phrase, une image.</li>
-              <li><span className="check">2</span>Deux portes partout : « Créer ma carte » (orange) et « Réserver une démo ».</li>
+              <li><span className="check">2</span>Deux portes partout : « Réserver une démo » (orange) et « Créer ma carte » (bientôt, avec l'agent IA).</li>
               <li><span className="check">3</span>Le site est cadré, la mascotte ne l'est jamais : elle déborde, s'assoit, dépasse des bords.</li>
               <li><span className="check">4</span>Les téléphones et les cartes Wallet sont les seuls objets en 3D.</li>
             </ul>

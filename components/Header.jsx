@@ -35,8 +35,8 @@ export default function Header() {
         </nav>
         <div className="row" style={{ "--gap": "8px" }}>
           <div className="header-ctas">
-            <Link href="/contact" className="btn btn-ghost btn-sm">Réserver une démo</Link>
-            <Link href="/creer" className="btn btn-primary btn-sm">Créer ma carte</Link>
+            <Link href="/creer" className="btn btn-ghost btn-sm">Créer ma carte <span className="soon-tag">Bientôt</span></Link>
+            <Link href="/contact" className="btn btn-primary btn-sm">Réserver une démo</Link>
           </div>
           <button className="burger" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}>
             <svg width="18" height="18" viewBox="0 0 18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -50,8 +50,8 @@ export default function Header() {
           {navLinks.map((l) => (
             <Link key={l.href} href={l.href} aria-current={pathname === l.href ? "page" : undefined} onClick={() => setOpen(false)}>{l.label}</Link>
           ))}
-          <Link href="/creer" className="btn btn-primary" style={{ marginTop: 8 }}>Créer ma carte</Link>
-          <Link href="/contact" className="btn btn-dark">Réserver une démo</Link>
+          <Link href="/contact" className="btn btn-primary" style={{ marginTop: 8 }}>Réserver une démo</Link>
+          <Link href="/creer" className="btn btn-dark">Créer ma carte <span className="soon-tag">Bientôt</span></Link>
         </nav>
       )}
     </header>

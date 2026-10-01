@@ -1,7 +1,7 @@
 # Walti — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 5 (thème sombre, « Créer ma carte » complet, accueil explicite, adapté téléphone et tablette).
+Site Next.js prêt pour GitHub → Vercel. Version 6 (écran de chargement animé, badges Apple Wallet / Google Wallet, « Créer ma carte » en « Bientôt disponible », mentions légales remplies).
 
 ## Ce qu'il y a dedans
 
@@ -10,7 +10,7 @@ Site Next.js prêt pour GitHub → Vercel. Version 5 (thème sombre, « Créer m
 | Accueil | `/` |
 | Le produit | `/produit` |
 | Tarifs (Essentiel 29 € · Premium 49 € · Pro 79 €) | `/tarifs` |
-| **Créer ma carte** : 9 étapes avec aperçu en direct (coordonnées, commerce, charte graphique, type de carte parmi 8, règles, design, formule et options, facturation, récapitulatif), brouillon gardé sur l'appareil | `/creer` |
+| **Créer ma carte** : écran « Bientôt disponible » animé (agent IA à venir) avec « Réserver une démo » et une liste d'attente « Me prévenir ». L'ancien assistant en 9 étapes est gardé dans `app/(site)/creer/CreerWizard.jsx` | `/creer` |
 | **Espace commerçant** (sa carte, ses chiffres, l'envoi de messages, les automatismes) | `/espace` |
 | Contact (réserver une démo) | `/contact` |
 | À propos | `/a-propos` |
@@ -22,7 +22,7 @@ Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, 
 
 ## 1. Mettre en ligne (sans rien installer)
 
-1. Dézippez le fichier `walti-site-v5.zip`.
+1. Dézippez le fichier `walti-site-v6.zip`.
 2. Sur GitHub, ouvrez votre dépôt existant (ex. `walty`) → **Add file → Upload files**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**. Les fichiers existants sont remplacés.
 3. Vercel redéploie tout seul si le dépôt est relié au projet. Sinon : **Add New → Project** → importez le dépôt → **Deploy**.
 
@@ -86,3 +86,18 @@ npm run build
 ```
 
 Next.js 16 (App Router), React 19, CSS pur, polices auto-hébergées (@fontsource), Supabase optionnel.
+
+## Badges Apple Wallet et Google Wallet
+
+Les badges sous la carte de l'accueil sont les fichiers officiels, non modifiés, dans `public/badges/` :
+- `google-wallet.svg` : badge français fourni par Google (developers.google.com/wallet, « Brand guidelines »).
+- `apple-wallet.svg` : badge fourni par Apple (developer.apple.com/wallet). La version française est dans le pack
+  « Download badge files » de la page « Add to Apple Wallet badge guidelines » (il faut accepter les conditions d'Apple) :
+  remplacez simplement le fichier en gardant le même nom.
+
+Règles : ne pas recolorer, déformer, animer ni redessiner ces badges, et garder de l'espace autour.
+
+## Écran de chargement
+
+`components/IntroLoader.jsx` : 1,6 s, une seule fois par visite (onglet), désactivé si l'appareil demande moins d'animations.
+Pour le retirer, supprimez la ligne `<IntroLoader />` dans `app/(site)/layout.jsx`.

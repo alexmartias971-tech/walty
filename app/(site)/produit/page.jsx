@@ -103,7 +103,7 @@ export default function ProduitPage() {
           </div>
           <div className="how-foot">
             <p>Vous ne savez pas lequel choisir ? On vous conseille selon votre activité.</p>
-            <Link href="/creer" className="btn btn-primary btn-sm">Créer ma carte</Link>
+            <Link href="/contact" className="btn btn-primary btn-sm">Réserver une démo</Link>
           </div>
         </div>
       </section>
@@ -127,7 +127,7 @@ export default function ProduitPage() {
                   ["Triche possible", "Oui", "Ça dépend", "Non"],
                   ["Vous savez qui revient", "Non", "Oui", "Oui"],
                   ["Prévenir vos clients", "Impossible", "Si l'appli est ouverte", "Sur leur écran"],
-                  ["Installation", "Vous", "Vous", "Vous en 10 min, ou nous"],
+                  ["Installation", "Vous", "Vous", "On s'en occupe"],
                 ].map((r) => (
                   <tr key={r[0]}>
                     <td>{r[0]}</td>

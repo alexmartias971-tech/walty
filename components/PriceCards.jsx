@@ -69,10 +69,10 @@ export default function PriceCards({ toggle = false }) {
               ))}
             </ul>
             <div className="price-actions">
-              <Link href={`/creer?formule=${p.id}`} className={`btn ${p.featured ? "btn-primary" : "btn-dark"}`}>
-                {trialDays ? `Essayer ${trialDays} jours gratuits` : `Choisir ${p.name}`}
+              <Link href={`/contact?formule=${p.id}`} className={`btn ${p.featured ? "btn-primary" : "btn-dark"}`}>
+                {trialDays ? `Démo gratuite · ${trialDays} jours offerts` : `Choisir ${p.name}`}
               </Link>
-              <Link href={`/contact?formule=${p.id}`} className="small">ou réserver une démo</Link>
+              <Link href={`/creer?formule=${p.id}`} className="small">Créer ma carte en ligne : bientôt</Link>
             </div>
           </article>
         ))}

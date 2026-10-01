@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Logo from "./Logo";
 import Mascot from "./Mascot";
-import { site, legal } from "@/lib/site.config";
+import { site } from "@/lib/site.config";
 
 export default function Footer() {
   return (
@@ -28,8 +28,8 @@ export default function Footer() {
           <div>
             <h4>Commencer</h4>
             <ul>
-              <li><Link href="/creer">Créer ma carte</Link></li>
               <li><Link href="/contact">Réserver une démo</Link></li>
+              <li><Link href="/creer">Créer ma carte (bientôt)</Link></li>
               <li><Link href="/espace">Espace commerçant</Link></li>
             </ul>
           </div>
@@ -46,7 +46,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© {new Date().getFullYear()} Walti · {legal.vat}</span>
+        <span>© {new Date().getFullYear()} Walti</span>
         <span>Apple Wallet est une marque d'Apple Inc., Google Wallet une marque de Google LLC. Walti n'est affilié à aucune des deux.</span>
       </div>
     </footer>

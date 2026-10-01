@@ -50,7 +50,7 @@ function Login({ onIn, onExample }) {
         </form>
         <button type="button" className="btn btn-ghost" onClick={onExample} style={{ width: "100%" }}>Voir un exemple</button>
         <p className="faint" style={{ fontSize: 14, textAlign: "center" }}>
-          Pas encore de carte ? <Link href="/creer" className="text-link" style={{ fontSize: 14 }}>Créer ma carte</Link><br />
+          Pas encore de carte ? <Link href="/contact" className="text-link" style={{ fontSize: 14 }}>Réserver une démo</Link><br />
           Mot de passe oublié ? <Link href="/contact" className="text-link" style={{ fontSize: 14 }}>Écrivez-nous</Link>
         </p>
         {isDemo && <p className="faint" style={{ fontSize: 12.5, textAlign: "center" }}>Aperçu du site : n'importe quel e-mail fonctionne.</p>}

@@ -3,7 +3,7 @@ import PageHero from "@/components/PageHero";
 import PriceCards from "@/components/PriceCards";
 import Fork from "@/components/Fork";
 import Icon from "@/components/Icon";
-import { plans, features, addons, founderOffer, vatNotice, trialDays } from "@/lib/offer";
+import { plans, features, addons, founderOffer, trialDays } from "@/lib/offer";
 
 export const metadata = {
   title: "Tarifs",
@@ -28,7 +28,7 @@ export default function TarifsPage() {
       <section className="frame">
         <div className="rails section" style={{ paddingTop: 24 }}>
           <PriceCards toggle />
-          <p className="faint" style={{ fontSize: 14, marginTop: 20 }}>{founderOffer} {vatNotice} Offre réservée aux professionnels. Voir les <Link href="/cgv" style={{ textDecoration: "underline" }}>conditions de vente</Link>.</p>
+          <p className="faint" style={{ fontSize: 14, marginTop: 20 }}>{founderOffer} Offre réservée aux professionnels. Voir les <Link href="/cgv" style={{ textDecoration: "underline" }}>conditions de vente</Link>.</p>
         </div>
       </section>
 
@@ -81,9 +81,8 @@ export default function TarifsPage() {
           <h2 className="display-m">Questions <span className="serif">sur les prix</span>.</h2>
           <div className="faq">
             {[
-              { q: "Pourquoi il n'y a pas de TVA ?", a: "Walti est une micro-entreprise en franchise de TVA (art. 293 B du CGI). Le prix affiché est le prix que vous payez." },
               { q: "Que se passe-t-il à 200 clients en Essentiel ?", a: "Bravo ! Les clients déjà inscrits gardent leur carte. Pour accueillir les suivants, vous passez en Premium (jusqu'à 1 000 clients)." },
-              { q: "Comment se passe l'essai gratuit ?", a: `Vous créez votre carte, on l'active, et vous l'utilisez ${trialDays || 14} jours sans payer. Ensuite, vous choisissez de continuer ou non.` },
+              { q: "Comment se passe l'essai gratuit ?", a: `On crée votre carte pendant la démo, et vous l'utilisez ${trialDays || 14} jours sans payer. Ensuite, vous choisissez de continuer ou non.` },
               { q: "Je peux changer de formule ?", a: "Oui, à tout moment. Pour monter, c'est immédiat. Pour descendre, c'est au mois suivant." },
               { q: "Et si j'arrête ?", a: "Aucun engagement. Vous arrêtez à la fin du mois et vous gardez la liste de vos clients." },
             ].map((f) => (
