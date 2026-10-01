@@ -27,7 +27,7 @@ export default function Confidentialite() {
             </tr>
             <tr>
               <td>Créer votre carte en ligne (« Créer ma carte ») et l'activer</td>
-              <td>Nom du commerce, activité, commune, couleurs, logo (si vous l'ajoutez), récompense, formule choisie, nom, téléphone, e-mail</td>
+              <td>Nom, prénom, téléphone, e-mail ; nom du commerce, activité, commune, nombre approximatif de clients, lien Instagram ou site ; logo, photo et couleurs (si vous les ajoutez) ; type de carte et règles ; formule et options choisies ; informations de facturation (raison sociale, SIRET, adresse, e-mail de facturation)</td>
               <td>Mesures précontractuelles prises à votre demande (6.1.b)</td>
               <td>3 ans à compter de notre dernier échange ; durée du contrat si vous devenez client</td>
             </tr>

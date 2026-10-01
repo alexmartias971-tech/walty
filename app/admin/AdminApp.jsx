@@ -7,6 +7,7 @@ import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import { plans, planById } from "@/lib/offer";
 import WalletCard, { cardFromConfig } from "@/components/WalletCard";
+import { programById, programDisplay } from "@/lib/programs";
 import {
   isDemo, STAGES, stageById, SECTORS, COMMUNES,
   getSession, signIn, signOut, listAccounts, saveAccount, deleteAccount, resetDemo, computeMrr, toCsv,
@@ -450,7 +451,34 @@ function Fiche({ acc, onClose, onSave, onDelete }) {
                 {a.plan !== a.requested_plan && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setA((p) => ({ ...p, plan: p.requested_plan, mrr: computeMrr(p.requested_plan, p.billing) }))}>Reprendre cette formule</button>}
               </div>
             )}
-            {a.card_config?.logo && <a className="text-link" style={{ fontSize: 13, marginTop: 8, display: "inline-block" }} href={a.card_config.logo} download={`logo-${(a.business || "commerce").replace(/\W+/g, "-")}.jpg`}>Télécharger le logo</a>}
+            {a.card_config?.program && <p style={{ fontSize: 13, marginTop: 10 }}><b>{programById[a.card_config.program.type]?.name}</b> · {programDisplay(a.card_config.program).summary}</p>}
+            {a.card_config?.brand && (
+              <p style={{ fontSize: 13, marginTop: 6, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <span>Charte : {{ complete: "complète", logo: "logo seul", none: "aucune" }[a.card_config.brand.charter] || "—"}</span>
+                {a.card_config.brand.primary && <span className="adm-swatch" style={{ background: a.card_config.brand.primary }} title={a.card_config.brand.primary} />}
+                {a.card_config.brand.secondary && <span className="adm-swatch" style={{ background: a.card_config.brand.secondary }} title={a.card_config.brand.secondary} />}
+                {a.card_config.brand.font && <span>· Police : {a.card_config.brand.font}</span>}
+                {a.card_config.brand.sendCharter && <span>· Envoie sa charte PDF</span>}
+                {a.card_config.brand.links && <span>· {a.card_config.brand.links}</span>}
+              </p>
+            )}
+            <div className="row" style={{ "--gap": "14px", marginTop: 8 }}>
+              {a.card_config?.logo && <a className="text-link" style={{ fontSize: 13 }} href={a.card_config.logo} download={`logo-${(a.business || "commerce").replace(/\W+/g, "-")}.png`}>Télécharger le logo</a>}
+              {a.card_config?.photo && <a className="text-link" style={{ fontSize: 13 }} href={a.card_config.photo} download={`photo-${(a.business || "commerce").replace(/\W+/g, "-")}.jpg`}>Télécharger la photo</a>}
+            </div>
+          </div>
+        )}
+
+        {a.billing_info && (
+          <div className="msg">
+            <b style={{ display: "block", fontSize: 12, marginBottom: 8 }}>Facturation</b>
+            <div style={{ display: "grid", gap: 2, fontSize: 14 }}>
+              <span><b>{a.billing_info.legal_name}</b>{a.billing_info.siret ? ` · SIRET ${a.billing_info.siret}` : " · SIRET à demander"}</span>
+              <span>{a.billing_info.address}, {a.billing_info.postal_code} {a.billing_info.city}</span>
+              <span>Factures : {a.billing_info.email} · paiement {a.billing_info.billing}</span>
+              {a.billing_info.options?.length > 0 && <span>Options : {a.billing_info.options.join(", ")}</span>}
+              <span className="faint">{a.billing_info.marketing_optin ? "Accepte les conseils par message" : "Ne veut pas de messages commerciaux"}</span>
+            </div>
           </div>
         )}
 

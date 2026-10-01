@@ -51,12 +51,14 @@ create table if not exists public.accounts (
   notes jsonb not null default '[]'::jsonb,
   requested_plan text check (requested_plan in ('essentiel','premium','pro')),
   card_config jsonb,
+  billing_info jsonb,
   consent_at timestamptz
 );
 
 -- (si la table existait déjà avant la v3)
 alter table public.accounts add column if not exists requested_plan text;
 alter table public.accounts add column if not exists card_config jsonb;
+alter table public.accounts add column if not exists billing_info jsonb;
 update public.accounts set plan = 'pro' where plan = 'enseigne';
 alter table public.accounts drop constraint if exists accounts_plan_check;
 alter table public.accounts add constraint accounts_plan_check check (plan in ('essentiel','premium','pro'));
@@ -78,7 +80,8 @@ create policy "formulaire du site" on public.accounts
     stage = 'nouveau' and source = 'site' and plan is null and mrr = 0
     and client_status is null and founder = false and notes = '[]'::jsonb
     and consent_at is not null
-    and (card_config is null or pg_column_size(card_config) < 200000)
+    and (card_config is null or pg_column_size(card_config) < 600000)
+    and (billing_info is null or pg_column_size(billing_info) < 4000)
   );
 
 -- Les administrateurs peuvent tout faire

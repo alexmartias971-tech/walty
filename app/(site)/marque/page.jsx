@@ -14,8 +14,8 @@ const palette = [
   { name: "Hibiscus", hex: "#FF2E7E", rgb: "255 · 46 · 126", role: "Pont", why: "La fleur d'hibiscus. Elle relie l'orange au violet dans le dégradé.", fg: "#fff", bg: "#FF2E7E" },
   { name: "Mangue", hex: "#FFA23D", rgb: "255 · 162 · 61", role: "Lumière", why: "Le haut du dégradé, les reflets, les petits accents chaleureux.", fg: "#0b0713", bg: "#FFA23D" },
   { name: "Lagon", hex: "#2DE2C4", rgb: "45 · 226 · 196", role: "Validation", why: "L'eau du lagon. Réservé à ce qui est réussi : tampon ajouté, paiement reçu, client actif.", fg: "#0b0713", bg: "#2DE2C4" },
-  { name: "Nuit", hex: "#140C1F", rgb: "20 · 12 · 31", role: "Texte et blocs sombres", why: "La nuit tropicale, jamais un noir pur : une pointe de violet la rend plus chaude.", fg: "#f6efe6", bg: "#140C1F", border: true },
-  { name: "Sable", hex: "#F6EFE6", rgb: "246 · 239 · 230", role: "Fond principal", why: "Un blanc chaud de sable, moins clinique qu'un blanc pur.", fg: "#140c1f", bg: "#F6EFE6", border: true },
+  { name: "Nuit", hex: "#110C18", rgb: "17 · 12 · 24", role: "Fond principal", why: "La nuit tropicale, jamais un noir pur : une pointe de violet la rend plus chaude.", fg: "#f6efe6", bg: "#110C18", border: true },
+  { name: "Sable", hex: "#F3ECE3", rgb: "243 · 236 · 227", role: "Texte", why: "Un blanc chaud de sable, moins clinique qu'un blanc pur.", fg: "#140c1f", bg: "#F6EFE6", border: true },
 ];
 
 export default function MarquePage() {
@@ -43,7 +43,7 @@ export default function MarquePage() {
             {[
               { t: "Pourquoi l'orange", d: "C'est la couleur de l'appétit et de l'action, parfaite pour des snacks, des roulottes et des cafés. En Guadeloupe, elle évoque le soleil, le flamboyant et le madras : elle parle à tout le monde, sans cliché." },
               { t: "Pourquoi le violet", d: "L'orange seul ferait « promo de supermarché ». Le violet du crépuscule lui donne une dimension premium et digitale. Ensemble, ils forment un dégradé qu'on reconnaît de loin, sur une affiche comme sur un écran." },
-              { t: "Pourquoi le fond sable", d: "Un fond clair et chaud rassure un commerçant : on lit vite, rien n'est « techno ». La nuit est gardée pour les téléphones et quelques blocs de contraste, là où les cartes Wallet et les messages doivent briller." },
+              { t: "Pourquoi la nuit, en sobre", d: "Un fond de nuit prune, jamais un noir pur, repose les yeux le soir et fait briller les cartes Wallet. On reste sobre : pas de halos, des surfaces mates, et l'orange gardé pour les boutons." },
             ].map((c, i) => (
               <div key={c.t} className="cell feature reveal" data-delay={i + 1}>
                 <span className="idx">0{i + 1}</span>
@@ -83,8 +83,8 @@ export default function MarquePage() {
           </div>
           <div className="grid cols-4" style={{ marginTop: 24 }}>
             {[
-              { p: "60 %", t: "Sable", d: "Fonds, respiration." },
-              { p: "25 %", t: "Nuit", d: "Textes, téléphones, blocs de contraste." },
+              { p: "60 %", t: "Nuit", d: "Fonds, surfaces." },
+              { p: "25 %", t: "Sable", d: "Textes, états sélectionnés." },
               { p: "10 %", t: "Flamboyant + dégradé", d: "Boutons, mots forts, mascotte." },
               { p: "5 %", t: "Lagon", d: "Uniquement ce qui est validé." },
             ].map((r) => (
@@ -173,7 +173,7 @@ export default function MarquePage() {
         <div className="rails section duo">
           <div className="stack" style={{ "--gap": "22px" }}>
             <span className="label">Mise en page</span>
-            <h2 className="display-m reveal">Clair, cadré, <span className="serif">peu de mots</span>.</h2>
+            <h2 className="display-m reveal">Sobre, cadré, <span className="serif">peu de mots</span>.</h2>
             <ul className="list">
               <li><span className="check">1</span>Une idée par bloc. Un titre de 3 à 5 mots, une phrase, une image.</li>
               <li><span className="check">2</span>Deux portes partout : « Créer ma carte » (orange) et « Réserver une démo ».</li>
@@ -186,7 +186,7 @@ export default function MarquePage() {
             <div className="dash-preview" style={{ width: "min(100%, 380px)" }}>
               <span className="label">Surface type</span>
               <WalletCard theme="plage" compact />
-              <p className="muted" style={{ fontSize: 14 }}>Fond #FFFAF4 · bord 1 px nuit à 10 % · rayon 28 px · ombre chaude</p>
+              <p className="muted" style={{ fontSize: 14 }}>Fond #1C1527 · bord 1 px sable à 9 % · rayon 28 px · pas de halo</p>
             </div>
           </div>
         </div>
@@ -306,7 +306,7 @@ export default function MarquePage() {
                 ["On évite", "« 100 % écologique » (allégation encadrée par la loi)."],
               ].map(([t, d], i) => (
                 <div key={i} className="cell">
-                  <h3 style={{ color: t === "On dit" ? "#0a8a74" : "var(--flamboyant)", marginTop: 0 }}>{t}</h3>
+                  <h3 style={{ color: t === "On dit" ? "var(--ok)" : "var(--accent-ink)", marginTop: 0 }}>{t}</h3>
                   <p style={{ fontSize: 16, color: "var(--ink)" }}>{d}</p>
                 </div>
               ))}

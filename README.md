@@ -1,7 +1,7 @@
 # Walti — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 3.
+Site Next.js prêt pour GitHub → Vercel. Version 4 (thème sombre, « Créer ma carte » complet).
 
 ## Ce qu'il y a dedans
 
@@ -10,7 +10,7 @@ Site Next.js prêt pour GitHub → Vercel. Version 3.
 | Accueil | `/` |
 | Le produit | `/produit` |
 | Tarifs (Essentiel 29 € · Premium 49 € · Pro 79 €) | `/tarifs` |
-| **Créer ma carte** (le commerçant crée sa carte seul, en 5 étapes, avec aperçu en direct) | `/creer` |
+| **Créer ma carte** : 9 étapes avec aperçu en direct (coordonnées, commerce, charte graphique, type de carte parmi 8, règles, design, formule et options, facturation, récapitulatif), brouillon gardé sur l'appareil | `/creer` |
 | **Espace commerçant** (sa carte, ses chiffres, l'envoi de messages, les automatismes) | `/espace` |
 | Contact (réserver une démo) | `/contact` |
 | À propos | `/a-propos` |
@@ -22,7 +22,7 @@ Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, 
 
 ## 1. Mettre en ligne (sans rien installer)
 
-1. Dézippez le fichier `walti-site-v3.zip`.
+1. Dézippez le fichier `walti-site-v4.zip`.
 2. Sur GitHub, ouvrez votre dépôt existant (ex. `walty`) → **Add file → Upload files**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**. Les fichiers existants sont remplacés.
 3. Vercel redéploie tout seul si le dépôt est relié au projet. Sinon : **Add New → Project** → importez le dépôt → **Deploy**.
 
@@ -34,7 +34,7 @@ Le site marche tout de suite en **mode démo** :
 ## 2. Brancher la vraie base de données (Supabase)
 
 1. Dans Supabase, créez un projet (région **Frankfurt / eu-central-1**, pour rester en Europe).
-2. **SQL Editor → New query** : collez `supabase/schema.sql` → **Run**. (Si vous l'aviez déjà exécuté avec la v2, relancez-le : il ajoute les nouvelles colonnes sans rien effacer.)
+2. **SQL Editor → New query** : collez `supabase/schema.sql` → **Run**. (Si vous l'aviez déjà exécuté avant, relancez-le : il ajoute les nouvelles colonnes, dont la facturation, sans rien effacer.)
 3. **Authentication → Users → Add user** : votre e-mail + un mot de passe.
 4. Dans le SQL Editor, exécutez (avec votre e-mail) :
    `insert into public.admins (email) values ('votre-email@exemple.fr');`
@@ -73,7 +73,8 @@ Autres vérifications :
 
 - Formules, prix, limites de clients, options, durée d'essai : `lib/offer.js` (se répercute sur l'accueil, les tarifs, Créer ma carte, l'espace commerçant, les CGV et l'admin). `trialDays = 0` retire l'essai gratuit partout.
 - Les chiffres de l'espace commerçant : `lib/kpis.js`.
-- Les couleurs : en haut de `app/globals.css` (fond sable ; la classe `.dark` donne un bloc de nuit).
+- Les couleurs : en haut de `app/globals.css` (thème sombre ; la classe `.dark` donne un bloc teinté crépuscule).
+- Les types de carte, les secteurs et les validations (e-mail, téléphone, SIRET) : `lib/programs.js`.
 - La mascotte : `components/Mascot.jsx` (dessin) et `app/mascot.css` (animations).
 
 ## Pour les développeurs

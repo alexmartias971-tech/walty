@@ -16,7 +16,7 @@ export default function Fork({ title = "Comment voulez-vous commencer ?" }) {
           <div className="fork-card self">
             <h3>Je crée ma carte moi-même</h3>
             <ul>
-              <li><Icon name="check" size={18} stroke={2.4} /> Prête en 5 minutes</li>
+              <li><Icon name="check" size={18} stroke={2.4} /> Prête en 10 minutes</li>
               {trialDays > 0 && <li><Icon name="check" size={18} stroke={2.4} /> {trialDays} jours gratuits</li>}
               <li><Icon name="check" size={18} stroke={2.4} /> Sans carte bancaire</li>
             </ul>

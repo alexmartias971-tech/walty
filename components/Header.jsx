@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Logo from "./Logo";
 
 export const navLinks = [
+  { href: "/", label: "Accueil" },
   { href: "/#comment", label: "Comment ça marche" },
   { href: "/tarifs", label: "Tarifs" },
   { href: "/espace", label: "Se connecter" },
@@ -46,7 +47,6 @@ export default function Header() {
       </div>
       {open && (
         <nav className="mobile-menu" aria-label="Navigation mobile">
-          <Link href="/" aria-current={pathname === "/" ? "page" : undefined}>Accueil</Link>
           {navLinks.map((l) => (
             <Link key={l.href} href={l.href} aria-current={pathname === l.href ? "page" : undefined} onClick={() => setOpen(false)}>{l.label}</Link>
           ))}

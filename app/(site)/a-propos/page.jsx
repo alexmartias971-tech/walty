@@ -27,7 +27,7 @@ export default function AProposPage() {
           <p className="big-quote reveal">« Un commerce qui fidélise, c'est un commerce qui dure. »</p>
           <div className="stack reveal" style={{ "--gap": "16px" }} data-delay="1">
             <p className="lead" style={{ maxWidth: "none" }}>On vient chez vous. On installe la carte. On reste joignable sur WhatsApp.</p>
-            <p className="muted">Et si vous préférez faire vous-même, vous créez votre carte en ligne en 5 minutes.</p>
+            <p className="muted">Et si vous préférez faire vous-même, vous créez votre carte en ligne en 10 minutes.</p>
             <p className="muted"><strong style={{ color: "var(--ink)" }}>Walti</strong>, c'est le petit nom du « wallet », le portefeuille du téléphone où vit la carte. C'est aussi notre mascotte.</p>
           </div>
         </div>

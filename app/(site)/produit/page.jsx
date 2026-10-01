@@ -5,6 +5,7 @@ import WalletCard from "@/components/WalletCard";
 import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import Fork from "@/components/Fork";
+import { PROGRAMS } from "@/lib/programs";
 
 export const metadata = {
   title: "Le produit",
@@ -82,26 +83,27 @@ export default function ProduitPage() {
         </div>
       </section>
 
-      {/* Récompenses */}
+      {/* Types de carte */}
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label">Votre cadeau</span>
+            <span className="label">8 types de carte</span>
             <h2 className="display-l reveal">Le cadeau qui va avec <span className="serif">votre commerce</span>.</h2>
           </div>
           <div className="grid cols-4">
-            {[
-              { t: "Tampons", e: "10 bokits = 1 offert", d: "Le plus simple. Tout le monde comprend." },
-              { t: "Points", e: "1 € = 1 point", d: "Pour les restaurants et boutiques." },
-              { t: "Cagnotte", e: "5 % mis de côté", d: "Le client voit sa cagnotte grandir." },
-              { t: "Niveaux", e: "Rookie → Légende", d: "Pour le sport et les loisirs." },
-            ].map((m, i) => (
-              <div key={m.t} className="cell feature reveal" data-delay={i + 1}>
-                <h3 className="display-s">{m.t}</h3>
-                <span className="chip chip-orange" style={{ justifySelf: "start" }}>{m.e}</span>
-                <p>{m.d}</p>
+            {PROGRAMS.map((m, i) => (
+              <div key={m.id} className="cell feature reveal" data-delay={(i % 4) + 1}>
+                <span className="step-icon"><Icon name={m.icon} size={20} /></span>
+                <h3>{m.name}</h3>
+                <p>{m.line}</p>
+                <span className="chip chip-orange" style={{ justifySelf: "start" }}>{m.example}</span>
+                <span className={m.plan === "essentiel" ? "faint" : ""} style={{ fontSize: 13, fontWeight: 800, color: m.plan === "essentiel" ? undefined : "var(--violet-ink)" }}>{m.plan === "essentiel" ? "Toutes les formules" : "Premium et Pro"}</span>
               </div>
             ))}
+          </div>
+          <div className="how-foot">
+            <p>Vous ne savez pas lequel choisir ? On vous conseille selon votre activité.</p>
+            <Link href="/creer" className="btn btn-primary btn-sm">Créer ma carte</Link>
           </div>
         </div>
       </section>
@@ -125,7 +127,7 @@ export default function ProduitPage() {
                   ["Triche possible", "Oui", "Ça dépend", "Non"],
                   ["Vous savez qui revient", "Non", "Oui", "Oui"],
                   ["Prévenir vos clients", "Impossible", "Si l'appli est ouverte", "Sur leur écran"],
-                  ["Installation", "Vous", "Vous", "Vous en 5 min, ou nous"],
+                  ["Installation", "Vous", "Vous", "Vous en 10 min, ou nous"],
                 ].map((r) => (
                   <tr key={r[0]}>
                     <td>{r[0]}</td>

@@ -1,3 +1,5 @@
+import { programDisplay, isHex, mix, luminance } from "@/lib/programs";
+
 /**
  * Aperçu d'une carte de fidélité telle qu'elle apparaît dans Apple Wallet / Google Wallet.
  * Commerces fictifs, utilisés uniquement comme exemples.
@@ -54,12 +56,14 @@ export const cardThemes = {
   },
 };
 
-/** Fonds de bandeau proposés dans « Créer ma carte ». {c} = couleur principale. */
+/** Fonds de bandeau proposés dans « Créer ma carte ». c = couleur principale, bg = fond de la carte. */
 export const stripStyles = {
   sunset: { label: "Coucher de soleil", css: (c) => `linear-gradient(180deg, #ffb35c 0%, ${c} 40%, #ff2e7e 64%, #3b1c72 65%, #241043 100%)` },
   lagon: { label: "Lagon", css: (c) => `linear-gradient(170deg, #e8f7f2 0%, #8ff0dc 30%, ${c} 52%, #0a5560 53%, #062a2c 100%)` },
   glow: { label: "Lumière", css: (c) => `radial-gradient(120% 140% at 80% 10%, #ffffff55 0%, ${c} 38%, #00000088 100%)` },
   uni: { label: "Uni", css: (c) => `linear-gradient(180deg, ${c}, ${c})` },
+  minimal: { label: "Minimal", css: (c, bg) => `linear-gradient(180deg, ${bg} 0 calc(100% - 5px), ${c} calc(100% - 5px))` },
+  photo: { label: "Votre photo", css: (c, bg, photo) => (photo ? `linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.45)), url(${photo}) center / cover` : `linear-gradient(180deg, ${c}, ${bg})`) },
 };
 
 export const cardColors = [
@@ -71,52 +75,88 @@ export const cardColors = [
   { id: "foret", label: "Vert", accent: "#3fbf6b", bg: "#0c1f14" },
 ];
 
-/** Transforme la configuration saisie dans « Créer ma carte » en carte affichable. */
+/** Transforme la configuration saisie dans « Créer ma carte » en carte affichable (accepte aussi l'ancien format). */
 export function cardFromConfig(c = {}) {
-  const color = cardColors.find((x) => x.id === c.color) || cardColors[0];
-  const style = stripStyles[c.strip] || stripStyles.sunset;
+  const preset = cardColors.find((x) => x.id === c.color);
+  const accent = isHex(c.accent) ? c.accent : preset?.accent || cardColors[0].accent;
+  const bg = isHex(c.bg) ? c.bg : preset?.bg || mix(accent, "#0d0a14", 0.86);
+  const fg = luminance(bg) > 0.45 ? "#1c1226" : "#ffffff";
+  const template = c.template || c.strip || "sunset";
+  const style = stripStyles[template] || stripStyles.sunset;
   const name = (c.merchant || "Votre commerce").trim() || "Votre commerce";
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "W";
-  const total = Math.min(12, Math.max(4, Number(c.total) || 10));
+  const program = c.program?.type ? c.program : { type: "tampons", rules: { total: c.total, reward: c.reward } };
+  const display = programDisplay(program);
+  const total = display.total || 10;
   return {
     merchant: name,
-    bg: color.bg,
-    accent: color.accent,
-    strip: style.css(color.accent),
-    reward: (c.reward || "1 produit offert").trim() || "1 produit offert",
+    bg, fg, accent,
+    strip: style.css(accent, bg, c.photo),
+    logo: c.logo || null,
+    initials,
+    stampShape: c.stampShape || "rond",
+    display,
     total,
     filled: Math.min(total - 1, c.filled ?? Math.round(total * 0.6)),
-    initials,
-    logo: c.logo || null,
+    reward: display.reward || display.field?.[1] || "",
+    summary: display.summary,
   };
+}
+
+const SHAPES = {
+  etoile: "M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z",
+  coeur: "M12 20.5s-8-4.9-8-11A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8 2.9c0 6.1-8 11-8 11z",
+};
+
+function Stamp({ on, next, shape, logo }) {
+  if (shape === "etoile" || shape === "coeur") {
+    return (
+      <span className={`wcard-stamp wcard-stamp--shape ${on ? "on" : ""} ${next ? "next" : ""}`}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d={SHAPES[shape]} /></svg>
+      </span>
+    );
+  }
+  if (shape === "logo" && logo && on) {
+    return <span className="wcard-stamp on wcard-stamp--logo" style={{ backgroundImage: `url(${logo})` }} />;
+  }
+  return <span className={`wcard-stamp ${on ? "on" : ""} ${next ? "next" : ""}`} />;
 }
 
 export default function WalletCard({ theme = "plage", card, className = "", style, animateStamp = false, compact = false, member = "Maëlys" }) {
   const t = card || cardThemes[theme] || cardThemes.plage;
+  const d = t.display;
+  const isValue = d?.kind === "value";
+  const head = isValue ? d.head : ["TAMPONS", `${t.filled}/${t.total}`];
+  const field = d?.field || ["RÉCOMPENSE", t.reward];
   return (
-    <div className={`wcard ${compact ? "wcard--compact" : ""} ${className}`} style={{ "--wc-bg": t.bg, "--wc-accent": t.accent, ...style }}>
+    <div className={`wcard ${compact ? "wcard--compact" : ""} ${className}`} style={{ "--wc-bg": t.bg, "--wc-accent": t.accent, color: t.fg || "#fff", ...style }}>
       <div className="wcard-top">
         <span className="wcard-logo" style={t.logo ? { backgroundImage: `url(${t.logo})`, backgroundColor: "#fff" } : { background: t.accent }}>{t.logo ? "" : t.initials}</span>
         <span className="wcard-name">{t.merchant}</span>
         <span className="wcard-field">
-          <small>TAMPONS</small>
-          <b>{t.filled}/{t.total}</b>
+          <small>{head[0]}</small>
+          <b>{head[1]}</b>
         </span>
       </div>
       <div className="wcard-strip" style={{ background: t.strip }}>
-        <div className="wcard-stamps" style={{ gridTemplateColumns: `repeat(${t.total <= 6 ? t.total : 5}, 1fr)` }}>
-          {Array.from({ length: t.total }).map((_, i) => (
-            <span
-              key={i}
-              className={`wcard-stamp ${i < t.filled ? "on" : ""} ${animateStamp && i === t.filled ? "next" : ""}`}
-            />
-          ))}
-        </div>
+        {isValue ? (
+          <div className={`wcard-value ${d.long ? "long" : ""}`}>
+            <b>{d.big}</b>
+            {d.unit && <span>{d.unit}</span>}
+            {!compact && d.sub && <em>{d.sub}</em>}
+          </div>
+        ) : (
+          <div className="wcard-stamps" style={{ gridTemplateColumns: `repeat(${t.total <= 6 ? t.total : Math.ceil(t.total / 2) > 6 ? 6 : Math.ceil(t.total / 2)}, 1fr)` }}>
+            {Array.from({ length: t.total }).map((_, i) => (
+              <Stamp key={i} on={i < t.filled} next={animateStamp && i === t.filled} shape={t.stampShape} logo={t.logo} />
+            ))}
+          </div>
+        )}
       </div>
       {!compact && (
         <>
           <div className="wcard-fields">
-            <span><small>RÉCOMPENSE</small><b>{t.reward}</b></span>
+            <span><small>{field[0]}</small><b>{field[1]}</b></span>
             <span className="r"><small>MEMBRE</small><b>{member}</b></span>
           </div>
           <div className="wcard-qr" aria-hidden="true">

@@ -66,7 +66,7 @@ function Dashboard({ account, example, onOut }) {
   const [toast, setToast] = useState("");
   const rank = PLAN_RANK[plan];
   const p = planById[plan];
-  const card = useMemo(() => cardFromConfig({ ...account.card_config, filled: 6 }), [account]);
+  const card = useMemo(() => cardFromConfig({ ...account.card_config }), [account]);
   const tiles = kpiTiles(demoStats);
   const max = Math.max(...demoStats.weekly);
   const cap = p.clients;
@@ -112,7 +112,7 @@ function Dashboard({ account, example, onOut }) {
           <div className="esp-box">
             <h2 className="esp-h">Ma carte</h2>
             <WalletCard card={card} />
-            <p className="muted" style={{ fontSize: 15 }}>{card.total} passages = {card.reward.toLowerCase()}</p>
+            <p className="muted" style={{ fontSize: 15 }}>{card.summary}</p>
             <Link href="/contact" className="text-link" style={{ fontSize: 15 }}>Changer ma carte</Link>
           </div>
           <div className="esp-box">

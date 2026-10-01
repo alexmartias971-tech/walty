@@ -126,3 +126,4 @@
 .login-card .walti { margin: -110px auto -8px; }
 .admin-root { min-height: 100vh; }
 .adm-made .wcard { max-width: 300px; }
+.adm-swatch { display: inline-block; width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.3); }

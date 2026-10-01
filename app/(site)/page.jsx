@@ -59,7 +59,7 @@ export default function Home() {
               <div className="how-visual"><WalletCard theme="lagon" compact /></div>
               <span className="how-n">1</span>
               <h3>Vous créez votre carte</h3>
-              <p>Vos couleurs, votre logo, votre cadeau. 5 minutes.</p>
+              <p>Tampons, points, cashback… à vos couleurs. 10 minutes.</p>
             </li>
             <li className="how-step reveal" data-delay="1">
               <div className="how-visual">
