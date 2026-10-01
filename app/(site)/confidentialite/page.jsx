@@ -26,6 +26,18 @@ export default function Confidentialite() {
               <td>3 ans à compter de notre dernier échange</td>
             </tr>
             <tr>
+              <td>Créer votre carte en ligne (« Créer ma carte ») et l'activer</td>
+              <td>Nom du commerce, activité, commune, couleurs, logo (si vous l'ajoutez), récompense, formule choisie, nom, téléphone, e-mail</td>
+              <td>Mesures précontractuelles prises à votre demande (6.1.b)</td>
+              <td>3 ans à compter de notre dernier échange ; durée du contrat si vous devenez client</td>
+            </tr>
+            <tr>
+              <td>Espace commerçant (connexion à votre carte et à vos chiffres)</td>
+              <td>E-mail de connexion, mot de passe (stocké chiffré par notre hébergeur de base de données), formule</td>
+              <td>Exécution du contrat (6.1.b)</td>
+              <td>Durée du contrat, puis suppression du compte de connexion</td>
+            </tr>
+            <tr>
               <td>Prospection commerciale auprès de professionnels (appel, e-mail, WhatsApp)</td>
               <td>Coordonnées professionnelles, historique des échanges</td>
               <td>Intérêt légitime à faire connaître nos services (6.1.f). Vous pouvez vous y opposer à tout moment.</td>
@@ -46,7 +58,7 @@ export default function Confidentialite() {
           </tbody>
         </table>
       </div>
-      <p>Les champs obligatoires du formulaire sont signalés par un astérisque. Sans eux, nous ne pouvons pas répondre à votre demande. Aucune décision automatisée ni profilage n'est réalisé.</p>
+      <p>Les champs obligatoires des formulaires sont signalés par un astérisque ou indiqués à l'écran. Sans eux, nous ne pouvons pas répondre à votre demande. Aucune décision automatisée ni profilage n'est réalisé.</p>
 
       <h2>3. Destinataires</h2>
       <p>Vos données sont destinées uniquement à Walti. Elles ne sont jamais vendues, louées ou cédées. Elles sont techniquement hébergées par les prestataires suivants, qui agissent comme sous-traitants et sont tenus par contrat de les protéger :</p>

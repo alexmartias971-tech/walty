@@ -6,6 +6,7 @@ import Logo, { LogoMark } from "@/components/Logo";
 import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import { plans, planById } from "@/lib/offer";
+import WalletCard, { cardFromConfig } from "@/components/WalletCard";
 import {
   isDemo, STAGES, stageById, SECTORS, COMMUNES,
   getSession, signIn, signOut, listAccounts, saveAccount, deleteAccount, resetDemo, computeMrr, toCsv,
@@ -320,7 +321,8 @@ function Pipeline({ list, onOpen, onMove }) {
                   <span className="meta">{[a.sector, a.city].filter(Boolean).join(" · ") || "—"}</span>
                   <div className="row">
                     {a.source === "site" && <span className="tag site">Site web</span>}
-                    {a.plan && <span className="tag plan">{planById[a.plan]?.name}</span>}
+                    {(a.plan || a.requested_plan) && <span className="tag plan">{planById[a.plan || a.requested_plan]?.name}{!a.plan && " ?"}</span>}
+                    {a.card_config && <span className="tag plan">Carte en ligne</span>}
                     {a.founder && <span className="tag founder">Fondateur</span>}
                   </div>
                   {a.next_action && (
@@ -437,6 +439,20 @@ function Fiche({ acc, onClose, onSave, onDelete }) {
         )}
 
         {a.message && <div className="msg"><b style={{ display: "block", fontSize: 12, marginBottom: 6 }}>Message reçu</b>{a.message}</div>}
+
+        {(a.card_config || a.requested_plan) && (
+          <div className="msg adm-made">
+            <b style={{ display: "block", fontSize: 12, marginBottom: 10 }}>{a.card_config ? "Carte créée en ligne par le commerçant" : "Formule demandée"}</b>
+            {a.card_config && <WalletCard card={cardFromConfig(a.card_config)} compact />}
+            {a.requested_plan && (
+              <div className="row" style={{ marginTop: 12, justifyContent: "space-between" }}>
+                <span>Formule choisie : <b>{planById[a.requested_plan]?.name}</b> ({planById[a.requested_plan]?.monthly} €/mois)</span>
+                {a.plan !== a.requested_plan && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setA((p) => ({ ...p, plan: p.requested_plan, mrr: computeMrr(p.requested_plan, p.billing) }))}>Reprendre cette formule</button>}
+              </div>
+            )}
+            {a.card_config?.logo && <a className="text-link" style={{ fontSize: 13, marginTop: 8, display: "inline-block" }} href={a.card_config.logo} download={`logo-${(a.business || "commerce").replace(/\W+/g, "-")}.jpg`}>Télécharger le logo</a>}
+          </div>
+        )}
 
         <fieldset>
           <legend>Commerce</legend>

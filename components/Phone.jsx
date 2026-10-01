@@ -1,7 +1,7 @@
 import WalletCard from "./WalletCard";
 
 /** Téléphone en verre : écran verrouillé + notification push + carte Wallet. */
-export default function Phone({ theme = "plage", notif, time = "18:42", className = "", style, animateStamp = true, cardBottom }) {
+export default function Phone({ theme = "plage", card, notif, time = "18:42", className = "", style, animateStamp = true, cardBottom }) {
   const n = notif || {
     app: "Le Bokit du Lagon",
     text: "Plus que 3 tampons avant ton bokit offert. On t'attend ce soir 🌅",
@@ -28,7 +28,7 @@ export default function Phone({ theme = "plage", notif, time = "18:42", classNam
           </div>
         </div>
         <div className="phone-card" style={cardBottom !== undefined ? { bottom: cardBottom } : undefined}>
-          <WalletCard theme={theme} animateStamp={animateStamp} />
+          <WalletCard theme={theme} card={card} animateStamp={animateStamp} />
         </div>
         <div className="phone-home" />
       </div>

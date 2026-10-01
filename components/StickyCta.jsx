@@ -4,24 +4,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-/** Bouton « Réserver une démo » fixé en bas de l'écran sur mobile, après le premier écran. */
+/** Sur mobile, après le premier écran : les deux portes d'entrée restent à portée de pouce. */
 export default function StickyCta() {
   const pathname = usePathname();
   const [show, setShow] = useState(false);
   useEffect(() => {
     const on = () => {
-      const demo = document.getElementById("demo");
-      const inDemo = demo && demo.getBoundingClientRect().top < window.innerHeight * 0.8;
-      setShow(window.scrollY > window.innerHeight * 0.7 && !inDemo);
+      const end = document.getElementById("commencer");
+      const atEnd = end && end.getBoundingClientRect().top < window.innerHeight * 0.85;
+      setShow(window.scrollY > window.innerHeight * 0.7 && !atEnd);
     };
     on();
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
   }, [pathname]);
-  if (pathname === "/contact") return null;
+  if (["/contact", "/creer", "/espace"].includes(pathname)) return null;
   return (
     <div className={`sticky-cta ${show ? "on" : ""}`} aria-hidden={!show}>
-      <Link href={pathname === "/" ? "#demo" : "/#demo"} className="btn btn-primary" tabIndex={show ? 0 : -1}>Réserver ma démo gratuite</Link>
+      <Link href="/creer" className="btn btn-primary" tabIndex={show ? 0 : -1}>Créer ma carte</Link>
+      <Link href="/contact" className="btn btn-dark" tabIndex={show ? 0 : -1}>Démo gratuite</Link>
     </div>
   );
 }

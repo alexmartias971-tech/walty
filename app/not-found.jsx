@@ -9,14 +9,12 @@ export default function NotFound() {
     <>
       <Header />
       <main className="nf">
-        <div className="orb orb-violet" style={{ width: 600, height: 600, left: "10%", top: "10%" }} aria-hidden="true" />
-        <div className="orb orb-orange" style={{ width: 500, height: 500, right: "5%", bottom: "0%", opacity: 0.35 }} aria-hidden="true" />
         <div className="z1" style={{ display: "grid", gap: 20, justifyItems: "center" }}>
           <Mascot pose="lost" size={220} title="Walti est perdu" />
           <div className="nf-code">404</div>
           <h1 className="display-s">Cette page s'est perdue en chemin.</h1>
-          <p className="lead" style={{ margin: "0 auto" }}>Même Walti ne la retrouve pas. Retournons à l'accueil.</p>
-          <Link href="/" className="btn btn-primary">Retour à l'accueil</Link>
+          <p className="lead" style={{ margin: "0 auto" }}>Même Walti ne la retrouve pas.</p>
+          <div className="row" style={{ justifyContent: "center" }}><Link href="/" className="btn btn-primary">Retour à l'accueil</Link><Link href="/creer" className="btn btn-ghost">Créer ma carte</Link></div>
         </div>
       </main>
     </>

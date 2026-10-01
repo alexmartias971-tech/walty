@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function AdminLayout({ children }) {
-  return children;
+  return <div className="dark admin-root">{children}</div>;
 }

@@ -5,7 +5,7 @@ import { site, legal } from "@/lib/site.config";
 
 export default function Footer() {
   return (
-    <footer className="footer">
+    <footer className="footer dark">
       <Mascot pose="peek" size={130} className="footer-peek" title="Walti vous regarde partir" />
       <div className="rails">
         <div className="footer-grid">
@@ -22,8 +22,15 @@ export default function Footer() {
               <li><Link href="/produit">Le produit</Link></li>
               <li><Link href="/tarifs">Tarifs</Link></li>
               <li><Link href="/a-propos">À propos</Link></li>
-              <li><Link href="/contact">Contact</Link></li>
               <li><Link href="/marque">Identité de marque</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Commencer</h4>
+            <ul>
+              <li><Link href="/creer">Créer ma carte</Link></li>
+              <li><Link href="/contact">Réserver une démo</Link></li>
+              <li><Link href="/espace">Espace commerçant</Link></li>
             </ul>
           </div>
           <div>

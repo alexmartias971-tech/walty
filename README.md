@@ -1,7 +1,7 @@
-# Walti — site vitrine + espace admin
+# Walti — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel.
+Site Next.js prêt pour GitHub → Vercel. Version 3.
 
 ## Ce qu'il y a dedans
 
@@ -9,27 +9,32 @@ Site Next.js prêt pour GitHub → Vercel.
 | --- | --- |
 | Accueil | `/` |
 | Le produit | `/produit` |
-| Tarifs (29 / 49 / 79 €) | `/tarifs` |
+| Tarifs (Essentiel 29 € · Premium 49 € · Pro 79 €) | `/tarifs` |
+| **Créer ma carte** (le commerçant crée sa carte seul, en 5 étapes, avec aperçu en direct) | `/creer` |
+| **Espace commerçant** (sa carte, ses chiffres, l'envoi de messages, les automatismes) | `/espace` |
+| Contact (réserver une démo) | `/contact` |
 | À propos | `/a-propos` |
-| Contact (formulaire de démo) | `/contact` |
 | Identité de marque + planche mascotte | `/marque` |
 | Mentions légales, Confidentialité, CGV, CGU, Cookies | `/mentions-legales`, `/confidentialite`, `/cgv`, `/cgu`, `/cookies` |
-| **Espace admin** (prospects, pipeline, clients, relances, export CSV) | `/admin` |
+| **Espace admin** (prospects, pipeline, clients, relances, cartes créées en ligne, export CSV) | `/admin` |
+
+Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, essai 14 jours) et **Réserver une démo** (vous venez chez lui).
 
 ## 1. Mettre en ligne (sans rien installer)
 
-1. Dézippez le fichier `walti-site.zip`.
-2. Sur GitHub : **New repository** → nom `walti-site` → **Create**.
-3. Cliquez sur **uploading an existing file**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**.
-4. Sur Vercel : **Add New → Project** → importez `walti-site` → **Deploy**. Rien à régler, Vercel détecte Next.js.
+1. Dézippez le fichier `walti-site-v3.zip`.
+2. Sur GitHub, ouvrez votre dépôt existant (ex. `walty`) → **Add file → Upload files**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**. Les fichiers existants sont remplacés.
+3. Vercel redéploie tout seul si le dépôt est relié au projet. Sinon : **Add New → Project** → importez le dépôt → **Deploy**.
 
-Le site marche tout de suite en **mode démo** : l'admin (`/admin` → « Entrer dans la démo ») affiche des données fictives
-qui restent dans votre navigateur. Une demande envoyée depuis `/contact` apparaît dans l'admin du même navigateur.
+Le site marche tout de suite en **mode démo** :
+- `/creer` : la carte créée apparaît dans l'admin et dans l'espace commerçant **du même navigateur** ;
+- `/espace` : n'importe quel e-mail fonctionne, ou « Voir un exemple » ; un sélecteur permet de comparer Essentiel / Premium / Pro (pratique en rendez-vous) ;
+- `/admin` → « Entrer dans la démo » : données fictives.
 
 ## 2. Brancher la vraie base de données (Supabase)
 
 1. Dans Supabase, créez un projet (région **Frankfurt / eu-central-1**, pour rester en Europe).
-2. **SQL Editor → New query** : collez `supabase/schema.sql` → **Run**.
+2. **SQL Editor → New query** : collez `supabase/schema.sql` → **Run**. (Si vous l'aviez déjà exécuté avec la v2, relancez-le : il ajoute les nouvelles colonnes sans rien effacer.)
 3. **Authentication → Users → Add user** : votre e-mail + un mot de passe.
 4. Dans le SQL Editor, exécutez (avec votre e-mail) :
    `insert into public.admins (email) values ('votre-email@exemple.fr');`
@@ -38,9 +43,13 @@ qui restent dans votre navigateur. Une demande envoyée depuis `/contact` appara
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `NEXT_PUBLIC_SITE_URL` (ex. `https://heywalti.fr`)
-7. **Deployments → Redeploy**. L'admin demande alors votre e-mail et mot de passe, et les demandes du site arrivent dans votre pipeline.
+7. **Deployments → Redeploy**.
 
-Sécurité : les visiteurs peuvent seulement *déposer* une demande, jamais lire la base. Seuls les e-mails de la table `admins` voient les données.
+**Donner son accès à un commerçant** : dans l'admin, passez sa fiche à l'étape « Client » avec son e-mail. Puis dans Supabase, **Authentication → Users → Add user** avec ce même e-mail et un mot de passe que vous lui envoyez. Il se connecte sur `/espace` et ne voit que sa carte.
+
+Sécurité : les visiteurs peuvent seulement *déposer* une demande, jamais lire la base. Les commerçants ne voient que leur carte (jamais vos notes ni les autres clients). Seuls les e-mails de la table `admins` voient tout.
+
+> Les chiffres de l'espace commerçant sont pour l'instant des **données d'exemple**. Ils deviendront réels quand votre application de cartes (tampons, Wallet) sera branchée : le fichier `lib/kpis.js` liste les 8 chiffres attendus.
 
 ## 3. Avant d'ouvrir le site au public (obligatoire)
 
@@ -56,13 +65,15 @@ Tant que cette variable n'est pas à `true`, le site n'est **pas indexé par Goo
 Autres vérifications :
 - [ ] Vérifier le nom « Walti » sur [data.inpi.fr](https://data.inpi.fr) avant de déposer la marque.
 - [ ] Les domaines `walti.fr`, `.com`, `.app`, `.co`, `.io` sont déjà pris. Libres au 30/09/2026 : `heywalti.fr`, `heywalti.com`, `monwalti.fr`, `walti.cards`.
-- [ ] Faire relire les CGV par un professionnel du droit si vous ajoutez des services (paiement en ligne, etc.).
+- [ ] Les CGV prévoient le droit de rétractation de 14 jours des petites entreprises (5 salariés au plus) signées chez elles : remettez le formulaire en annexe lors des rendez-vous.
+- [ ] Faire relire les CGV par un professionnel du droit avant d'ajouter le paiement en ligne.
 - [ ] Si vous ajoutez un jour Google Analytics, un pixel Meta ou TikTok : il faudra un bandeau de consentement cookies.
 
 ## 4. Modifier le contenu
 
-- Les formules et prix : `lib/offer.js` (se répercute sur l'accueil, les tarifs et l'admin).
-- Les couleurs : en haut de `app/globals.css`.
+- Formules, prix, limites de clients, options, durée d'essai : `lib/offer.js` (se répercute sur l'accueil, les tarifs, Créer ma carte, l'espace commerçant, les CGV et l'admin). `trialDays = 0` retire l'essai gratuit partout.
+- Les chiffres de l'espace commerçant : `lib/kpis.js`.
+- Les couleurs : en haut de `app/globals.css` (fond sable ; la classe `.dark` donne un bloc de nuit).
 - La mascotte : `components/Mascot.jsx` (dessin) et `app/mascot.css` (animations).
 
 ## Pour les développeurs

@@ -7,7 +7,7 @@ import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import { submitLead, SECTORS, COMMUNES, isDemo } from "@/lib/store";
 
-const PLAN_LABELS = { essentiel: "Essentiel (29 €/mois)", premium: "Premium (49 €/mois)", enseigne: "Enseigne (dès 79 €/mois)", fondateur: "Tarif fondateur" };
+const PLAN_LABELS = { essentiel: "Essentiel (29 €/mois)", premium: "Premium (49 €/mois)", pro: "Pro (79 €/mois)", enseigne: "Pro (79 €/mois)", fondateur: "Tarif fondateur" };
 
 /** Formulaire de demande de démo. `compact` = version courte de la page d'accueil. */
 export default function ContactForm({ compact = false }) {
@@ -26,7 +26,8 @@ export default function ContactForm({ compact = false }) {
     }
     setState({ status: "sending", error: "" });
     try {
-      const r = await submitLead({ ...data, plan });
+      const fid = params.get("formule");
+      const r = await submitLead({ ...data, plan, requested_plan: fid === "enseigne" ? "pro" : fid });
       setState({ status: "sent", error: "", demo: r.demo });
     } catch (err) {
       setState({ status: "idle", error: err.message });

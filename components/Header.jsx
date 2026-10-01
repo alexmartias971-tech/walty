@@ -6,9 +6,9 @@ import { useEffect, useState } from "react";
 import Logo from "./Logo";
 
 export const navLinks = [
-  { href: "/produit", label: "Le produit" },
+  { href: "/#comment", label: "Comment ça marche" },
   { href: "/tarifs", label: "Tarifs" },
-  { href: "/a-propos", label: "À propos" },
+  { href: "/espace", label: "Se connecter" },
 ];
 
 export default function Header() {
@@ -22,7 +22,6 @@ export default function Header() {
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
   }, []);
-  const demo = pathname === "/" ? "#demo" : "/#demo";
 
   return (
     <header className={`header ${scrolled ? "is-scrolled" : ""}`}>
@@ -34,7 +33,10 @@ export default function Header() {
           ))}
         </nav>
         <div className="row" style={{ "--gap": "8px" }}>
-          <Link href={demo} className="btn btn-primary btn-sm header-cta">Réserver une démo</Link>
+          <div className="header-ctas">
+            <Link href="/contact" className="btn btn-ghost btn-sm">Réserver une démo</Link>
+            <Link href="/creer" className="btn btn-primary btn-sm">Créer ma carte</Link>
+          </div>
           <button className="burger" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}>
             <svg width="18" height="18" viewBox="0 0 18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
               {open ? <path d="M3 3l12 12M15 3L3 15" /> : <path d="M2 5h14M2 13h14" />}
@@ -46,10 +48,10 @@ export default function Header() {
         <nav className="mobile-menu" aria-label="Navigation mobile">
           <Link href="/" aria-current={pathname === "/" ? "page" : undefined}>Accueil</Link>
           {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} aria-current={pathname === l.href ? "page" : undefined}>{l.label}</Link>
+            <Link key={l.href} href={l.href} aria-current={pathname === l.href ? "page" : undefined} onClick={() => setOpen(false)}>{l.label}</Link>
           ))}
-          <Link href="/contact" aria-current={pathname === "/contact" ? "page" : undefined}>Contact</Link>
-          <Link href={demo} className="btn btn-primary" style={{ marginTop: 8 }} onClick={() => setOpen(false)}>Réserver une démo gratuite</Link>
+          <Link href="/creer" className="btn btn-primary" style={{ marginTop: 8 }}>Créer ma carte</Link>
+          <Link href="/contact" className="btn btn-dark">Réserver une démo</Link>
         </nav>
       )}
     </header>

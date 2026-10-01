@@ -14,15 +14,14 @@ const palette = [
   { name: "Hibiscus", hex: "#FF2E7E", rgb: "255 · 46 · 126", role: "Pont", why: "La fleur d'hibiscus. Elle relie l'orange au violet dans le dégradé.", fg: "#fff", bg: "#FF2E7E" },
   { name: "Mangue", hex: "#FFA23D", rgb: "255 · 162 · 61", role: "Lumière", why: "Le haut du dégradé, les reflets, les petits accents chaleureux.", fg: "#0b0713", bg: "#FFA23D" },
   { name: "Lagon", hex: "#2DE2C4", rgb: "45 · 226 · 196", role: "Validation", why: "L'eau du lagon. Réservé à ce qui est réussi : tampon ajouté, paiement reçu, client actif.", fg: "#0b0713", bg: "#2DE2C4" },
-  { name: "Nuit", hex: "#0B0713", rgb: "11 · 7 · 19", role: "Fond", why: "La nuit tropicale, jamais un noir pur : une pointe de violet la rend plus chaude.", fg: "#f6efe6", bg: "#0B0713", border: true },
-  { name: "Sable", hex: "#F6EFE6", rgb: "246 · 239 · 230", role: "Texte et fonds clairs", why: "Un blanc chaud de sable, moins clinique qu'un blanc pur.", fg: "#0b0713", bg: "#F6EFE6" },
+  { name: "Nuit", hex: "#140C1F", rgb: "20 · 12 · 31", role: "Texte et blocs sombres", why: "La nuit tropicale, jamais un noir pur : une pointe de violet la rend plus chaude.", fg: "#f6efe6", bg: "#140C1F", border: true },
+  { name: "Sable", hex: "#F6EFE6", rgb: "246 · 239 · 230", role: "Fond principal", why: "Un blanc chaud de sable, moins clinique qu'un blanc pur.", fg: "#140c1f", bg: "#F6EFE6", border: true },
 ];
 
 export default function MarquePage() {
   return (
     <>
       <PageHero
-        index="B1"
         label="Identité de marque"
         title={<>Le <span className="serif">crépuscule</span> caribéen.</>}
         lead="L'heure où la Guadeloupe est la plus belle, et celle où les clients rentrent chez eux. Toute l'identité Walti part de ce moment : la chaleur du soleil couchant, le violet de la nuit qui tombe, et le lagon qui reste lumineux."
@@ -44,7 +43,7 @@ export default function MarquePage() {
             {[
               { t: "Pourquoi l'orange", d: "C'est la couleur de l'appétit et de l'action, parfaite pour des snacks, des roulottes et des cafés. En Guadeloupe, elle évoque le soleil, le flamboyant et le madras : elle parle à tout le monde, sans cliché." },
               { t: "Pourquoi le violet", d: "L'orange seul ferait « promo de supermarché ». Le violet du crépuscule lui donne une dimension premium et digitale. Ensemble, ils forment un dégradé qu'on reconnaît de loin, sur une affiche comme sur un écran." },
-              { t: "Pourquoi le fond nuit", d: "Les cartes Wallet, les notifications et les dégradés ressortent mieux sur un fond sombre. C'est aussi l'heure du crépuscule : le fond est la nuit, les couleurs sont la lumière qui reste." },
+              { t: "Pourquoi le fond sable", d: "Un fond clair et chaud rassure un commerçant : on lit vite, rien n'est « techno ». La nuit est gardée pour les téléphones et quelques blocs de contraste, là où les cartes Wallet et les messages doivent briller." },
             ].map((c, i) => (
               <div key={c.t} className="cell feature reveal" data-delay={i + 1}>
                 <span className="idx">0{i + 1}</span>
@@ -84,8 +83,8 @@ export default function MarquePage() {
           </div>
           <div className="grid cols-4" style={{ marginTop: 24 }}>
             {[
-              { p: "60 %", t: "Nuit", d: "Fonds, respiration." },
-              { p: "25 %", t: "Sable", d: "Textes, sections claires." },
+              { p: "60 %", t: "Sable", d: "Fonds, respiration." },
+              { p: "25 %", t: "Nuit", d: "Textes, téléphones, blocs de contraste." },
               { p: "10 %", t: "Flamboyant + dégradé", d: "Boutons, mots forts, mascotte." },
               { p: "5 %", t: "Lagon", d: "Uniquement ce qui est validé." },
             ].map((r) => (
@@ -169,27 +168,25 @@ export default function MarquePage() {
         </div>
       </section>
 
-      {/* Verre & grille */}
-      <section className="frame">
-        <div className="rails section">
-          <div className="notif-grid">
-            <div className="stack" style={{ "--gap": "22px" }}>
-              <span className="label">Verre, 3D et grille</span>
-              <h2 className="display-m reveal">Du verre sur <span className="serif">une grille stricte</span>.</h2>
-              <p className="lead">Les surfaces sont en verre dépoli, comme les dernières interfaces iPhone : flou de 22 px, bord blanc à 16 %, reflet en haut à gauche. Un seul soleil flou donne la profondeur. Tout est posé sur une grille discrète : des lignes de 1 px, beaucoup d'air, et un seul appel à l'action par écran.</p>
-              <ul className="list">
-                <li><span className="check">1</span>Le site est cadré, la mascotte ne l'est jamais : elle déborde, s'assoit, dépasse des bords.</li>
-                <li><span className="check">2</span>Un seul bouton principal par écran : « Réserver ma démo gratuite ».</li>
-                <li><span className="check">3</span>Les cartes Wallet sont les seuls objets en « vraie » 3D (perspective, ombre portée).</li>
-              </ul>
-            </div>
-            <div className="reveal" style={{ position: "relative", minHeight: 420, display: "grid", placeItems: "center" }}>
-              <div className="sun" style={{ width: 300, height: 300, left: "10%", top: "8%" }} aria-hidden="true" />
-              <div className="glass" style={{ position: "relative", width: "min(100%, 380px)", padding: 28, borderRadius: 28, display: "grid", gap: 16 }}>
-                <span className="label">Composant verre</span>
-                <WalletCard theme="plage" compact />
-                <p className="muted" style={{ fontSize: 14 }}>backdrop-filter : blur(22px) saturate(170 %) · bordure rgba(255,255,255,.16)</p>
-              </div>
+      {/* Règles de mise en page */}
+      <section className="frame alt">
+        <div className="rails section duo">
+          <div className="stack" style={{ "--gap": "22px" }}>
+            <span className="label">Mise en page</span>
+            <h2 className="display-m reveal">Clair, cadré, <span className="serif">peu de mots</span>.</h2>
+            <ul className="list">
+              <li><span className="check">1</span>Une idée par bloc. Un titre de 3 à 5 mots, une phrase, une image.</li>
+              <li><span className="check">2</span>Deux portes partout : « Créer ma carte » (orange) et « Réserver une démo ».</li>
+              <li><span className="check">3</span>Le site est cadré, la mascotte ne l'est jamais : elle déborde, s'assoit, dépasse des bords.</li>
+              <li><span className="check">4</span>Les téléphones et les cartes Wallet sont les seuls objets en 3D.</li>
+            </ul>
+          </div>
+          <div className="reveal" style={{ position: "relative", minHeight: 380, display: "grid", placeItems: "center" }}>
+            <div className="sun" style={{ width: 300, height: 300, left: "10%", top: "8%" }} aria-hidden="true" />
+            <div className="dash-preview" style={{ width: "min(100%, 380px)" }}>
+              <span className="label">Surface type</span>
+              <WalletCard theme="plage" compact />
+              <p className="muted" style={{ fontSize: 14 }}>Fond #FFFAF4 · bord 1 px nuit à 10 % · rayon 28 px · ombre chaude</p>
             </div>
           </div>
         </div>
@@ -292,28 +289,28 @@ export default function MarquePage() {
       </section>
 
       {/* Ton */}
-      <section className="sable-section">
-        <div className="rails section">
-          <div className="local-grid">
+      <section className="frame alt">
+        <div className="rails section duo">
             <div className="stack" style={{ "--gap": "22px" }}>
               <span className="label">Ton de voix</span>
               <h2 className="display-m">Chaleureux, direct, <span className="serif">d'ici</span>.</h2>
               <p className="lead">On vouvoie les commerçants, on tutoie leurs clients dans les notifications. Des phrases courtes, des exemples locaux (bokits, Carnaval, plage), jamais de jargon technique.</p>
             </div>
-            <div className="grid cols-2 local-cells">
+            <div className="grid cols-2">
               {[
                 ["On dit", "« Faites-les revenir. »"],
                 ["On évite", "« Optimisez votre rétention client omnicanale. »"],
+                ["On dit", "« Moins d'1 € par jour. »"],
+                ["On évite", "« Le prix d'un bokit par semaine » (trop long à calculer)."],
                 ["On dit", "« Zéro impression, zéro transport. »"],
                 ["On évite", "« 100 % écologique » (allégation encadrée par la loi)."],
               ].map(([t, d], i) => (
                 <div key={i} className="cell">
                   <h3 style={{ color: t === "On dit" ? "#0a8a74" : "var(--flamboyant)", marginTop: 0 }}>{t}</h3>
-                  <p style={{ fontSize: 16, color: "var(--nuit)" }}>{d}</p>
+                  <p style={{ fontSize: 16, color: "var(--ink)" }}>{d}</p>
                 </div>
               ))}
             </div>
-          </div>
         </div>
       </section>
     </>

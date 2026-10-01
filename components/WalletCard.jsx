@@ -54,12 +54,49 @@ export const cardThemes = {
   },
 };
 
-export default function WalletCard({ theme = "plage", className = "", style, animateStamp = false, compact = false }) {
-  const t = cardThemes[theme] || cardThemes.plage;
+/** Fonds de bandeau proposés dans « Créer ma carte ». {c} = couleur principale. */
+export const stripStyles = {
+  sunset: { label: "Coucher de soleil", css: (c) => `linear-gradient(180deg, #ffb35c 0%, ${c} 40%, #ff2e7e 64%, #3b1c72 65%, #241043 100%)` },
+  lagon: { label: "Lagon", css: (c) => `linear-gradient(170deg, #e8f7f2 0%, #8ff0dc 30%, ${c} 52%, #0a5560 53%, #062a2c 100%)` },
+  glow: { label: "Lumière", css: (c) => `radial-gradient(120% 140% at 80% 10%, #ffffff55 0%, ${c} 38%, #00000088 100%)` },
+  uni: { label: "Uni", css: (c) => `linear-gradient(180deg, ${c}, ${c})` },
+};
+
+export const cardColors = [
+  { id: "flamboyant", label: "Orange", accent: "#ff5b1f", bg: "#1a0f2e" },
+  { id: "hibiscus", label: "Rose", accent: "#ff2e7e", bg: "#2a0a1f" },
+  { id: "lagon", label: "Turquoise", accent: "#2de2c4", bg: "#062a2c" },
+  { id: "crepuscule", label: "Violet", accent: "#7b3cff", bg: "#140c24" },
+  { id: "mangue", label: "Jaune", accent: "#ffa23d", bg: "#22140a" },
+  { id: "foret", label: "Vert", accent: "#3fbf6b", bg: "#0c1f14" },
+];
+
+/** Transforme la configuration saisie dans « Créer ma carte » en carte affichable. */
+export function cardFromConfig(c = {}) {
+  const color = cardColors.find((x) => x.id === c.color) || cardColors[0];
+  const style = stripStyles[c.strip] || stripStyles.sunset;
+  const name = (c.merchant || "Votre commerce").trim() || "Votre commerce";
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "W";
+  const total = Math.min(12, Math.max(4, Number(c.total) || 10));
+  return {
+    merchant: name,
+    bg: color.bg,
+    accent: color.accent,
+    strip: style.css(color.accent),
+    reward: (c.reward || "1 produit offert").trim() || "1 produit offert",
+    total,
+    filled: Math.min(total - 1, c.filled ?? Math.round(total * 0.6)),
+    initials,
+    logo: c.logo || null,
+  };
+}
+
+export default function WalletCard({ theme = "plage", card, className = "", style, animateStamp = false, compact = false, member = "Maëlys" }) {
+  const t = card || cardThemes[theme] || cardThemes.plage;
   return (
     <div className={`wcard ${compact ? "wcard--compact" : ""} ${className}`} style={{ "--wc-bg": t.bg, "--wc-accent": t.accent, ...style }}>
       <div className="wcard-top">
-        <span className="wcard-logo" style={{ background: t.accent }}>{t.initials}</span>
+        <span className="wcard-logo" style={t.logo ? { backgroundImage: `url(${t.logo})`, backgroundColor: "#fff" } : { background: t.accent }}>{t.logo ? "" : t.initials}</span>
         <span className="wcard-name">{t.merchant}</span>
         <span className="wcard-field">
           <small>TAMPONS</small>
@@ -80,7 +117,7 @@ export default function WalletCard({ theme = "plage", className = "", style, ani
         <>
           <div className="wcard-fields">
             <span><small>RÉCOMPENSE</small><b>{t.reward}</b></span>
-            <span className="r"><small>MEMBRE</small><b>Maëlys</b></span>
+            <span className="r"><small>MEMBRE</small><b>{member}</b></span>
           </div>
           <div className="wcard-qr" aria-hidden="true">
             <Qr />

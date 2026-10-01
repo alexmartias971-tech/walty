@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import Icon from "@/components/Icon";
 import ContactForm from "./ContactForm";
@@ -18,10 +19,9 @@ export default function ContactPage() {
   return (
     <>
       <PageHero
-        index="C1"
         label="Contact"
         title={<>On passe <span className="serif">vous voir</span> ?</>}
-        lead="15 minutes, sur place, avec une carte de démonstration à votre nom installée sur votre téléphone. Sans engagement."
+        lead="15 minutes chez vous. On vous montre la carte sur votre téléphone. Sans engagement."
       />
       <section className="frame">
         <div className="rails section" style={{ paddingTop: 64 }}>
@@ -43,12 +43,17 @@ export default function ContactPage() {
                 )}
               </div>
               <div className="info-card glass">
-                <h2 className="display-s" style={{ fontSize: 20 }}>Ce qui se passe ensuite</h2>
+                <h2 className="display-s" style={{ fontSize: 20 }}>Et après ?</h2>
                 <ol className="list">
-                  {["On vous rappelle sous 24 h ouvrées.", "On fixe un rendez-vous chez vous, à l'heure creuse.", "On vous montre la carte en vrai, sur votre téléphone.", "Vous décidez. Sans engagement, sans pression."].map((t, i) => (
+                  {["On vous rappelle sous 24 h.", "On passe chez vous, à l'heure creuse.", "Vous voyez la carte sur votre téléphone.", "Vous décidez. Sans pression."].map((t, i) => (
                     <li key={t}><span className="check">{i + 1}</span>{t}</li>
                   ))}
                 </ol>
+              </div>
+              <div className="info-card glass">
+                <h2 className="display-s" style={{ fontSize: 20 }}>Pressé ?</h2>
+                <p className="muted" style={{ fontSize: 15 }}>Créez votre carte vous-même en 5 minutes. On l'active sous 24 h.</p>
+                <Link href="/creer" className="btn btn-primary">Créer ma carte</Link>
               </div>
             </aside>
           </div>

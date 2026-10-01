@@ -15,11 +15,11 @@ export default function CGU() {
       <h2>2. Accès</h2>
       <p>Le Site est accessible gratuitement à toute personne disposant d'un accès à internet. Les frais de connexion restent à la charge de l'utilisateur. L'éditeur peut suspendre ou modifier le Site à tout moment, notamment pour maintenance, sans que sa responsabilité puisse être engagée.</p>
 
-      <h2>3. Espace administrateur</h2>
-      <p>L'espace administrateur est strictement réservé aux personnes autorisées par l'éditeur. Toute tentative d'accès non autorisé, de contournement des mesures de sécurité ou d'extraction de données est interdite et peut constituer une infraction pénale (articles 323-1 et suivants du Code pénal).</p>
+      <h2>3. Espace commerçant et espace administrateur</h2>
+      <p>L'espace commerçant est réservé aux clients de Walti, chacun n'accédant qu'à sa propre carte. Vous gardez vos identifiants confidentiels. Les chiffres affichés dans le mode « exemple » sont fictifs. L'espace administrateur est strictement réservé aux personnes autorisées par l'éditeur. Toute tentative d'accès non autorisé, de contournement des mesures de sécurité ou d'extraction de données est interdite et peut constituer une infraction pénale (articles 323-1 et suivants du Code pénal).</p>
 
-      <h2>4. Utilisation du formulaire de contact</h2>
-      <p>Vous vous engagez à fournir des informations exactes et à ne pas utiliser le formulaire à des fins de spam, de démarchage ou d'envoi de contenus illicites. Le traitement de vos données est décrit dans la <Link href="/confidentialite">politique de confidentialité</Link>.</p>
+      <h2>4. Utilisation des formulaires</h2>
+      <p>Vous vous engagez à fournir des informations exactes, des éléments (logo, nom) dont vous avez le droit de vous servir, et à ne pas utiliser les formulaires à des fins de spam, de démarchage ou d'envoi de contenus illicites. Le traitement de vos données est décrit dans la <Link href="/confidentialite">politique de confidentialité</Link>.</p>
 
       <h2>5. Propriété intellectuelle</h2>
       <p>Les contenus du Site sont protégés (voir les <Link href="/mentions-legales">mentions légales</Link>). Vous pouvez les consulter pour un usage personnel ; toute autre utilisation nécessite l'accord écrit de l'éditeur.</p>

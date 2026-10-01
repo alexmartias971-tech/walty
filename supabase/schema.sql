@@ -40,7 +40,7 @@ create table if not exists public.accounts (
   email text check (char_length(email) <= 160),
   preferred_channel text check (char_length(preferred_channel) <= 20),
   message text check (char_length(message) <= 2100),
-  plan text check (plan in ('essentiel','premium','enseigne')),
+  plan text check (plan in ('essentiel','premium','pro')),
   billing text check (billing in ('mensuel','annuel')),
   mrr numeric(10,2) not null default 0,
   client_since date,
@@ -49,8 +49,17 @@ create table if not exists public.accounts (
   next_action text check (char_length(next_action) <= 200),
   next_action_date date,
   notes jsonb not null default '[]'::jsonb,
+  requested_plan text check (requested_plan in ('essentiel','premium','pro')),
+  card_config jsonb,
   consent_at timestamptz
 );
+
+-- (si la table existait déjà avant la v3)
+alter table public.accounts add column if not exists requested_plan text;
+alter table public.accounts add column if not exists card_config jsonb;
+update public.accounts set plan = 'pro' where plan = 'enseigne';
+alter table public.accounts drop constraint if exists accounts_plan_check;
+alter table public.accounts add constraint accounts_plan_check check (plan in ('essentiel','premium','pro'));
 
 create index if not exists accounts_stage_idx on public.accounts (stage);
 create index if not exists accounts_next_action_idx on public.accounts (next_action_date);
@@ -69,6 +78,7 @@ create policy "formulaire du site" on public.accounts
     stage = 'nouveau' and source = 'site' and plan is null and mrr = 0
     and client_status is null and founder = false and notes = '[]'::jsonb
     and consent_at is not null
+    and (card_config is null or pg_column_size(card_config) < 200000)
   );
 
 -- Les administrateurs peuvent tout faire
@@ -87,6 +97,28 @@ begin new.updated_at = now(); return new; end $$;
 drop trigger if exists accounts_touch on public.accounts;
 create trigger accounts_touch before update on public.accounts for each row execute function public.touch_updated_at();
 
--- 4. VOTRE COMPTE ADMIN : remplacez l'adresse puis exécutez cette ligne.
+-- 4. ESPACE COMMERÇANT
+-- Le commerçant se connecte avec l'e-mail de sa fiche client (créez son accès dans
+-- Supabase → Authentication → Users → Add user, avec le même e-mail).
+-- Cette fonction ne renvoie QUE sa carte : jamais les notes internes ni les autres clients.
+create or replace function public.my_account()
+returns table (business text, contact_name text, plan text, requested_plan text, card_config jsonb, client_since date)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select a.business, a.contact_name, a.plan, a.requested_plan, a.card_config, a.client_since
+  from public.accounts a
+  where a.stage = 'client'
+    and a.email is not null
+    and lower(a.email) = lower(auth.jwt() ->> 'email')
+  order by a.client_since desc nulls last
+  limit 1;
+$$;
+revoke all on function public.my_account() from public, anon;
+grant execute on function public.my_account() to authenticated;
+
+-- 5. VOTRE COMPTE ADMIN : remplacez l'adresse puis exécutez cette ligne.
 --    Créez aussi l'utilisateur dans Authentication > Users > Add user (avec mot de passe).
 -- insert into public.admins (email) values ('votre-email@exemple.fr');
