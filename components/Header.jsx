@@ -35,7 +35,7 @@ export default function Header() {
         </nav>
         <div className="row" style={{ "--gap": "8px" }}>
           <div className="header-ctas">
-            <Link href="/creer" className="btn btn-ghost btn-sm">Créer ma carte <span className="soon-tag">Bientôt</span></Link>
+            <Link href="/creer" className="btn btn-soon btn-sm">Créer ma carte <span className="soon-tag">Bientôt</span></Link>
             <Link href="/contact" className="btn btn-primary btn-sm">Réserver une démo</Link>
           </div>
           <button className="burger" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}>
@@ -51,7 +51,7 @@ export default function Header() {
             <Link key={l.href} href={l.href} aria-current={pathname === l.href ? "page" : undefined} onClick={() => setOpen(false)}>{l.label}</Link>
           ))}
           <Link href="/contact" className="btn btn-primary" style={{ marginTop: 8 }}>Réserver une démo</Link>
-          <Link href="/creer" className="btn btn-dark">Créer ma carte <span className="soon-tag">Bientôt</span></Link>
+          <Link href="/creer" className="btn btn-soon">Créer ma carte <span className="soon-tag">Bientôt disponible</span></Link>
         </nav>
       )}
     </header>

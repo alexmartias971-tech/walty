@@ -22,7 +22,6 @@ export default function Footer() {
               <li><Link href="/produit">Le produit</Link></li>
               <li><Link href="/tarifs">Tarifs</Link></li>
               <li><Link href="/a-propos">À propos</Link></li>
-              <li><Link href="/marque">Identité de marque</Link></li>
             </ul>
           </div>
           <div>

@@ -23,9 +23,8 @@ export default function Cookies() {
           <tbody>
             <tr><td>sb-…-auth-token</td><td>Stockage local</td><td>Rester connecté à l'espace commerçant ou à l'espace admin (uniquement pour les personnes qui se connectent)</td><td>Jusqu'à la déconnexion</td></tr>
             <tr><td>walti-demo-accounts-v1</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur les données fictives de l'espace admin</td><td>Jusqu'à effacement par vous</td></tr>
-            <tr><td>walti-creer-brouillon</td><td>Stockage local</td><td>Garder sur votre appareil le formulaire « Créer ma carte » que vous n'avez pas fini, pour le reprendre plus tard. Effacé à l'envoi ou avec « Tout recommencer »</td><td>Jusqu'à l'envoi ou effacement par vous</td></tr>
-            <tr><td>walti-my-card</td><td>Stockage local</td><td>Garder dans votre navigateur la carte que vous venez de créer, pour l'afficher dans votre espace commerçant</td><td>Jusqu'à effacement par vous</td></tr>
             <tr><td>walti-merchant-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace commerçant de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
+            <tr><td>walti-intro</td><td>Stockage de session</td><td>Ne montrer l'écran de chargement qu'une fois par visite</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
             <tr><td>walti-demo-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace admin de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
           </tbody>
         </table>

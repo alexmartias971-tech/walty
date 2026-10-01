@@ -72,7 +72,7 @@ export default function PriceCards({ toggle = false }) {
               <Link href={`/contact?formule=${p.id}`} className={`btn ${p.featured ? "btn-primary" : "btn-dark"}`}>
                 {trialDays ? `Démo gratuite · ${trialDays} jours offerts` : `Choisir ${p.name}`}
               </Link>
-              <Link href={`/creer?formule=${p.id}`} className="small">Créer ma carte en ligne : bientôt</Link>
+              <Link href={`/creer?formule=${p.id}`} className="small">Créer ma carte en ligne : bientôt disponible</Link>
             </div>
           </article>
         ))}

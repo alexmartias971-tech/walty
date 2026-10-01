@@ -6,7 +6,7 @@ import WalletCard, { cardFromConfig } from "@/components/WalletCard";
 import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import { plans, planById } from "@/lib/offer";
-import { PLAN_RANK, demoStats, kpiTiles, planLabel } from "@/lib/kpis";
+import { PLAN_RANK, demoStats, emptyStats, kpiTiles, planLabel } from "@/lib/kpis";
 import { isDemo, merchantSession, merchantSignIn, merchantSignOut, getMyAccount } from "@/lib/store";
 
 const EXAMPLE = {
@@ -16,6 +16,13 @@ const EXAMPLE = {
   card_config: { merchant: "Le Bokit du Lagon", color: "flamboyant", strip: "sunset", total: 10, reward: "1 bokit offert" },
 };
 const nextPlan = { essentiel: "premium", premium: "pro", pro: null };
+/** Compte d'aperçu du site (sans base de données branchée) : un commerçant tout juste activé. */
+const freshAccount = (email) => ({
+  business: "Mon commerce",
+  plan: "premium",
+  contact_name: (email || "").split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+  card_config: { merchant: "Mon commerce", color: "flamboyant", strip: "sunset", program: { type: "tampons", rules: { total: 10, reward: "1 produit offert" } } },
+});
 
 /* ───────── Connexion ───────── */
 function Login({ onIn, onExample }) {
@@ -64,21 +71,24 @@ function Dashboard({ account, example, onOut }) {
   const [plan, setPlan] = useState(account.plan in PLAN_RANK ? account.plan : "essentiel");
   const [msg, setMsg] = useState("");
   const [toast, setToast] = useState("");
+  const stats = example ? demoStats : emptyStats; // vrais chiffres : branchés à l'application de cartes
+  const fresh = !stats.visits;
   const rank = PLAN_RANK[plan];
   const p = planById[plan];
-  const card = useMemo(() => cardFromConfig({ ...account.card_config }), [account]);
-  const tiles = kpiTiles(demoStats);
-  const max = Math.max(...demoStats.weekly);
+  const card = useMemo(() => cardFromConfig({ ...account.card_config, ...(example ? {} : { filled: 0 }) }), [account, example]);
+  const tiles = kpiTiles(stats);
+  const max = Math.max(1, ...stats.weekly);
   const cap = p.clients;
-  const used = demoStats.clients;
+  const used = stats.clients;
   const nearFull = cap && used / cap >= 0.85;
   const up = nextPlan[plan] ? planById[nextPlan[plan]] : null;
+  const firstName = account.contact_name && account.contact_name !== "Démo" ? account.contact_name.split(" ")[0] : "";
 
   function say(t) { setToast(t); setTimeout(() => setToast(""), 3200); }
   function send(e) {
     e.preventDefault();
     if (!msg.trim()) return say("Écrivez votre message d'abord.");
-    say(example || isDemo ? "Exemple : rien n'a été envoyé." : "Message envoyé à vos clients ✓");
+    say("Exemple : rien n'a été envoyé.");
     setMsg("");
   }
 
@@ -86,7 +96,7 @@ function Dashboard({ account, example, onOut }) {
     <section className="esp">
       <div className="esp-top">
         <div>
-          <p className="esp-hello">Bonjour {account.contact_name && account.contact_name !== "Démo" ? account.contact_name.split(" ")[0] : ""} 👋</p>
+          <p className="esp-hello">Bonjour{firstName ? ` ${firstName}` : ""} 👋</p>
           <h1 className="display-m">{card.merchant}</h1>
         </div>
         <div className="esp-top-right">
@@ -95,13 +105,21 @@ function Dashboard({ account, example, onOut }) {
         </div>
       </div>
 
-      {(example || isDemo) && (
+      {example ? (
         <div className="esp-demo">
           <span><b>Exemple</b> avec de faux chiffres. Comparez les formules :</span>
           <div className="esp-seg" role="radiogroup" aria-label="Voir l'espace en formule">
             {plans.map((x) => (
               <label key={x.id}><input type="radio" name="esp-plan" checked={plan === x.id} onChange={() => setPlan(x.id)} /><span>{x.name}</span></label>
             ))}
+          </div>
+        </div>
+      ) : fresh && (
+        <div className="esp-welcome">
+          <Mascot pose="wave" size={92} title="Walti vous souhaite la bienvenue" />
+          <div>
+            <b>Votre carte est prête.</b>
+            <p>Posez l'affiche au comptoir : vos chiffres apparaîtront ici dès le premier tampon.</p>
           </div>
         </div>
       )}
@@ -111,7 +129,7 @@ function Dashboard({ account, example, onOut }) {
         <div className="esp-side">
           <div className="esp-box">
             <h2 className="esp-h">Ma carte</h2>
-            <WalletCard card={card} />
+            <WalletCard card={card} member={example ? "Maëlys" : "Votre client"} />
             <p className="muted" style={{ fontSize: 15 }}>{card.summary}</p>
             <Link href="/contact" className="text-link" style={{ fontSize: 15 }}>Changer ma carte</Link>
           </div>
@@ -122,7 +140,7 @@ function Dashboard({ account, example, onOut }) {
               <span className="counter-qr" />
               <span className="counter-sign-sub">Scannez avec l'appareil photo</span>
             </div>
-            <button type="button" className="btn btn-dark btn-sm" onClick={() => say(example || isDemo ? "Exemple : votre affiche arrive avec l'activation." : "Affiche envoyée par e-mail ✓")}><Icon name="download" size={16} /> Recevoir mon affiche</button>
+            <p className="muted" style={{ fontSize: 14, textAlign: "center" }}>Votre affiche vous est remise à l'installation.</p>
           </div>
         </div>
 
@@ -139,7 +157,7 @@ function Dashboard({ account, example, onOut }) {
                 return (
                   <div key={t.id} className={`tile ${locked ? "locked" : ""}`}>
                     <small>{t.label}</small>
-                    <b aria-hidden={locked}>{t.value}</b>
+                    <b aria-hidden={locked}>{locked && !example ? "—" : t.value}</b>
                     {locked
                       ? <Link href={`/contact?formule=${t.plan}`} className="tile-lock"><Icon name="sparkle" size={14} /> Avec {planLabel[t.plan]}</Link>
                       : <span className={t.up ? "up" : ""}>{t.note}</span>}
@@ -152,20 +170,26 @@ function Dashboard({ account, example, onOut }) {
           <div className="esp-two">
             <div className="esp-box">
               <h2 className="esp-h">Passages par semaine</h2>
-              <div className="bars" role="img" aria-label={`Passages par semaine : ${demoStats.weekly.join(", ")}`}>
-                {demoStats.weekly.map((v, i) => (
-                  <div key={i} className={`b ${i === demoStats.weekly.length - 1 ? "last" : ""}`} tabIndex={0}>
-                    <em>{v}</em><i style={{ height: `${(v / max) * 100}%` }} />
+              {fresh ? (
+                <div className="esp-empty"><Icon name="chart" size={22} /><p>Vos passages s'afficheront ici, semaine après semaine.</p></div>
+              ) : (
+                <>
+                  <div className="bars" role="img" aria-label={`Passages par semaine : ${stats.weekly.join(", ")}`}>
+                    {stats.weekly.map((v, i) => (
+                      <div key={i} className={`b ${i === stats.weekly.length - 1 ? "last" : ""}`} tabIndex={0}>
+                        <em>{v}</em><i style={{ height: `${(v / max) * 100}%` }} />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="bars-x">{demoStats.weeks.map((w) => <span key={w}>{w}</span>)}</div>
+                  <div className="bars-x">{stats.weeks.map((w) => <span key={w}>{w}</span>)}</div>
+                </>
+              )}
             </div>
             <div className="esp-box">
               <h2 className="esp-h">Place sur ma carte</h2>
               <div className="meter">
-                <div className="esp-meter-num"><b>{used}</b> <span>clients {cap ? `sur ${new Intl.NumberFormat("fr-FR").format(cap)}` : "· illimité"}</span></div>
-                <div className="meter-track"><span className="meter-fill" style={{ width: cap ? `${Math.min(100, (used / cap) * 100)}%` : "18%", background: nearFull ? "var(--hibiscus)" : undefined }} /></div>
+                <div className="esp-meter-num"><b>{used}</b> <span>client{used > 1 ? "s" : ""} {cap ? `sur ${new Intl.NumberFormat("fr-FR").format(cap)}` : "· illimité"}</span></div>
+                <div className="meter-track"><span className="meter-fill" style={{ width: cap ? `${Math.min(100, (used / cap) * 100)}%` : used ? "18%" : "0%", background: nearFull ? "var(--hibiscus)" : undefined }} /></div>
               </div>
               {nearFull && up
                 ? <p className="esp-warn">Votre carte est presque pleine. Avec {up.name}, jusqu'à {up.clients ? new Intl.NumberFormat("fr-FR").format(up.clients) : "un nombre illimité de"} clients.</p>
@@ -178,19 +202,27 @@ function Dashboard({ account, example, onOut }) {
           <div className={`esp-box esp-send ${rank < 1 ? "is-locked" : ""}`}>
             <div className="esp-box-head">
               <h2 className="esp-h">Envoyer un message</h2>
-              {rank === 1 && <span className="chip chip-orange">Reste 1 message cette semaine</span>}
-              {rank === 2 && <span className="chip chip-orange">Illimité</span>}
+              {example && rank === 1 && <span className="chip chip-orange">Reste 1 message cette semaine</span>}
+              {example && rank === 2 && <span className="chip chip-orange">Illimité</span>}
+              {!example && rank >= 1 && <span className="soon-tag soon-tag-lg">Bientôt disponible ici</span>}
             </div>
-            <form onSubmit={send} className="stack" style={{ "--gap": "12px" }}>
-              <textarea className="textarea" value={msg} onChange={(e) => setMsg(e.target.value)} maxLength={160} placeholder="Ex. : Ce soir on est à Bois-Jolan ! Le 2e bokit à moitié prix 🌅" disabled={rank < 1} aria-label="Votre message" style={{ minHeight: 90 }} />
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <span className="faint" style={{ fontSize: 13 }}>{msg.length}/160 · s'affiche sur le téléphone de vos {used} clients</span>
-                <div className="row">
-                  {rank === 2 && <button type="button" className="btn btn-ghost btn-sm" onClick={() => say("Exemple : message programmé pour samedi 10 h.")}><Icon name="clock" size={16} /> Programmer</button>}
-                  <button className="btn btn-primary btn-sm" disabled={rank < 1}><Icon name="bell" size={16} /> Envoyer</button>
+            {example || rank < 1 ? (
+              <form onSubmit={send} className="stack" style={{ "--gap": "12px" }}>
+                <textarea className="textarea" value={msg} onChange={(e) => setMsg(e.target.value)} maxLength={160} placeholder="Ex. : Ce soir on est à Bois-Jolan ! Le 2e bokit à moitié prix 🌅" disabled={rank < 1} aria-label="Votre message" style={{ minHeight: 90 }} />
+                <div className="row" style={{ justifyContent: "space-between" }}>
+                  <span className="faint" style={{ fontSize: 13 }}>{msg.length}/160 · s'affiche sur le téléphone de vos {used} clients</span>
+                  <div className="row">
+                    {rank === 2 && <button type="button" className="btn btn-ghost btn-sm" onClick={() => say("Exemple : message programmé pour samedi 10 h.")}><Icon name="clock" size={16} /> Programmer</button>}
+                    <button className="btn btn-primary btn-sm" disabled={rank < 1}><Icon name="bell" size={16} /> Envoyer</button>
+                  </div>
                 </div>
+              </form>
+            ) : (
+              <div className="esp-lock">
+                <p><b>Bientôt, vous enverrez vos messages d'ici.</b><br />En attendant, écrivez-nous votre offre : on l'envoie à vos clients pour vous.</p>
+                <Link href="/contact" className="btn btn-primary btn-sm">Nous l'envoyer</Link>
               </div>
-            </form>
+            )}
             {rank < 1 && (
               <div className="esp-lock">
                 <p><b>Prévenez vos clients en 1 clic.</b><br />Une offre, une nouveauté : elle s'affiche sur leur téléphone.</p>
@@ -215,10 +247,13 @@ function Dashboard({ account, example, onOut }) {
                 <li key={a.t}>
                   <span className="esp-auto-icon"><Icon name={a.i} size={18} /></span>
                   <div><b>{a.t}</b><p>{a.d}</p></div>
-                  <span className={`esp-switch ${rank >= 2 ? "on" : ""}`} aria-label={rank >= 2 ? "Activé" : "Désactivé"} role="img" />
+                  {example || rank < 2
+                    ? <span className={`esp-switch ${rank >= 2 ? "on" : ""}`} aria-label={rank >= 2 ? "Activé" : "Désactivé"} role="img" />
+                    : <span className="chip chip-lagon" style={{ whiteSpace: "nowrap" }}>Inclus</span>}
                 </li>
               ))}
             </ul>
+            {!example && rank >= 2 && <p className="muted" style={{ fontSize: 14 }}>Notre équipe les met en place pour vous à l'installation.</p>}
             {rank < 2 && (
               <div className="esp-lock">
                 <p><b>Votre carte travaille pendant que vous travaillez.</b></p>
@@ -230,11 +265,15 @@ function Dashboard({ account, example, onOut }) {
           {/* Derniers passages */}
           <div className="esp-box">
             <h2 className="esp-h">Derniers passages</h2>
-            <ul className="esp-recent">
-              {demoStats.recent.map((r) => (
-                <li key={r.name + r.when}><span className="esp-avatar">{r.name[0]}</span><b>{r.name}</b><span>{r.stamps}</span><em>{r.when}</em></li>
-              ))}
-            </ul>
+            {stats.recent.length ? (
+              <ul className="esp-recent">
+                {stats.recent.map((r) => (
+                  <li key={r.name + r.when}><span className="esp-avatar">{r.name[0]}</span><b>{r.name}</b><span>{r.stamps}</span><em>{r.when}</em></li>
+                ))}
+              </ul>
+            ) : (
+              <div className="esp-empty"><Icon name="stamp" size={22} /><p>Aucun passage pour l'instant. Le premier tampon apparaîtra ici.</p></div>
+            )}
           </div>
 
           {/* Mon offre */}
@@ -265,7 +304,7 @@ export default function EspaceApp() {
     try {
       const acc = await getMyAccount();
       if (acc) return setState({ loading: false, session: s, account: acc });
-      if (isDemo) return setState({ loading: false, session: s, account: EXAMPLE, example: true });
+      if (isDemo) return setState({ loading: false, session: s, account: freshAccount(s.email) });
       setState({ loading: false, session: s, account: null });
     } catch (e) {
       setState({ loading: false, session: s, account: null, error: e.message });

@@ -828,3 +828,17 @@
 .soon-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 99px; font: 800 11px/1 var(--f-body); letter-spacing: .01em; background: rgba(123,60,255,.25); color: var(--violet-ink); vertical-align: middle; }
 .fork-card h3 .soon-tag { margin-left: 6px; position: relative; top: -3px; }
 .fork-card.help ul svg { color: var(--violet-ink); }
+/* Espace commerçant : compte tout juste activé */
+.esp-welcome { display: flex; align-items: center; gap: 16px; padding: 14px 20px 14px 10px; border-radius: 20px; background: rgba(45,226,196,.07); border: 1px solid rgba(45,226,196,.25); }
+.esp-welcome b { font-size: 17px; }
+.esp-welcome p { color: var(--muted); font-size: 15px; margin-top: 2px; }
+.esp-empty { display: grid; justify-items: center; gap: 8px; padding: 26px 16px; border-radius: 16px; border: 1.5px dashed var(--line-strong); text-align: center; color: var(--muted); font-size: 14.5px; }
+.esp-empty svg { color: var(--faint); }
+/* « Bientôt disponible » : impossible de le rater */
+.soon-tag { height: 22px; padding: 0 9px; font-size: 12px; background: var(--violet-ink); color: #160f20; }
+.soon-tag-lg { height: 28px; padding: 0 12px; font-size: 13.5px; justify-self: start; }
+.btn-soon { color: var(--ink); background: transparent; border: 1.5px dashed rgba(185,160,255,.55); }
+.btn-soon:hover { border-color: var(--violet-ink); background: rgba(123,60,255,.08); }
+.fork-card.help { border-style: dashed; border-color: rgba(185,160,255,.45); }
+.soon-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: var(--violet-ink); }
+.soon-title { font: 700 clamp(46px, 7vw, 96px)/.95 var(--f-display); letter-spacing: -0.055em; }

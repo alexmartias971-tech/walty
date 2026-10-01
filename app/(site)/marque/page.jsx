@@ -4,6 +4,7 @@ import WalletCard from "@/components/WalletCard";
 import { LogoMark, Wordmark } from "@/components/Logo";
 
 export const metadata = {
+  robots: { index: false, follow: false },
   title: "Identité de marque",
   description: "Le guide d'identité visuelle de Walti : couleurs, typographies, logo, effets verre et la mascotte Walti.",
 };

@@ -22,7 +22,7 @@ export default function TarifsPage() {
       <PageHero
         label="Tarifs"
         title={<>Moins d'1 € <span className="serif">par jour</span>.</>}
-        lead={`Trois formules, sans engagement.${trialDays ? ` ${trialDays} jours gratuits pour essayer.` : ""} Un seul client de plus par semaine rembourse la carte.`}
+        lead={`Essentiel : 29 € par mois, soit moins d'1 € par jour. Trois formules, sans engagement.${trialDays ? ` ${trialDays} jours offerts pour essayer.` : ""}`}
       />
 
       <section className="frame">

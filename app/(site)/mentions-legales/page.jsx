@@ -19,7 +19,7 @@ export default function MentionsLegales() {
             <tr><th>Adresse</th><td><V v={legal.address} /></td></tr>
             <tr><th>SIREN</th><td><V v={legal.siren} /></td></tr>
             <tr><th>SIRET</th><td><V v={legal.siret} /></td></tr>
-            <tr><th>Immatriculation</th><td>{legal.registry}</td></tr>
+            <tr><th>Immatriculation</th><td>{legal.registry}. {legal.sharedSiretNote}</td></tr>
             <tr><th>E-mail</th><td><Email /></td></tr>
             <tr><th>Téléphone</th><td><V v={site.contact.phone} /></td></tr>
             <tr><th>Directeur de la publication</th><td><V v={legal.publicationDirector} /></td></tr>

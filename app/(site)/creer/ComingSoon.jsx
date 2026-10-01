@@ -138,11 +138,11 @@ export default function ComingSoon() {
   return (
     <div className="soon">
       <div className="soon-copy">
-        <span className="chip chip-violet soon-chip"><i className="soon-dot" /> Bientôt disponible</span>
-        <h1 className="display-l">Votre carte, créée par <span className="serif">l'IA</span>.</h1>
-        <p className="lead">Vous décrivez votre commerce en une phrase. Notre agent IA crée votre carte de fidélité en 2 minutes.</p>
+        <span className="soon-kicker"><i className="soon-dot" /> Créer ma carte en ligne</span>
+        <h1 className="soon-title">Bientôt <span className="grad-text">disponible</span>.</h1>
+        <p className="lead">Bientôt, vous créerez votre carte vous-même : vous décrivez votre commerce en une phrase, notre agent IA la crée en 2 minutes.</p>
         <div className="soon-now">
-          <p><b>En attendant, on la crée pour vous.</b> Réservez une démo gratuite : on vient chez vous et votre carte est prête le jour même.</p>
+          <p><b>En attendant, on la crée pour vous.</b> Réservez une démo gratuite : on vient chez vous, on crée votre carte et on l'installe.</p>
           {plan && <p className="faint" style={{ fontSize: 14 }}>Formule choisie : <b style={{ color: "var(--ink)" }}>{plan.name}</b> ({plan.monthly} € / mois)</p>}
           <div className="row">
             <Link href={demoHref} className="btn btn-primary btn-lg">Réserver une démo <span className="arrow"><Icon name="arrow" size={16} /></span></Link>

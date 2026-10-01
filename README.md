@@ -1,7 +1,7 @@
 # Walti — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 6 (écran de chargement animé, badges Apple Wallet / Google Wallet, « Créer ma carte » en « Bientôt disponible », mentions légales remplies).
+Site Next.js prêt pour GitHub → Vercel. Version 7 (espace commerçant sans faux chiffres, « Bientôt disponible » bien visible, mentions légales au nom d'Alexandre MARTIAS).
 
 ## Ce qu'il y a dedans
 
@@ -14,7 +14,7 @@ Site Next.js prêt pour GitHub → Vercel. Version 6 (écran de chargement anim�
 | **Espace commerçant** (sa carte, ses chiffres, l'envoi de messages, les automatismes) | `/espace` |
 | Contact (réserver une démo) | `/contact` |
 | À propos | `/a-propos` |
-| Identité de marque + planche mascotte | `/marque` |
+| Identité de marque + planche mascotte (page interne : pas de lien sur le site, pas sur Google) | `/marque` |
 | Mentions légales, Confidentialité, CGV, CGU, Cookies | `/mentions-legales`, `/confidentialite`, `/cgv`, `/cgu`, `/cookies` |
 | **Espace admin** (prospects, pipeline, clients, relances, cartes créées en ligne, export CSV) | `/admin` |
 
@@ -22,7 +22,7 @@ Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, 
 
 ## 1. Mettre en ligne (sans rien installer)
 
-1. Dézippez le fichier `walti-site-v6.zip`.
+1. Dézippez le fichier `walti-site-v7.zip`.
 2. Sur GitHub, ouvrez votre dépôt existant (ex. `walty`) → **Add file → Upload files**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**. Les fichiers existants sont remplacés.
 3. Vercel redéploie tout seul si le dépôt est relié au projet. Sinon : **Add New → Project** → importez le dépôt → **Deploy**.
 

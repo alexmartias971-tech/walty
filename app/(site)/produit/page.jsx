@@ -14,8 +14,8 @@ export const metadata = {
 
 /* Ce que fait la carte, avec la formule qui le débloque. */
 const features = [
-  { i: "wallet", t: "Dans le téléphone", d: "iPhone et Android. Rien à télécharger.", plan: "Toutes" },
-  { i: "stamp", t: "Tampons sécurisés", d: "C'est votre équipe qui tamponne. Pas de triche.", plan: "Toutes" },
+  { i: "wallet", t: "Dans le téléphone", d: "iPhone et Android. Pas d'appli Walti à télécharger.", plan: "Toutes" },
+  { i: "stamp", t: "Tampons sécurisés", d: "C'est votre équipe qui tamponne, pas le client.", plan: "Toutes" },
   { i: "chart", t: "Vos chiffres", d: "Clients, passages, cadeaux. Sur votre téléphone.", plan: "Toutes" },
   { i: "sparkle", t: "Carte avec vos photos", d: "Votre logo, vos couleurs, vos photos.", plan: "Premium" },
   { i: "bell", t: "Vos offres sur leur téléphone", d: "Comme un SMS, sans payer chaque envoi.", plan: "Premium" },
@@ -66,7 +66,7 @@ export default function ProduitPage() {
       <section className="frame alt">
         <div className="rails section duo">
           <div className="stack" style={{ "--gap": "22px" }}>
-            <span className="label">Pas de triche</span>
+            <span className="label">Anti-triche</span>
             <h2 className="display-l reveal">Un tampon = <span className="serif">un vrai passage</span>.</h2>
             <ol className="list reveal">
               {["Le client montre sa carte.", "Votre employé la scanne.", "Le tampon s'ajoute. Tout de suite."].map((t, i) => (
@@ -123,8 +123,8 @@ export default function ProduitPage() {
               <tbody>
                 {[
                   ["Le client installe quelque chose", "Non", "Oui (et souvent il refuse)", "Non"],
-                  ["Se perd", "Souvent", "Rarement", "Jamais"],
-                  ["Triche possible", "Oui", "Ça dépend", "Non"],
+                  ["Se perd", "Souvent", "Rarement", "Non, elle reste dans le téléphone"],
+                  ["Triche possible", "Oui (stylo)", "Ça dépend", "Très difficile"],
                   ["Vous savez qui revient", "Non", "Oui", "Oui"],
                   ["Prévenir vos clients", "Impossible", "Si l'appli est ouverte", "Sur leur écran"],
                   ["Installation", "Vous", "Vous", "On s'en occupe"],

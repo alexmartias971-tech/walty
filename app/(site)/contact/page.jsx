@@ -45,7 +45,7 @@ export default function ContactPage() {
               <div className="info-card glass">
                 <h2 className="display-s" style={{ fontSize: 20 }}>Et après ?</h2>
                 <ol className="list">
-                  {["On vous rappelle sous 24 h.", "On passe chez vous, à l'heure creuse.", "Vous voyez la carte sur votre téléphone.", "Vous décidez. Sans pression."].map((t, i) => (
+                  {["On vous rappelle sous 24 h ouvrées.", "On passe chez vous, à l'heure creuse.", "Vous voyez la carte sur votre téléphone.", "Vous décidez. Sans pression."].map((t, i) => (
                     <li key={t}><span className="check">{i + 1}</span>{t}</li>
                   ))}
                 </ol>

@@ -23,7 +23,8 @@ export default function Fork({ title = "Comment voulez-vous commencer ?" }) {
             <Link href="/contact" className="btn btn-light btn-lg stretch">Réserver une démo <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
           </div>
           <div className="fork-card help">
-            <h3>Je crée ma carte moi-même <span className="soon-tag">Bientôt</span></h3>
+            <span className="soon-tag soon-tag-lg">Bientôt disponible</span>
+            <h3>Je crée ma carte moi-même</h3>
             <ul>
               <li><Icon name="sparkle" size={18} /> Vous décrivez votre commerce</li>
               <li><Icon name="sparkle" size={18} /> Notre agent IA crée votre carte</li>

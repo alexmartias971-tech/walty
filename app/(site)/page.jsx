@@ -33,7 +33,7 @@ export default function Home() {
               </p>
               <div className="hero-actions reveal" data-delay="3">
                 <Link href="/contact" className="btn btn-primary btn-lg">Réserver une démo <span className="arrow"><Icon name="arrow" size={16} /></span></Link>
-                <Link href="/creer" className="btn btn-dark btn-lg">Créer ma carte <span className="soon-tag">Bientôt</span></Link>
+                <Link href="/creer" className="btn btn-soon btn-lg">Créer ma carte <span className="soon-tag">Bientôt disponible</span></Link>
               </div>
               <ul className="reassure reveal" data-delay="4">
                 <li><Icon name="check" size={17} stroke={2.4} /> Sans appli à télécharger</li>
@@ -122,7 +122,7 @@ export default function Home() {
               <span className="ba-tag orange">AVEC WALTI</span>
               <div className="ba-visual" aria-hidden="true"><WalletCard theme="hibiscus" /></div>
               <ul className="list">
-                {["Toujours dans le téléphone", "Impossible à tricher", "Vous voyez vos chiffres"].map((t) => (
+                {["Toujours dans le téléphone", "Tamponnée par votre équipe", "Vous voyez vos chiffres"].map((t) => (
                   <li key={t} style={{ color: "var(--ink)", fontWeight: 600 }}><span className="check"><Icon name="check" size={12} stroke={2.6} /></span>{t}</li>
                 ))}
               </ul>
@@ -177,7 +177,7 @@ export default function Home() {
           <div className="section-head price-head">
             <span className="label">Tarifs</span>
             <h2 className="display-l">Moins d'1 € <span className="serif">par jour</span>.</h2>
-            <p className="lead">Un seul client de plus par semaine, et la carte est remboursée.</p>
+            <p className="lead">Essentiel : 29 € par mois. Un client de plus par semaine suffit à la rembourser.</p>
           </div>
           <PriceCards />
           <div className="price-foot">
@@ -193,9 +193,9 @@ export default function Home() {
           <h2 className="display-m">Vos <span className="serif">questions</span>.</h2>
           <div className="faq">
             {[
-              { q: "Mes clients doivent-ils télécharger une appli ?", a: "Non. La carte va dans le portefeuille du téléphone (Apple Wallet ou Google Wallet), déjà installé sur iPhone et Android." },
+              { q: "Mes clients doivent-ils télécharger une appli ?", a: "Non. La carte va dans le portefeuille du téléphone : Apple Wallet sur iPhone, Google Wallet sur Android (déjà installé sur la plupart des téléphones)." },
               { q: "Je ne suis pas à l'aise avec la technique.", a: "Pas de souci : réservez une démo, on vient chez vous et on installe tout. Vous n'avez qu'à tamponner." },
-              { q: "Un client peut-il tricher ?", a: "Non. C'est votre équipe qui tamponne la carte, avec son propre accès." },
+              { q: "Un client peut-il tricher ?", a: "C'est votre équipe qui tamponne la carte, avec son propre accès. Le client ne peut pas s'ajouter de tampon lui-même." },
               { q: "Et si j'arrête ?", a: "Aucun engagement. Vous arrêtez à la fin du mois, et vous gardez la liste de vos clients." },
             ].map((f) => (
               <details key={f.q}>
