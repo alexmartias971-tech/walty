@@ -41,7 +41,7 @@ function Login({ onIn, onExample }) {
   return (
     <section className="esp-login">
       <div className="esp-login-card">
-        <Mascot pose="wave" size={150} title="Walti vous dit bonjour" />
+        <Mascot pose="wave" size={150} title="Walty vous dit bonjour" />
         <h1 className="display-m">Mon espace</h1>
         <p className="muted">Votre carte, vos clients, vos chiffres.</p>
         <form onSubmit={submit} className="stack" style={{ "--gap": "14px", width: "100%" }}>
@@ -382,7 +382,7 @@ function Dashboard({ account, example, email, onOut }) {
           <div className="esp-tabpanel">
             {!example && fresh && (
               <div className="esp-welcome">
-                <Mascot pose="wave" size={92} title="Walti vous souhaite la bienvenue" />
+                <Mascot pose="wave" size={92} title="Walty vous souhaite la bienvenue" />
                 <div>
                   <b>Votre carte est prête.</b>
                   <p>Posez l'affiche au comptoir : vos chiffres apparaîtront ici dès le premier tampon.</p>
@@ -577,13 +577,13 @@ export default function EspaceApp() {
   useEffect(() => { load(); }, []);
 
   if (state.loading) return <section className="esp-login"><div className="esp-login-card" style={{ minHeight: 420 }} /></section>;
-  if (state.example) return <Dashboard account={EXAMPLE} example email="exemple@walti" onOut={async () => { await merchantSignOut(); setState({ loading: false, session: null }); }} />;
+  if (state.example) return <Dashboard account={EXAMPLE} example email="exemple@walty" onOut={async () => { await merchantSignOut(); setState({ loading: false, session: null }); }} />;
   if (!state.session) return <Login onIn={load} onExample={() => setState({ loading: false, session: null, example: true })} />;
   if (!state.account) {
     return (
       <section className="esp-login">
         <div className="esp-login-card">
-          <Mascot pose="lost" size={150} title="Walti cherche votre carte" />
+          <Mascot pose="lost" size={150} title="Walty cherche votre carte" />
           <h1 className="display-m">Carte introuvable</h1>
           <p className="muted" style={{ textAlign: "center" }}>{state.error || "Aucune carte active avec cet e-mail. Votre carte est peut-être en cours d'activation."}</p>
           <Link href="/contact" className="btn btn-primary">Nous écrire</Link>

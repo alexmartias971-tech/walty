@@ -1,7 +1,7 @@
 /**
- * Logo Walti.
- * Symbole : la carte de Walti (avec ses deux yeux) qui dépasse de la poche.
- * Logotype : « walti » en minuscules, le point du i est un tampon.
+ * Logo Walty.
+ * Symbole : la carte de Walty (avec ses deux yeux) qui dépasse de la poche.
+ * Logotype : « walty » en minuscules, le point final est un tampon.
  */
 
 export function LogoMark({ size = 36, flat = false }) {
@@ -38,7 +38,7 @@ export function LogoMark({ size = 36, flat = false }) {
 export function Wordmark({ size = 26, className = "" }) {
   return (
     <span className={`wordmark ${className}`} style={{ fontSize: size }}>
-      walt<span className="wordmark-i">ı<i /></span>
+      walty<i className="wordmark-dot" />
     </span>
   );
 }

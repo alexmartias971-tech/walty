@@ -2,15 +2,15 @@ import Link from "next/link";
 import LegalPage, { V, Email } from "@/components/Legal";
 import { legal, processors } from "@/lib/site.config";
 
-export const metadata = { title: "Politique de confidentialité", description: "Comment Walti collecte, utilise et protège vos données personnelles, conformément au RGPD." };
+export const metadata = { title: "Politique de confidentialité", description: "Comment Walty collecte, utilise et protège vos données personnelles, conformément au RGPD." };
 
 export default function Confidentialite() {
   return (
     <LegalPage index="L2" label="Légal" title="Politique de confidentialité">
-      <p>Cette politique explique quelles données personnelles Walti collecte via ce site, pourquoi, combien de temps, et comment exercer vos droits. Elle est établie conformément au Règlement général sur la protection des données (RGPD, règlement UE 2016/679) et à la loi n° 78-17 du 6 janvier 1978 « Informatique et Libertés ».</p>
+      <p>Cette politique explique quelles données personnelles Walty collecte via ce site, pourquoi, combien de temps, et comment exercer vos droits. Elle est établie conformément au Règlement général sur la protection des données (RGPD, règlement UE 2016/679) et à la loi n° 78-17 du 6 janvier 1978 « Informatique et Libertés ».</p>
 
       <h2>1. Responsable du traitement</h2>
-      <p><strong>Walti</strong>, exploité par <V v={legal.ownerName} />, {legal.legalForm.toLowerCase()}, <V v={legal.address} />, SIRET <V v={legal.siret} />. Contact pour toute question sur vos données : <Email />.</p>
+      <p><strong>Walty</strong>, exploité par <V v={legal.ownerName} />, {legal.legalForm.toLowerCase()}, <V v={legal.address} />, SIRET <V v={legal.siret} />. Contact pour toute question sur vos données : <Email />.</p>
 
       <h2>2. Données collectées et utilisations</h2>
       <div className="table-wrap">
@@ -61,7 +61,7 @@ export default function Confidentialite() {
       <p>Les champs obligatoires des formulaires sont signalés par un astérisque ou indiqués à l'écran. Sans eux, nous ne pouvons pas répondre à votre demande. Aucune décision automatisée ni profilage n'est réalisé.</p>
 
       <h2>3. Destinataires</h2>
-      <p>Vos données sont destinées uniquement à Walti. Elles ne sont jamais vendues, louées ou cédées. Elles sont techniquement hébergées par les prestataires suivants, qui agissent comme sous-traitants et sont tenus par contrat de les protéger :</p>
+      <p>Vos données sont destinées uniquement à Walty. Elles ne sont jamais vendues, louées ou cédées. Elles sont techniquement hébergées par les prestataires suivants, qui agissent comme sous-traitants et sont tenus par contrat de les protéger :</p>
       <ul>
         {processors.map((p) => (
           <li key={p.name}><strong>{p.name}</strong> — {p.role}. {p.transfer}</li>
@@ -78,7 +78,7 @@ export default function Confidentialite() {
       <p>Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à la CNIL : <a href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noopener noreferrer">www.cnil.fr/fr/plaintes</a>, 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.</p>
 
       <h2>6. Porteurs de cartes de fidélité</h2>
-      <p>Lorsqu'un client d'un commerce ajoute une carte Walti dans son téléphone, c'est <strong>le commerce</strong> qui est responsable du traitement de ses données ; Walti agit pour son compte en tant que sous-traitant (art. 28 RGPD). Les informations sur ce traitement (données, durée, droits) sont fournies au porteur au moment de l'inscription à la carte. Pour exercer vos droits, adressez-vous au commerce concerné, ou écrivez-nous et nous transmettrons votre demande.</p>
+      <p>Lorsqu'un client d'un commerce ajoute une carte Walty dans son téléphone, c'est <strong>le commerce</strong> qui est responsable du traitement de ses données ; Walty agit pour son compte en tant que sous-traitant (art. 28 RGPD). Les informations sur ce traitement (données, durée, droits) sont fournies au porteur au moment de l'inscription à la carte. Pour exercer vos droits, adressez-vous au commerce concerné, ou écrivez-nous et nous transmettrons votre demande.</p>
 
       <h2>7. Sécurité</h2>
       <p>Les échanges avec le site sont chiffrés (HTTPS). L'espace administrateur est protégé par une authentification individuelle, et l'accès aux données est limité par des règles de sécurité au niveau de la base de données. Aucun système n'étant infaillible, en cas de violation de données présentant un risque pour vous, nous vous en informerons ainsi que la CNIL, dans les conditions prévues par le RGPD.</p>

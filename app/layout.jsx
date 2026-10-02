@@ -7,16 +7,16 @@ import { site } from "@/lib/site.config";
 
 export const metadata = {
   metadataBase: new URL(site.url),
-  title: { default: "Walti · La carte de fidélité dans le téléphone de vos clients", template: "%s · Walti" },
+  title: { default: "Walty · La carte de fidélité dans le téléphone de vos clients", template: "%s · Walty" },
   description: site.description,
-  applicationName: "Walti",
+  applicationName: "Walty",
   // Tant que les mentions légales ne sont pas complétées, le site n'est pas indexé.
   robots: site.isPublic ? { index: true, follow: true } : { index: false, follow: false },
   openGraph: {
     type: "website",
     locale: "fr_FR",
-    siteName: "Walti",
-    title: "Walti · La carte de fidélité digitale",
+    siteName: "Walty",
+    title: "Walty · La carte de fidélité digitale",
     description: site.description,
   },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },

@@ -6,7 +6,7 @@ import { LogoMark, Wordmark } from "@/components/Logo";
 export const metadata = {
   robots: { index: false, follow: false },
   title: "Identité de marque",
-  description: "Le guide d'identité visuelle de Walti : couleurs, typographies, logo, effets verre et la mascotte Walti.",
+  description: "Le guide d'identité visuelle de Walty : couleurs, typographies, logo, effets verre et la mascotte Walty.",
 };
 
 const palette = [
@@ -25,7 +25,7 @@ export default function MarquePage() {
       <PageHero
         label="Identité de marque"
         title={<>Le <span className="serif">crépuscule</span> caribéen.</>}
-        lead="L'heure où la Guadeloupe est la plus belle, et celle où les clients rentrent chez eux. Toute l'identité Walti part de ce moment : la chaleur du soleil couchant, le violet de la nuit qui tombe, et le lagon qui reste lumineux."
+        lead="L'heure où la Guadeloupe est la plus belle, et celle où les clients rentrent chez eux. Toute l'identité Walty part de ce moment : la chaleur du soleil couchant, le violet de la nuit qui tombe, et le lagon qui reste lumineux."
       >
         <div className="glass" style={{ padding: 40, borderRadius: 32, display: "grid", placeItems: "center", gap: 20 }}>
           <LogoMark size={120} />
@@ -132,7 +132,7 @@ export default function MarquePage() {
         <div className="rails section">
           <div className="section-head">
             <span className="label">Logo</span>
-            <p className="lead">Le symbole reprend la mascotte : la carte avec ses deux yeux qui dépasse de la poche. Dans le logotype, le point du « i » est un tampon.</p>
+            <p className="lead">Le symbole reprend la mascotte : la carte avec ses deux yeux qui dépasse de la poche. Dans le logotype, le point final de « walty. » est un tampon.</p>
           </div>
           <div className="logo-stage">
             <div className="logo-tile" style={{ background: "var(--nuit-2)" }}>
@@ -140,7 +140,7 @@ export default function MarquePage() {
               <small>Version principale · fond nuit</small>
             </div>
             <div className="logo-tile" style={{ background: "var(--sable)", color: "var(--nuit)" }}>
-              <span className="logo"><LogoMark size={56} /><span className="wordmark" style={{ fontSize: 40, color: "var(--nuit)" }}>walt<span className="wordmark-i">ı<i /></span></span></span>
+              <span className="logo"><LogoMark size={56} /><span className="wordmark" style={{ fontSize: 40, color: "var(--nuit)" }}>walty<i className="wordmark-dot" /></span></span>
               <small style={{ color: "var(--nuit)" }}>Fond sable</small>
             </div>
             <div className="logo-tile" style={{ background: "var(--grad-sunset)" }}>
@@ -153,7 +153,7 @@ export default function MarquePage() {
               <h4 className="lagon">À faire</h4>
               <ul className="list">
                 <li>Laisser autour du logo un espace égal à la hauteur du « w ».</li>
-                <li>Toujours écrire « walti » en minuscules dans le logo, « Walti » dans le texte.</li>
+                <li>Toujours écrire « walty » en minuscules dans le logo, « Walty » dans le texte.</li>
                 <li>Utiliser l'icône seule quand la place manque (réseaux, favicon, carte Wallet).</li>
               </ul>
             </div>
@@ -198,14 +198,14 @@ export default function MarquePage() {
         <div className="rails section">
           <div className="section-head">
             <span className="label">La mascotte</span>
-            <h2 className="display-m reveal">Voici <span className="serif">Walti</span>.</h2>
+            <h2 className="display-m reveal">Voici <span className="serif">Walty</span>.</h2>
           </div>
 
           <div className="mascot-board">
             <span className="label" style={{ position: "absolute", top: 20, left: 24 }}>Planche personnage · v2</span>
             <div className="mascot-hero" style={{ marginTop: 30 }}>
               <div className="anatomy" style={{ flexDirection: "column", alignItems: "center", gap: 20 }}>
-                <Mascot pose="stamp" size={320} title="Walti, planche d'anatomie" />
+                <Mascot pose="stamp" size={320} title="Walty, planche d'anatomie" />
                 <ol className="anatomy-list">
                   <li><b>1</b>Sa carte de fidélité = son visage</li>
                   <li><b>2</b>3 tampons gagnés, le 4<sup>e</sup> s'allume en lagon</li>
@@ -214,7 +214,7 @@ export default function MarquePage() {
                 </ol>
               </div>
               <div className="stack" style={{ "--gap": "20px" }}>
-                <p className="lead" style={{ maxWidth: "none" }}>Walti est un petit porte-monnaie qui garde les cartes de fidélité bien au chaud. Sa carte dépasse de la poche et porte ses yeux : quand il est content, elle remonte ; quand il est surpris, elle sort d'un coup.</p>
+                <p className="lead" style={{ maxWidth: "none" }}>Walty est un petit porte-monnaie qui garde les cartes de fidélité bien au chaud. Sa carte dépasse de la poche et porte ses yeux : quand il est content, elle remonte ; quand il est surpris, elle sort d'un coup.</p>
                 <div className="grid cols-2" style={{ borderRadius: 20, overflow: "hidden" }}>
                   {[
                     ["Caractère", "Serviable, un peu fier de ses tampons, jamais moqueur."],
@@ -241,7 +241,7 @@ export default function MarquePage() {
                 { p: "lost", t: "Perdu", d: "Page 404" },
               ].map((x) => (
                 <div key={x.p} className="pose">
-                  <Mascot pose={x.p} size={x.p === "peek" ? 120 : 120} title={`Walti, pose ${x.t}`} />
+                  <Mascot pose={x.p} size={x.p === "peek" ? 120 : 120} title={`Walty, pose ${x.t}`} />
                   <b>{x.t}</b>
                   <span>{x.d}</span>
                 </div>
@@ -251,7 +251,7 @@ export default function MarquePage() {
 
           <div className="section-head" style={{ marginTop: 72, marginBottom: 32 }}>
             <span className="label">Où il apparaît</span>
-            <p className="lead">Sur le site, Walti casse la grille aux moments clés. Jamais plus d'une apparition par écran.</p>
+            <p className="lead">Sur le site, Walty casse la grille aux moments clés. Jamais plus d'une apparition par écran.</p>
           </div>
           <div className="where-map">
             {[

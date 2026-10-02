@@ -11,7 +11,7 @@ export default function Fork({ title = "Comment voulez-vous commencer ?" }) {
         <div className="section-head center">
           <h2 className="display-l">{title}</h2>
         </div>
-        <div className="fork-mascot" aria-hidden="true"><Mascot pose="wave" size={150} title="Walti vous salue" /></div>
+        <div className="fork-mascot" aria-hidden="true"><Mascot pose="wave" size={150} title="Walty vous salue" /></div>
         <div className="fork">
           <div className="fork-card self">
             <h3>On vient chez vous</h3>

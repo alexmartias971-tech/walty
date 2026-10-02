@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * WALTI — la mascotte (v2, rendu « volume »).
+ * WALTY — la mascotte (v2, rendu « volume »).
  * Un petit porte-monnaie orange. Sa carte de fidélité est glissée dans la poche :
  * c'est elle qui porte ses yeux et ses 3 tampons gagnés.
  *
@@ -19,7 +19,7 @@ import { useEffect, useId, useRef } from "react";
 
 const INK = "#241043";
 
-export default function Mascot({ pose = "stamp", size = 260, className = "", style, title = "Walti, la mascotte", impact = true }) {
+export default function Mascot({ pose = "stamp", size = 260, className = "", style, title = "Walty, la mascotte", impact = true }) {
   const raw = useId().replace(/:/g, "");
   const id = (n) => `${raw}-${n}`;
   const url = (n) => `url(#${id(n)})`;

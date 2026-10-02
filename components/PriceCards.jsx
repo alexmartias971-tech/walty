@@ -54,7 +54,7 @@ export default function PriceCards({ toggle = false }) {
             {p.featured && (
               <div className="sitter" aria-hidden="true">
                 <span className="bubble">Celle-là, je la conseille !</span>
-                <Mascot pose="sit" size={180} className="sitter-mascot" title="Walti est assis sur la formule Premium" />
+                <Mascot pose="sit" size={180} className="sitter-mascot" title="Walty est assis sur la formule Premium" />
               </div>
             )}
             <span className="price-tag">{p.tagline}</span>

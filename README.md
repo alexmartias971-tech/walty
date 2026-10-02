@@ -1,7 +1,7 @@
-# Walti — site, création de carte en ligne, espace commerçant, espace admin
+# Walty — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 8 (espace commerçant à onglets avec envoi de notifications, file « Notifications » dans l'admin).
+Site Next.js prêt pour GitHub → Vercel. Version 9 (nom Walty, domaine walty.fr, espace commerçant à onglets avec envoi de notifications).
 
 ## Ce qu'il y a dedans
 
@@ -22,7 +22,7 @@ Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, 
 
 ## 1. Mettre en ligne (sans rien installer)
 
-1. Dézippez le fichier `walti-site-v8.zip`.
+1. Dézippez le fichier `walty-site-v9.zip`.
 2. Sur GitHub, ouvrez votre dépôt existant (ex. `walty`) → **Add file → Upload files**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**. Les fichiers existants sont remplacés.
 3. Vercel redéploie tout seul si le dépôt est relié au projet. Sinon : **Add New → Project** → importez le dépôt → **Deploy**.
 
@@ -42,7 +42,7 @@ Le site marche tout de suite en **mode démo** :
 6. Dans Vercel : **Settings → Environment Variables**, ajoutez :
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `NEXT_PUBLIC_SITE_URL` (ex. `https://heywalti.fr`)
+   - `NEXT_PUBLIC_SITE_URL` (`https://walty.fr`)
 7. **Deployments → Redeploy**.
 
 **Donner son accès à un commerçant** : dans l'admin, passez sa fiche à l'étape « Client » avec son e-mail. Puis dans Supabase, **Authentication → Users → Add user** avec ce même e-mail et un mot de passe que vous lui envoyez. Il se connecte sur `/espace` et ne voit que sa carte.
@@ -55,16 +55,17 @@ Sécurité : les visiteurs peuvent seulement *déposer* une demande, jamais lire
 
 Ouvrez `lib/site.config.js` et remplacez chaque `[À COMPLÉTER]` :
 
-- [ ] Nom et prénom de l'exploitant, adresse, SIREN, SIRET (si Walti passe par une micro-entreprise existante, mettez la sienne)
-- [ ] E-mail et téléphone de contact (+ numéro WhatsApp si vous voulez le bouton)
-- [ ] Directeur de la publication
+- [x] Exploitant, adresse, SIREN, SIRET, téléphone, directeur de la publication (remplis)
+- [ ] E-mail de contact (`contact.email`) : tant qu'il est vide, le site affiche le téléphone à la place
+- [ ] Numéro WhatsApp (`contact.whatsapp`) si vous voulez le bouton
+- [ ] Base de données Supabase branchée (sinon les demandes de démo ne sont pas enregistrées : le site invite alors le visiteur à appeler)
 
 Puis, dans Vercel, ajoutez `NEXT_PUBLIC_SITE_PUBLIC=true` et redéployez.
 Tant que cette variable n'est pas à `true`, le site n'est **pas indexé par Google** (aperçu privé).
 
 Autres vérifications :
-- [ ] Vérifier le nom « Walti » sur [data.inpi.fr](https://data.inpi.fr) avant de déposer la marque.
-- [ ] Les domaines `walti.fr`, `.com`, `.app`, `.co`, `.io` sont déjà pris. Libres au 30/09/2026 : `heywalti.fr`, `heywalti.com`, `monwalti.fr`, `walti.cards`.
+- [ ] Vérifier le nom « Walty » sur [data.inpi.fr](https://data.inpi.fr) avant de déposer la marque.
+- [x] Nom de domaine : `walty.fr`, acheté chez OVHcloud (au nom d'Alexandre MARTIAS). Valider la demande « titulaire » d'OVH avant le 16 novembre 2026.
 - [ ] Les CGV prévoient le droit de rétractation de 14 jours des petites entreprises (5 salariés au plus) signées chez elles : remettez le formulaire en annexe lors des rendez-vous.
 - [ ] Faire relire les CGV par un professionnel du droit avant d'ajouter le paiement en ligne.
 - [ ] Si vous ajoutez un jour Google Analytics, un pixel Meta ou TikTok : il faudra un bandeau de consentement cookies.

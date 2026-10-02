@@ -7,7 +7,7 @@ import WalletCard, { cardThemes } from "@/components/WalletCard";
 import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import { planById } from "@/lib/offer";
-import { submitLead, isDemo } from "@/lib/store";
+import { submitLead } from "@/lib/store";
 import { isEmail, isPhone, normPhone } from "@/lib/programs";
 
 /* Ce que le commerçant « dit » à l'agent, et la carte qui en sort */
@@ -71,7 +71,7 @@ function AgentScene() {
       </div>
       <div className="soon-mascot">
         <span className="soon-bubble">Bientôt !</span>
-        <Mascot pose="wave" size={170} title="Walti vous fait signe" />
+        <Mascot pose="wave" size={170} title="Walty vous fait signe" />
       </div>
     </div>
   );
@@ -108,7 +108,7 @@ function Waitlist({ plan }) {
     return (
       <div className="soon-done" role="status">
         <span className="check"><Icon name="check" size={13} stroke={2.6} /></span>
-        <p><b>C'est noté !</b> On vous prévient dès que l'agent IA est prêt. {isDemo && <span className="faint">(Aperçu : gardé dans ce navigateur.)</span>}</p>
+        <p><b>C'est noté !</b> On vous prévient dès que l'agent IA est prêt.</p>
       </div>
     );
   }

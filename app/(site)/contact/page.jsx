@@ -7,12 +7,8 @@ import { site, TODO } from "@/lib/site.config";
 
 export const metadata = {
   title: "Contact",
-  description: "Demandez une démo de Walti : on se déplace dans toute la Guadeloupe pour vous montrer la carte de fidélité digitale sur votre téléphone.",
+  description: "Demandez une démo de Walty : on se déplace dans toute la Guadeloupe pour vous montrer la carte de fidélité digitale sur votre téléphone.",
 };
-
-function val(v) {
-  return v === TODO ? <span className="todo">{TODO}</span> : v;
-}
 
 export default function ContactPage() {
   const wa = site.contact.whatsapp;
@@ -32,12 +28,14 @@ export default function ContactPage() {
             <aside className="stack" style={{ "--gap": "16px" }}>
               <div className="info-card glass">
                 <h2 className="display-s">Nous joindre</h2>
-                <div className="info-line"><span className="step-icon"><Icon name="phone" size={20} /></span><div><b>Téléphone</b><span>{val(site.contact.phone)}</span></div></div>
-                <div className="info-line"><span className="step-icon"><Icon name="mail" size={20} /></span><div><b>E-mail</b><span>{val(site.contact.email)}</span></div></div>
+                <div className="info-line"><span className="step-icon"><Icon name="phone" size={20} /></span><div><b>Téléphone</b><span><a href={site.contact.phoneHref}>{site.contact.phone}</a></span></div></div>
+                {site.contact.email && site.contact.email !== TODO && (
+                  <div className="info-line"><span className="step-icon"><Icon name="mail" size={20} /></span><div><b>E-mail</b><span><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></span></div></div>
+                )}
                 <div className="info-line"><span className="step-icon"><Icon name="clock" size={20} /></span><div><b>Horaires</b><span>{site.contact.hours}</span></div></div>
                 <div className="info-line"><span className="step-icon"><Icon name="pin" size={20} /></span><div><b>Zone d'intervention</b><span>{site.contact.zone}</span></div></div>
                 {wa && (
-                  <a className="btn btn-ghost" href={`https://wa.me/${wa}?text=${encodeURIComponent("Bonjour, je voudrais une démo de Walti.")}`} target="_blank" rel="noopener noreferrer">
+                  <a className="btn btn-ghost" href={`https://wa.me/${wa}?text=${encodeURIComponent("Bonjour, je voudrais une démo de Walty.")}`} target="_blank" rel="noopener noreferrer">
                     <Icon name="whatsapp" size={18} /> Écrire sur WhatsApp
                   </a>
                 )}

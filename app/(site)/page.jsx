@@ -46,7 +46,7 @@ export default function Home() {
                 <div className="stage-floor" />
                 <div className="stage-phone"><Phone theme="plage" cardBottom={-6} /></div>
                 <span className="stamp-pop">+1</span>
-                <Mascot pose="stamp" size={320} impact={false} className="stage-mascot" title="Walti ajoute un tampon sur la carte" />
+                <Mascot pose="stamp" size={320} impact={false} className="stage-mascot" title="Walty ajoute un tampon sur la carte" />
               </div>
               <WalletBadges />
             </div>
@@ -119,7 +119,7 @@ export default function Home() {
               </ul>
             </div>
             <div className="ba-side ba-after reveal" data-delay="1">
-              <span className="ba-tag orange">AVEC WALTI</span>
+              <span className="ba-tag orange">AVEC WALTY</span>
               <div className="ba-visual" aria-hidden="true"><WalletCard theme="hibiscus" /></div>
               <ul className="list">
                 {["Toujours dans le téléphone", "Tamponnée par votre équipe", "Vous voyez vos chiffres"].map((t) => (

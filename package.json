@@ -1,8 +1,8 @@
 {
-  "name": "walti",
+  "name": "walty",
   "version": "1.0.0",
   "private": true,
-  "description": "Walti — cartes de fidélité digitales Apple & Google Wallet pour les commerces de Guadeloupe",
+  "description": "Walty — cartes de fidélité digitales Apple & Google Wallet pour les commerces de Guadeloupe",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

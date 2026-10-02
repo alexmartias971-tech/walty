@@ -14,7 +14,7 @@ export const metadata = {
 
 /* Ce que fait la carte, avec la formule qui le débloque. */
 const features = [
-  { i: "wallet", t: "Dans le téléphone", d: "iPhone et Android. Pas d'appli Walti à télécharger.", plan: "Toutes" },
+  { i: "wallet", t: "Dans le téléphone", d: "iPhone et Android. Pas d'appli Walty à télécharger.", plan: "Toutes" },
   { i: "stamp", t: "Tampons sécurisés", d: "C'est votre équipe qui tamponne, pas le client.", plan: "Toutes" },
   { i: "chart", t: "Vos chiffres", d: "Clients, passages, cadeaux. Sur votre téléphone.", plan: "Toutes" },
   { i: "sparkle", t: "Carte avec vos photos", d: "Votre logo, vos couleurs, vos photos.", plan: "Premium" },
@@ -78,7 +78,7 @@ export default function ProduitPage() {
           <div className="reveal triche-visual" data-delay="2" style={{ position: "relative", display: "grid", placeItems: "center", minHeight: 440 }}>
             <div className="sun" style={{ width: 360, height: 360, opacity: 0.7 }} aria-hidden="true" />
             <WalletCard theme="plage" animateStamp style={{ position: "relative", transform: "rotate(-4deg)" }} />
-            <Mascot pose="stamp" size={220} style={{ position: "absolute", right: "-6px", bottom: "-10px" }} title="Walti ajoute un tampon" />
+            <Mascot pose="stamp" size={220} style={{ position: "absolute", right: "-6px", bottom: "-10px" }} title="Walty ajoute un tampon" />
           </div>
         </div>
       </section>
@@ -113,12 +113,12 @@ export default function ProduitPage() {
         <div className="rails section">
           <div className="section-head">
             <span className="label">Comparez</span>
-            <h2 className="display-l reveal">Carton, appli, <span className="serif">ou Walti</span> ?</h2>
+            <h2 className="display-l reveal">Carton, appli, <span className="serif">ou Walty</span> ?</h2>
           </div>
           <div className="table-wrap reveal">
             <table className="cmp">
               <thead>
-                <tr><th></th><th>Carton</th><th>Appli à télécharger</th><th className="hl">Walti</th></tr>
+                <tr><th></th><th>Carton</th><th>Appli à télécharger</th><th className="hl">Walty</th></tr>
               </thead>
               <tbody>
                 {[

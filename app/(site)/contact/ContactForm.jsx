@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
-import { submitLead, SECTORS, COMMUNES, isDemo } from "@/lib/store";
+import { submitLead, SECTORS, COMMUNES } from "@/lib/store";
+import { site } from "@/lib/site.config";
 
 const PLAN_LABELS = { essentiel: "Essentiel (29 €/mois)", premium: "Premium (49 €/mois)", pro: "Pro (79 €/mois)", enseigne: "Pro (79 €/mois)", fondateur: "Tarif fondateur" };
 
@@ -37,11 +38,14 @@ export default function ContactForm({ compact = false }) {
   if (state.status === "sent") {
     return (
       <div className="form-card glass success">
-        <Mascot pose="stamp" size={190} impact={false} title="Walti tamponne votre demande" />
+        <Mascot pose="stamp" size={190} impact={false} title="Walty tamponne votre demande" />
         <h2 className="display-s">C'est noté !</h2>
         <p className="muted" style={{ maxWidth: 420 }}>On vous rappelle sous 24 h ouvrées pour caler le rendez-vous. À très vite.</p>
         {state.demo && (
-          <p className="notice" style={{ maxWidth: 460 }}>Aperçu : la demande est enregistrée dans ce navigateur uniquement. Vous la retrouvez dans l'<Link href="/admin" style={{ textDecoration: "underline" }}>espace admin</Link>.</p>
+          <>
+            <p className="notice" style={{ maxWidth: 460 }}>Pour fixer votre rendez-vous tout de suite, appelez-nous : c'est le plus rapide.</p>
+            <a className="btn btn-primary" href={site.contact.phoneHref}><Icon name="phone" size={18} /> {site.contact.phone}</a>
+          </>
         )}
       </div>
     );
@@ -118,7 +122,7 @@ export default function ContactForm({ compact = false }) {
       </div>
       <label className="consent">
         <input type="checkbox" name="consent" required />
-        <span>J'accepte que Walti utilise ces informations pour me recontacter au sujet de ma demande. *</span>
+        <span>J'accepte que Walty utilise ces informations pour me recontacter au sujet de ma demande. *</span>
       </label>
       {state.error && <p className="notice" role="alert">{state.error}</p>}
       <button type="submit" className="btn btn-primary btn-lg" disabled={state.status === "sending"}>
@@ -126,7 +130,6 @@ export default function ContactForm({ compact = false }) {
       </button>
       <p className="form-legal">
         Vos informations servent uniquement à vous recontacter, et sont conservées 3 ans au plus après notre dernier échange. Vous pouvez les consulter, les corriger ou les faire effacer à tout moment. Détails dans la <Link href="/confidentialite">politique de confidentialité</Link>.
-        {isDemo && " (Aperçu : les demandes restent dans votre navigateur.)"}
       </p>
     </form>
   );

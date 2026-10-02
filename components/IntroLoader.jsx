@@ -3,7 +3,7 @@
  * Il ne bloque jamais le site : il est purement visuel, ne capte pas les clics,
  * et disparaît tout seul. Désactivé si l'appareil demande moins d'animations.
  */
-const SKIP = "try{if(sessionStorage.getItem('walti-intro')){document.documentElement.classList.add('no-intro')}else{sessionStorage.setItem('walti-intro','1')}}catch(e){}";
+const SKIP = "try{if(sessionStorage.getItem('walty-intro')){document.documentElement.classList.add('no-intro')}else{sessionStorage.setItem('walty-intro','1')}}catch(e){}";
 
 export default function IntroLoader() {
   return (
@@ -43,7 +43,7 @@ export default function IntroLoader() {
             </g>
           </svg>
           <div className="intro-word" aria-hidden="true">
-            {"walti".split("").map((l, i) => <span key={i} style={{ "--i": i }}>{l}</span>)}
+            {"walty".split("").map((l, i) => <span key={i} style={{ "--i": i }}>{l}</span>)}
           </div>
         </div>
       </div>

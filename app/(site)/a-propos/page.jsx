@@ -6,7 +6,7 @@ import Fork from "@/components/Fork";
 
 export const metadata = {
   title: "À propos",
-  description: "Walti est né en Guadeloupe pour les commerces de Guadeloupe : une carte de fidélité dans le téléphone de vos clients, installée sur place si vous le voulez.",
+  description: "Walty est né en Guadeloupe pour les commerces de Guadeloupe : une carte de fidélité dans le téléphone de vos clients, installée sur place si vous le voulez.",
 };
 
 export default function AProposPage() {
@@ -15,10 +15,10 @@ export default function AProposPage() {
       <PageHero
         label="À propos"
         title={<>Né <span className="serif">au comptoir</span>.</>}
-        lead="Les cartons se perdent. Les applis coûtent cher et viennent de loin. Walti est né ici, pour les commerces d'ici."
+        lead="Les cartons se perdent. Les applis coûtent cher et viennent de loin. Walty est né ici, pour les commerces d'ici."
       >
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <Mascot pose="wave" size={280} title="Walti vous dit bonjour" />
+          <Mascot pose="wave" size={280} title="Walty vous dit bonjour" />
         </div>
       </PageHero>
 
@@ -28,7 +28,7 @@ export default function AProposPage() {
           <div className="stack reveal" style={{ "--gap": "16px" }} data-delay="1">
             <p className="lead" style={{ maxWidth: "none" }}>On vient chez vous. On installe la carte. On reste joignable sur WhatsApp.</p>
             <p className="muted">Bientôt, vous pourrez aussi créer votre carte en ligne avec notre agent IA.</p>
-            <p className="muted"><strong style={{ color: "var(--ink)" }}>Walti</strong>, c'est le petit nom du « wallet », le portefeuille du téléphone où vit la carte. C'est aussi notre mascotte.</p>
+            <p className="muted"><strong style={{ color: "var(--ink)" }}>Walty</strong>, c'est le petit nom du « wallet », le portefeuille du téléphone où vit la carte. C'est aussi notre mascotte.</p>
           </div>
         </div>
       </section>

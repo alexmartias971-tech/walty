@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   WALTI — composants et sections (v3, fond clair)
+   WALTY — composants et sections (v3, fond clair)
    ═══════════════════════════════════════════════════════════ */
 
 .skip { position: absolute; left: -9999px; top: 8px; z-index: 200; padding: 10px 16px; border-radius: 99px; background: var(--inv-bg); color: var(--inv-ink); font-weight: 800; }
@@ -207,7 +207,7 @@
 .price-head { margin-bottom: 190px; }
 .price-foot { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; justify-content: space-between; margin-top: 26px; font-size: 14px; color: var(--muted); }
 @media (max-width: 959px) { .price-row .featured { margin-top: 160px; } .price-head { margin-bottom: 40px; } }
-/* Walti assis sur le bord de la carte Premium (image 180 × 232, assise à 173 px) */
+/* Walty assis sur le bord de la carte Premium (image 180 × 232, assise à 173 px) */
 .sitter { position: absolute; top: 0; right: 26px; width: 180px; height: 0; z-index: 4; pointer-events: none; }
 .sitter-mascot { position: absolute; left: 0; top: -172px; pointer-events: auto; }
 .bubble { position: absolute; right: 168px; top: -176px; width: max-content; max-width: 190px; padding: 10px 14px; border-radius: 18px 18px 4px 18px; background: var(--inv-bg); color: var(--inv-ink); font-weight: 800; font-size: 13px; line-height: 1.3; box-shadow: 0 12px 24px -12px rgba(0,0,0,.5); transform-origin: 100% 100%; animation: bubble 7s ease-in-out infinite; }
@@ -916,3 +916,5 @@
   .esp-tab-short { display: inline; }
   .esp-toast { bottom: 100px; }
 }
+/* Logotype « walty. » : le point final est un tampon */
+.wordmark-dot { display: inline-block; width: 0.24em; height: 0.24em; margin-left: 0.05em; border-radius: 50%; background: var(--grad-ember); vertical-align: baseline; }

@@ -47,7 +47,7 @@ function Login({ onDone }) {
       <div className="orb orb-violet" style={{ width: 600, height: 600, left: "-10%", top: "-20%" }} />
       <div className="orb orb-orange" style={{ width: 500, height: 500, right: "-10%", bottom: "-20%", opacity: 0.4 }} />
       <div className="login-card glass">
-        <Mascot pose="wave" size={170} title="Walti vous accueille" />
+        <Mascot pose="wave" size={170} title="Walty vous accueille" />
         <div className="center" style={{ display: "grid", gap: 8, justifyItems: "center" }}>
           <Logo size={36} />
           <h1 className="display-s" style={{ marginTop: 8 }}>Espace administrateur</h1>
@@ -124,7 +124,7 @@ function Shell({ onLogout }) {
     const blob = new Blob([toCsv(list)], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `walti-contacts-${todayStr()}.csv`;
+    a.download = `walty-contacts-${todayStr()}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -138,7 +138,7 @@ function Shell({ onLogout }) {
   return (
     <div className="adm">
       <aside className="adm-side">
-        <div className="adm-brand"><LogoMark size={34} /><div><b style={{ fontFamily: "var(--f-display)" }}>walti</b><small>Admin</small></div></div>
+        <div className="adm-brand"><LogoMark size={34} /><div><b style={{ fontFamily: "var(--f-display)" }}>walty</b><small>Admin</small></div></div>
         <nav className="adm-nav" aria-label="Admin">
           <button aria-current={tab === "dashboard" ? "page" : undefined} onClick={() => go("dashboard")}><Icon name="grid" size={18} /> Tableau de bord</button>
           <button aria-current={tab === "prospects" ? "page" : undefined} onClick={() => go("prospects")}><Icon name="kanban" size={18} /> Prospects <span className="count">{counts.prospects}</span></button>
@@ -262,7 +262,7 @@ function Dashboard({ list, onOpen, go }) {
         <section className="panel glass">
           <h2>À faire <span>retards, aujourd'hui et 3 prochains jours</span></h2>
           {todo.length === 0 ? (
-            <div className="empty"><Mascot pose="sleep" size={110} title="Rien à faire, Walti dort" />Rien d'urgent. Walti fait la sieste.</div>
+            <div className="empty"><Mascot pose="sleep" size={110} title="Rien à faire, Walty dort" />Rien d'urgent. Walty fait la sieste.</div>
           ) : (
             <div className="todo-list">
               {todo.map((a) => {
@@ -400,7 +400,7 @@ function Clients({ list, onOpen }) {
         ))}
       </div>
       {clients.length === 0 ? (
-        <div className="panel glass"><div className="empty"><Mascot pose="sleep" size={120} title="Aucun client, Walti dort" />Aucun client dans cette catégorie. Faites glisser un prospect dans « Client » pour l'ajouter.</div></div>
+        <div className="panel glass"><div className="empty"><Mascot pose="sleep" size={120} title="Aucun client, Walty dort" />Aucun client dans cette catégorie. Faites glisser un prospect dans « Client » pour l'ajouter.</div></div>
       ) : (
         <div className="tbl-wrap">
           <table className="tbl">

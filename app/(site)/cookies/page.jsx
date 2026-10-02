@@ -1,6 +1,6 @@
 import LegalPage from "@/components/Legal";
 
-export const metadata = { title: "Cookies", description: "Walti n'utilise aucun cookie publicitaire ni de mesure d'audience." };
+export const metadata = { title: "Cookies", description: "Walty n'utilise aucun cookie publicitaire ni de mesure d'audience." };
 
 export default function Cookies() {
   return (
@@ -22,11 +22,11 @@ export default function Cookies() {
           <thead><tr><th>Nom</th><th>Type</th><th>Utilité</th><th>Durée</th></tr></thead>
           <tbody>
             <tr><td>sb-…-auth-token</td><td>Stockage local</td><td>Rester connecté à l'espace commerçant ou à l'espace admin (uniquement pour les personnes qui se connectent)</td><td>Jusqu'à la déconnexion</td></tr>
-            <tr><td>walti-demo-accounts-v1</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur les données fictives de l'espace admin</td><td>Jusqu'à effacement par vous</td></tr>
-            <tr><td>walti-merchant-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace commerçant de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
-            <tr><td>walti-intro</td><td>Stockage de session</td><td>Ne montrer l'écran de chargement qu'une fois par visite</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
-            <tr><td>walti-demo-pushes</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur les notifications écrites dans l'espace commerçant de démonstration</td><td>Jusqu'à effacement par vous</td></tr>
-            <tr><td>walti-demo-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace admin de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
+            <tr><td>walty-demo-accounts-v1</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur les données fictives de l'espace admin</td><td>Jusqu'à effacement par vous</td></tr>
+            <tr><td>walty-merchant-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace commerçant de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
+            <tr><td>walty-intro</td><td>Stockage de session</td><td>Ne montrer l'écran de chargement qu'une fois par visite</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
+            <tr><td>walty-demo-pushes</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur les notifications écrites dans l'espace commerçant de démonstration</td><td>Jusqu'à effacement par vous</td></tr>
+            <tr><td>walty-demo-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace admin de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
           </tbody>
         </table>
       </div>

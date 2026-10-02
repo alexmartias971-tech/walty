@@ -12,7 +12,7 @@ import { submitLead, COMMUNES, isDemo } from "@/lib/store";
 import { SECTORS_LIST, sectorById, PROGRAMS, programById, defaultRules, programDisplay, mix, isEmail, isPhone, isSiret, isPostal, normPhone } from "@/lib/programs";
 import { PLAN_RANK } from "@/lib/kpis";
 
-const DRAFT_KEY = "walti-creer-brouillon";
+const DRAFT_KEY = "walty-creer-brouillon";
 const STEPS = [
   { id: "vous", title: "Vous", icon: "user", hint: "Pour vous joindre et vous envoyer vos accès." },
   { id: "commerce", title: "Votre commerce", icon: "store", hint: "Pour adapter la carte à votre activité." },
@@ -469,7 +469,7 @@ export default function CreerWizard() {
         preferred_channel: s.whatsapp ? "WhatsApp" : "Appel", message, requested_plan: s.plan, card_config: cardConfig, billing_info: billingInfo,
       });
       try {
-        localStorage.setItem("walti-my-card", JSON.stringify({ config: cardConfig, plan: s.plan, name: s.firstName.trim(), at: new Date().toISOString() }));
+        localStorage.setItem("walty-my-card", JSON.stringify({ config: cardConfig, plan: s.plan, name: s.firstName.trim(), at: new Date().toISOString() }));
         localStorage.removeItem(DRAFT_KEY);
       } catch {}
       setDone(true);
@@ -485,7 +485,7 @@ export default function CreerWizard() {
   if (done) {
     return (
       <div className="wiz-done">
-        <Mascot pose="stamp" size={200} impact={false} title="Walti tamponne votre carte" />
+        <Mascot pose="stamp" size={200} impact={false} title="Walty tamponne votre carte" />
         <h1 className="display-m">C'est envoyé, {s.firstName.trim()} !</h1>
         <p className="lead" style={{ margin: "0 auto" }}>Votre carte est entre de bonnes mains.</p>
         <WalletCard card={card} />
@@ -817,7 +817,7 @@ export default function CreerWizard() {
               <Field id="billEmail" label="E-mail pour les factures" error={err("billEmail")}>
                 <input className="input" type="email" inputMode="email" maxLength={160} {...inputProps("billEmail")} />
               </Field>
-              <p className="field-hint">Walti n'applique pas la TVA (article 293 B du CGI) : le prix affiché est le prix payé.</p>
+              <p className="field-hint">Walty n'applique pas la TVA (article 293 B du CGI) : le prix affiché est le prix payé.</p>
             </>
           )}
 
@@ -846,7 +846,7 @@ export default function CreerWizard() {
               </div>
               <label className={`consent ${err("consent") ? "has-error" : ""}`}>
                 <input type="checkbox" checked={s.consent} onChange={(e) => set({ consent: e.target.checked })} />
-                <span>J'accepte les <Link href="/cgv" target="_blank">conditions de vente</Link> et que Walti utilise ces informations pour créer ma carte et me facturer (<Link href="/confidentialite" target="_blank">confidentialité</Link>).</span>
+                <span>J'accepte les <Link href="/cgv" target="_blank">conditions de vente</Link> et que Walty utilise ces informations pour créer ma carte et me facturer (<Link href="/confidentialite" target="_blank">confidentialité</Link>).</span>
               </label>
               {err("consent") && <p className="field-error">{err("consent")}</p>}
               <label className="consent">

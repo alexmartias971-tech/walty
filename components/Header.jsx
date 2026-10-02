@@ -27,7 +27,7 @@ export default function Header() {
   return (
     <header className={`header ${scrolled ? "is-scrolled" : ""}`}>
       <div className="header-bar">
-        <Link href="/" aria-label="Walti, accueil"><Logo size={34} /></Link>
+        <Link href="/" aria-label="Walty, accueil"><Logo size={34} /></Link>
         <nav className="nav" aria-label="Navigation principale">
           {navLinks.map((l) => (
             <Link key={l.href} href={l.href} aria-current={pathname === l.href ? "page" : undefined}>{l.label}</Link>

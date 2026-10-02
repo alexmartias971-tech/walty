@@ -1,4 +1,4 @@
-/** Petites icônes au trait (1.6px), dessinées pour Walti. */
+/** Petites icônes au trait (1.6px), dessinées pour Walty. */
 const paths = {
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,

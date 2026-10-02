@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════
---  WALTI — base de données (Supabase)
+--  WALTY — base de données (Supabase)
 --  À coller dans Supabase > SQL Editor > New query > Run.
 --  Crée la table des contacts (prospects + clients), les règles de
 --  sécurité (RLS) et la liste des administrateurs autorisés.

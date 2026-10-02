@@ -1,4 +1,4 @@
-/* ═══ WALTI — espace administrateur ═══ */
+/* ═══ WALTY — espace administrateur ═══ */
 .adm { min-height: 100vh; display: grid; grid-template-columns: 1fr; background: var(--nuit); }
 @media (min-width: 1024px) { .adm { grid-template-columns: 248px 1fr; } }
 
