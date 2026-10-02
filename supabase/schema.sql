@@ -122,6 +122,80 @@ $$;
 revoke all on function public.my_account() from public, anon;
 grant execute on function public.my_account() to authenticated;
 
--- 5. VOTRE COMPTE ADMIN : remplacez l'adresse puis exécutez cette ligne.
+-- 5. NOTIFICATIONS DES COMMERÇANTS
+-- Le commerçant écrit sa notification dans son espace ; vous la voyez dans l'admin
+-- (onglet « Notifications »), vous l'envoyez depuis l'application de cartes, puis vous la marquez envoyée.
+create table if not exists public.push_requests (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  account_email text not null check (char_length(account_email) <= 160),
+  business text check (char_length(business) <= 120),
+  message text not null check (char_length(message) between 1 and 160),
+  send_at timestamptz,
+  status text not null default 'a_envoyer' check (status in ('a_envoyer','envoye','annule')),
+  sent_at timestamptz
+);
+create index if not exists push_requests_email_idx on public.push_requests (account_email, created_at desc);
+alter table public.push_requests enable row level security;
+grant select, insert, update, delete on public.push_requests to authenticated;
+
+-- Le commerçant connecté est-il un client actif ? (lit la table accounts sans l'exposer)
+create or replace function public.is_active_client()
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (
+    select 1 from public.accounts a
+    where a.stage = 'client' and a.email is not null and lower(a.email) = lower(auth.jwt() ->> 'email')
+  );
+$$;
+revoke all on function public.is_active_client() from public, anon;
+grant execute on function public.is_active_client() to authenticated;
+
+drop policy if exists "commerçant lit ses notifications" on public.push_requests;
+create policy "commerçant lit ses notifications" on public.push_requests
+  for select to authenticated using (account_email = lower(auth.jwt() ->> 'email'));
+drop policy if exists "commerçant écrit une notification" on public.push_requests;
+create policy "commerçant écrit une notification" on public.push_requests
+  for insert to authenticated with check (
+    account_email = lower(auth.jwt() ->> 'email') and status = 'a_envoyer' and sent_at is null and public.is_active_client()
+  );
+drop policy if exists "commerçant annule une notification" on public.push_requests;
+create policy "commerçant annule une notification" on public.push_requests
+  for delete to authenticated using (account_email = lower(auth.jwt() ->> 'email') and status = 'a_envoyer');
+drop policy if exists "admin notifications" on public.push_requests;
+create policy "admin notifications" on public.push_requests
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- Limites par formule : Essentiel = pas de notification, Premium = 2 par semaine sans programmation, Pro = illimité.
+create or replace function public.check_push_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  p text;
+  n int;
+begin
+  if public.is_admin() then return new; end if;
+  select coalesce(a.plan, a.requested_plan) into p
+    from public.accounts a
+   where a.stage = 'client' and lower(a.email) = new.account_email
+   order by a.client_since desc nulls last
+   limit 1;
+  if p is null or p = 'essentiel' then
+    raise exception 'Les notifications sont incluses à partir de la formule Premium.';
+  end if;
+  if p = 'premium' then
+    if new.send_at is not null then
+      raise exception 'La programmation des notifications est incluse avec la formule Pro.';
+    end if;
+    select count(*) into n from public.push_requests
+     where account_email = new.account_email and status <> 'annule' and created_at >= date_trunc('week', now());
+    if n >= 2 then
+      raise exception 'Vous avez déjà envoyé vos 2 notifications de la semaine.';
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists push_limit on public.push_requests;
+create trigger push_limit before insert on public.push_requests for each row execute function public.check_push_limit();
+
+-- 6. VOTRE COMPTE ADMIN : remplacez l'adresse puis exécutez cette ligne.
 --    Créez aussi l'utilisateur dans Authentication > Users > Add user (avec mot de passe).
 -- insert into public.admins (email) values ('votre-email@exemple.fr');

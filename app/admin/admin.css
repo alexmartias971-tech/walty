@@ -127,3 +127,12 @@
 .admin-root { min-height: 100vh; }
 .adm-made .wcard { max-width: 300px; }
 .adm-swatch { display: inline-block; width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.3); }
+.adm-nav .count.hot { background: var(--cta); color: #fff; }
+.push-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.push-list li { display: grid; gap: 10px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,.03); border: 1px solid var(--line); }
+.push-list li.due { border-color: rgba(255,91,31,.55); }
+.push-list li.later { border-color: rgba(185,160,255,.45); }
+.push-list li.done { opacity: .6; }
+.push-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: 13px; color: var(--muted); }
+.push-meta b { font-size: 15px; color: var(--ink); }
+.push-text { font-size: 16px; line-height: 1.45; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.05); }

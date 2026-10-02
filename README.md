@@ -1,7 +1,7 @@
 # Walti — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 7 (espace commerçant sans faux chiffres, « Bientôt disponible » bien visible, mentions légales au nom d'Alexandre MARTIAS).
+Site Next.js prêt pour GitHub → Vercel. Version 8 (espace commerçant à onglets avec envoi de notifications, file « Notifications » dans l'admin).
 
 ## Ce qu'il y a dedans
 
@@ -22,7 +22,7 @@ Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, 
 
 ## 1. Mettre en ligne (sans rien installer)
 
-1. Dézippez le fichier `walti-site-v7.zip`.
+1. Dézippez le fichier `walti-site-v8.zip`.
 2. Sur GitHub, ouvrez votre dépôt existant (ex. `walty`) → **Add file → Upload files**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**. Les fichiers existants sont remplacés.
 3. Vercel redéploie tout seul si le dépôt est relié au projet. Sinon : **Add New → Project** → importez le dépôt → **Deploy**.
 
@@ -101,3 +101,12 @@ Règles : ne pas recolorer, déformer, animer ni redessiner ces badges, et garde
 
 `components/IntroLoader.jsx` : 1,6 s, une seule fois par visite (onglet), désactivé si l'appareil demande moins d'animations.
 Pour le retirer, supprimez la ligne `<IntroLoader />` dans `app/(site)/layout.jsx`.
+
+## Notifications des commerçants (comment ça marche)
+
+1. Le commerçant ouvre son espace (`/espace`), onglet **Notifications**, écrit son message (ou choisit une idée toute prête), choisit « Maintenant » ou « Programmer » (Pro), puis confirme.
+2. La notification arrive dans votre admin, onglet **Notifications** (le nombre en orange = à envoyer).
+3. Vous l'envoyez depuis votre application de cartes (bouton « Copier le texte »), puis vous cliquez **« Marquer comme envoyée »**. Le commerçant voit « Envoyée » dans son espace.
+
+Limites appliquées par la base de données : Essentiel = pas de notification, Premium = 2 par semaine (lundi → dimanche) sans programmation, Pro = illimité et programmable.
+Le texte « envoyée le jour même, entre 8 h et 18 h » se change dans `lib/offer.js` (`pushRules.delay`).

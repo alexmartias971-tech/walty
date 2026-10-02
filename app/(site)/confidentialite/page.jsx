@@ -32,8 +32,8 @@ export default function Confidentialite() {
               <td>Jusqu'au lancement, puis 6 mois</td>
             </tr>
             <tr>
-              <td>Espace commerçant (connexion à votre carte et à vos chiffres)</td>
-              <td>E-mail de connexion, mot de passe (stocké chiffré par notre hébergeur de base de données), formule</td>
+              <td>Espace commerçant (connexion à votre carte, à vos chiffres et envoi de vos notifications)</td>
+              <td>E-mail de connexion, mot de passe (stocké chiffré par notre hébergeur de base de données), formule, texte et date des notifications que vous nous demandez d'envoyer</td>
               <td>Exécution du contrat (6.1.b)</td>
               <td>Durée du contrat, puis suppression du compte de connexion</td>
             </tr>

@@ -10,7 +10,7 @@ import WalletCard, { cardFromConfig } from "@/components/WalletCard";
 import { programById, programDisplay } from "@/lib/programs";
 import {
   isDemo, STAGES, stageById, SECTORS, COMMUNES,
-  getSession, signIn, signOut, listAccounts, saveAccount, deleteAccount, resetDemo, computeMrr, toCsv,
+  getSession, signIn, signOut, listAccounts, saveAccount, deleteAccount, resetDemo, computeMrr, toCsv, listPushRequests, markPushSent,
 } from "@/lib/store";
 
 const eur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: Number(n) % 1 ? 2 : 0 }).format(Number(n) || 0);
@@ -81,8 +81,10 @@ function Shell({ onLogout }) {
   const [open, setOpen] = useState(null); // fiche ouverte (objet) ou {} pour nouveau
   const [q, setQ] = useState("");
   const [toast, setToast] = useState("");
+  const [pushes, setPushes] = useState([]);
 
   const load = useCallback(async () => {
+    try { setPushes(await listPushRequests()); } catch {}
     try { setList(await listAccounts()); setError(""); }
     catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -90,7 +92,7 @@ function Shell({ onLogout }) {
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     const h = window.location.hash.replace("#", "");
-    if (["dashboard", "prospects", "clients"].includes(h)) setTab(h);
+    if (["dashboard", "prospects", "clients", "notifications"].includes(h)) setTab(h);
   }, []);
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(""), 2400); return () => clearTimeout(t); } }, [toast]);
 
@@ -130,6 +132,7 @@ function Shell({ onLogout }) {
   const counts = {
     prospects: list.filter((a) => ["nouveau", "contacte", "demo", "proposition"].includes(a.stage)).length,
     clients: list.filter((a) => a.stage === "client").length,
+    pushes: pushes.filter((p) => p.status === "a_envoyer").length,
   };
 
   return (
@@ -140,6 +143,7 @@ function Shell({ onLogout }) {
           <button aria-current={tab === "dashboard" ? "page" : undefined} onClick={() => go("dashboard")}><Icon name="grid" size={18} /> Tableau de bord</button>
           <button aria-current={tab === "prospects" ? "page" : undefined} onClick={() => go("prospects")}><Icon name="kanban" size={18} /> Prospects <span className="count">{counts.prospects}</span></button>
           <button aria-current={tab === "clients" ? "page" : undefined} onClick={() => go("clients")}><Icon name="store" size={18} /> Clients <span className="count">{counts.clients}</span></button>
+          <button aria-current={tab === "notifications" ? "page" : undefined} onClick={() => go("notifications")}><Icon name="bell" size={18} /> Notifications <span className={`count ${counts.pushes ? "hot" : ""}`}>{counts.pushes}</span></button>
           <button onClick={exportCsv}><Icon name="download" size={18} /> Exporter (CSV)</button>
           <button onClick={onLogout} className="adm-logout-m"><Icon name="logout" size={18} /> Déconnexion</button>
         </nav>
@@ -153,7 +157,7 @@ function Shell({ onLogout }) {
       <main className="adm-main">
         <div className="adm-top">
           <div>
-            <h1>{tab === "dashboard" ? "Tableau de bord" : tab === "prospects" ? "Prospects" : "Clients"}</h1>
+            <h1>{{ dashboard: "Tableau de bord", prospects: "Prospects", clients: "Clients", notifications: "Notifications à envoyer" }[tab]}</h1>
             <p>{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}{isDemo ? " · données fictives" : ""}</p>
           </div>
           <div className="row" style={{ "--gap": "10px" }}>
@@ -172,6 +176,10 @@ function Shell({ onLogout }) {
             {tab === "dashboard" && <Dashboard list={filtered} onOpen={setOpen} go={go} />}
             {tab === "prospects" && <Pipeline list={filtered} onOpen={setOpen} onMove={(a, stage) => save({ ...a, stage })} />}
             {tab === "clients" && <Clients list={filtered} onOpen={setOpen} />}
+            {tab === "notifications" && <PushQueue pushes={pushes} onSent={async (id) => {
+              try { const u = await markPushSent(id); setPushes((l) => l.map((x) => (x.id === id ? u : x))); setToast("Marquée comme envoyée ✓"); }
+              catch (e) { setToast("Erreur : " + e.message); }
+            }} onCopy={() => setToast("Texte copié ✓")} />}
           </>
         )}
       </main>
@@ -179,6 +187,43 @@ function Shell({ onLogout }) {
       {open && <Fiche acc={open} onClose={() => setOpen(null)} onSave={async (a) => { const s = await save(a); if (s) setOpen(s); }} onDelete={remove} />}
       {toast && <div className="toast glass">{toast}</div>}
     </div>
+  );
+}
+
+/* ───────────── Notifications demandées par les commerçants ───────────── */
+function PushQueue({ pushes, onSent, onCopy }) {
+  const [all, setAll] = useState(false);
+  const due = (p) => !p.send_at || new Date(p.send_at) <= new Date();
+  const shown = pushes
+    .filter((p) => all || p.status === "a_envoyer")
+    .sort((a, b) => (a.status === "a_envoyer") === (b.status === "a_envoyer") ? new Date(a.send_at || a.created_at) - new Date(b.send_at || b.created_at) : a.status === "a_envoyer" ? -1 : 1);
+  const fmt = (iso) => new Date(iso).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  async function copy(t) { try { await navigator.clipboard.writeText(t); onCopy(); } catch {} }
+  return (
+    <section className="panel glass" style={{ display: "grid", gap: 14 }}>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <p className="muted" style={{ fontSize: 14, maxWidth: 640 }}>Les commerçants écrivent leurs notifications dans leur espace. Envoyez-les depuis l'application de cartes, puis cliquez « Marquer comme envoyée » : le commerçant le voit dans son espace.</p>
+        <label className="row" style={{ "--gap": "8px", fontSize: 14 }}><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> Afficher l'historique</label>
+      </div>
+      {shown.length === 0 ? <p className="muted">Rien à envoyer pour le moment.</p> : (
+        <ul className="push-list">
+          {shown.map((p) => (
+            <li key={p.id} className={p.status === "a_envoyer" ? (due(p) ? "due" : "later") : "done"}>
+              <div className="push-meta">
+                <b>{p.business || p.account_email}</b>
+                <span>{p.account_email}</span>
+                <span>{p.status === "envoye" ? `Envoyée le ${fmt(p.sent_at)}` : p.send_at ? `À envoyer le ${fmt(p.send_at)}` : `Dès que possible · écrite le ${fmt(p.created_at)}`}</span>
+              </div>
+              <p className="push-text">{p.message}</p>
+              <div className="row" style={{ "--gap": "8px" }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => copy(p.message)}>Copier le texte</button>
+                {p.status === "a_envoyer" && <button className="btn btn-primary btn-sm" onClick={() => onSent(p.id)}><Icon name="check" size={16} /> Marquer comme envoyée</button>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
