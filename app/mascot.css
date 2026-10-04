@@ -2,65 +2,65 @@
    Principes : pieds plantés, anticipation, écrasement/étirement,
    mouvement secondaire (la carte suit le corps avec un temps de retard). */
 
-.walti { overflow: visible; --px: 0; --py: 0; }
-.walti .w-rig, .walti .w-body, .walti .w-card, .walti .w-arm-r, .walti .w-arm-l, .walti .w-shadow, .walti .w-shin, .walti .w-legshadow { transform-box: view-box; }
-.walti .w-eyes, .walti .w-eyes-in, .walti .w-impact, .walti .w-slot-next, .walti .w-question, .walti .w-zzz text, .walti .w-snore { transform-box: fill-box; transform-origin: center; }
+.walty { overflow: visible; --px: 0; --py: 0; }
+.walty .w-rig, .walty .w-body, .walty .w-card, .walty .w-arm-r, .walty .w-arm-l, .walty .w-shadow, .walty .w-shin, .walty .w-legshadow { transform-box: view-box; }
+.walty .w-eyes, .walty .w-eyes-in, .walty .w-impact, .walty .w-slot-next, .walty .w-question, .walty .w-zzz text, .walty .w-snore { transform-box: fill-box; transform-origin: center; }
 
 /* repères de pivot */
-.walti .w-rig { transform-origin: 130px 288px; }
-.walti .w-body { transform-origin: 130px 246px; }
-.walti .w-card { transform-origin: 130px 120px; }
-.walti .w-arm-r { transform-origin: 206px 179px; }
-.walti .w-arm-l { transform-origin: 56px 184px; }
-.walti .w-shadow { transform-origin: 130px 288px; }
+.walty .w-rig { transform-origin: 130px 288px; }
+.walty .w-body { transform-origin: 130px 246px; }
+.walty .w-card { transform-origin: 130px 120px; }
+.walty .w-arm-r { transform-origin: 206px 179px; }
+.walty .w-arm-l { transform-origin: 56px 184px; }
+.walty .w-shadow { transform-origin: 130px 288px; }
 
 /* ── Commun ── */
-.walti .w-eyes { animation: w-blink 5.2s infinite; }
-.walti .w-pupils { transform: translate(calc(var(--px) * 1px), calc(var(--py) * 1px)); transition: transform .35s cubic-bezier(.3,.7,.4,1); }
-.walti .w-body { animation: w-breathe 3.6s ease-in-out infinite; }
-.walti .w-card { animation: w-card-breathe 3.6s ease-in-out infinite; animation-delay: -.25s; }
-.walti .w-slot-next { animation: w-slot 3s ease-in-out infinite; }
+.walty .w-eyes { animation: w-blink 5.2s infinite; }
+.walty .w-pupils { transform: translate(calc(var(--px) * 1px), calc(var(--py) * 1px)); transition: transform .35s cubic-bezier(.3,.7,.4,1); }
+.walty .w-body { animation: w-breathe 3.6s ease-in-out infinite; }
+.walty .w-card { animation: w-card-breathe 3.6s ease-in-out infinite; animation-delay: -.25s; }
+.walty .w-slot-next { animation: w-slot 3s ease-in-out infinite; }
 
 /* ── Pose : tamponne (boucle de 3 s) ── */
-.walti--stamp .w-body { animation: w-stamp-body 3s cubic-bezier(.4,0,.2,1) infinite; }
-.walti--stamp .w-arm-r { animation: w-stamp-arm 3s cubic-bezier(.4,0,.2,1) infinite; }
-.walti--stamp .w-card { animation: w-stamp-card 3s cubic-bezier(.4,0,.2,1) infinite; }
-.walti--stamp .w-eyes-in { animation: w-squint 3s infinite; }
-.walti--stamp .w-impact { animation: w-impact 3s ease-out infinite; opacity: 0; }
-.walti--stamp .w-shadow { animation: w-stamp-shadow 3s ease-in-out infinite; }
+.walty--stamp .w-body { animation: w-stamp-body 3s cubic-bezier(.4,0,.2,1) infinite; }
+.walty--stamp .w-arm-r { animation: w-stamp-arm 3s cubic-bezier(.4,0,.2,1) infinite; }
+.walty--stamp .w-card { animation: w-stamp-card 3s cubic-bezier(.4,0,.2,1) infinite; }
+.walty--stamp .w-eyes-in { animation: w-squint 3s infinite; }
+.walty--stamp .w-impact { animation: w-impact 3s ease-out infinite; opacity: 0; }
+.walty--stamp .w-shadow { animation: w-stamp-shadow 3s ease-in-out infinite; }
 
 /* ── Pose : salue ── */
-.walti--wave .w-arm-r { animation: w-wave 1.3s ease-in-out infinite; }
-.walti--wave .w-body { animation: w-sway 2.6s ease-in-out infinite; }
-.walti--wave .w-card { animation: w-sway-card 2.6s ease-in-out infinite; animation-delay: -.2s; }
+.walty--wave .w-arm-r { animation: w-wave 1.3s ease-in-out infinite; }
+.walty--wave .w-body { animation: w-sway 2.6s ease-in-out infinite; }
+.walty--wave .w-card { animation: w-sway-card 2.6s ease-in-out infinite; animation-delay: -.2s; }
 
 /* ── Pose : assis (les tibias balancent vers nous : ils raccourcissent en perspective) ── */
-.walti--sit .w-shin-l { animation: w-swing 1.9s ease-in-out infinite; }
-.walti--sit .w-shin-r { animation: w-swing 1.9s ease-in-out infinite; animation-delay: -.95s; }
-.walti--sit .w-legshadow-l { transform-origin: 112px 300px; animation: w-swing-shadow 1.9s ease-in-out infinite; }
-.walti--sit .w-legshadow-r { transform-origin: 162px 300px; animation: w-swing-shadow 1.9s ease-in-out infinite; animation-delay: -.95s; }
-.walti--sit .w-card { animation: w-look 7s ease-in-out infinite; }
+.walty--sit .w-shin-l { animation: w-swing 1.9s ease-in-out infinite; }
+.walty--sit .w-shin-r { animation: w-swing 1.9s ease-in-out infinite; animation-delay: -.95s; }
+.walty--sit .w-legshadow-l { transform-origin: 112px 300px; animation: w-swing-shadow 1.9s ease-in-out infinite; }
+.walty--sit .w-legshadow-r { transform-origin: 162px 300px; animation: w-swing-shadow 1.9s ease-in-out infinite; animation-delay: -.95s; }
+.walty--sit .w-card { animation: w-look 7s ease-in-out infinite; }
 
 /* ── Pose : dort ── */
-.walti--sleep .w-body { animation-duration: 5s; }
-.walti--sleep .w-card { animation-duration: 5s; }
-.walti--sleep .w-snore { animation: w-snore 5s ease-in-out infinite; }
-.walti--sleep .w-zzz text { animation: w-z 3s ease-in-out infinite; }
-.walti--sleep .w-zzz text:nth-child(2) { animation-delay: .5s; }
-.walti--sleep .w-zzz text:nth-child(3) { animation-delay: 1s; }
+.walty--sleep .w-body { animation-duration: 5s; }
+.walty--sleep .w-card { animation-duration: 5s; }
+.walty--sleep .w-snore { animation: w-snore 5s ease-in-out infinite; }
+.walty--sleep .w-zzz text { animation: w-z 3s ease-in-out infinite; }
+.walty--sleep .w-zzz text:nth-child(2) { animation-delay: .5s; }
+.walty--sleep .w-zzz text:nth-child(3) { animation-delay: 1s; }
 
 /* ── Pose : perdu ── */
-.walti--lost .w-card { animation: w-look 4s ease-in-out infinite; }
-.walti--lost .w-question { animation: w-q 2.4s cubic-bezier(.34,1.56,.64,1) infinite; }
+.walty--lost .w-card { animation: w-look 4s ease-in-out infinite; }
+.walty--lost .w-question { animation: w-q 2.4s cubic-bezier(.34,1.56,.64,1) infinite; }
 
 /* ── Pose : jette un œil ── */
-.walti--peek .w-card { transform-origin: 130px 124px; animation: w-peek 5s cubic-bezier(.34,1.3,.64,1) infinite; }
-.walti--peek .w-body { animation: none; }
+.walty--peek .w-card { transform-origin: 130px 124px; animation: w-peek 5s cubic-bezier(.34,1.3,.64,1) infinite; }
+.walty--peek .w-body { animation: none; }
 
 /* ── Survol : petit saut (sauf assis / caché) ── */
-.walti--stamp:hover .w-rig, .walti--wave:hover .w-rig, .walti--lost:hover .w-rig { animation: w-hop .8s cubic-bezier(.3,.7,.4,1); }
-.walti--stamp:hover .w-shadow, .walti--wave:hover .w-shadow, .walti--lost:hover .w-shadow { animation: w-hop-shadow .8s cubic-bezier(.3,.7,.4,1); }
-.walti--sit:hover .w-shin { animation-duration: .9s; }
+.walty--stamp:hover .w-rig, .walty--wave:hover .w-rig, .walty--lost:hover .w-rig { animation: w-hop .8s cubic-bezier(.3,.7,.4,1); }
+.walty--stamp:hover .w-shadow, .walty--wave:hover .w-shadow, .walty--lost:hover .w-shadow { animation: w-hop-shadow .8s cubic-bezier(.3,.7,.4,1); }
+.walty--sit:hover .w-shin { animation-duration: .9s; }
 
 /* ═══ Images clés ═══ */
 @keyframes w-blink {

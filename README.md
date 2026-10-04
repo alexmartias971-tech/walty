@@ -1,7 +1,7 @@
 # Walty — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 9 (nom Walty, domaine walty.fr, espace commerçant à onglets avec envoi de notifications).
+Site Next.js prêt pour GitHub → Vercel. Version 10 (e-mail contact@walty.fr, demandes reçues par e-mail via Resend, page « porteurs de carte », prestataires à jour, visible sur Google en production).
 
 ## Ce qu'il y a dedans
 
@@ -16,13 +16,14 @@ Site Next.js prêt pour GitHub → Vercel. Version 9 (nom Walty, domaine walty.f
 | À propos | `/a-propos` |
 | Identité de marque + planche mascotte (page interne : pas de lien sur le site, pas sur Google) | `/marque` |
 | Mentions légales, Confidentialité, CGV, CGU, Cookies | `/mentions-legales`, `/confidentialite`, `/cgv`, `/cgu`, `/cookies` |
+| Vos données de porteur de carte (clients des commerces, accord pour les offres) | `/porteurs` |
 | **Espace admin** (prospects, pipeline, clients, relances, cartes créées en ligne, export CSV) | `/admin` |
 
 Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, essai 14 jours) et **Réserver une démo** (vous venez chez lui).
 
 ## 1. Mettre en ligne (sans rien installer)
 
-1. Dézippez le fichier `walty-site-v9.zip`.
+1. Dézippez le fichier `walty-site-v10.zip`.
 2. Sur GitHub, ouvrez votre dépôt existant (ex. `walty`) → **Add file → Upload files**, glissez **tout le contenu** du dossier (pas le dossier lui-même), puis **Commit changes**. Les fichiers existants sont remplacés.
 3. Vercel redéploie tout seul si le dépôt est relié au projet. Sinon : **Add New → Project** → importez le dépôt → **Deploy**.
 
@@ -31,7 +32,25 @@ Le site marche tout de suite en **mode démo** :
 - `/espace` : n'importe quel e-mail fonctionne, ou « Voir un exemple » ; un sélecteur permet de comparer Essentiel / Premium / Pro (pratique en rendez-vous) ;
 - `/admin` → « Entrer dans la démo » : données fictives.
 
-## 2. Brancher la vraie base de données (Supabase)
+## 2. Recevoir les demandes par e-mail (Resend)
+
+Les formulaires « Réserver une démo » et « Me prévenir » envoient un e-mail à **contact@walty.fr** (route `app/api/contact/route.js`).
+
+1. **Resend → Domains → Add domain** : `walty.fr`, région **Ireland (eu-west-1)** (important : c'est ce qu'annonce la politique de confidentialité).
+2. Resend affiche 3 à 4 enregistrements DNS (DKIM `resend._domainkey`, SPF et MX sur `send`). Dans **OVHcloud → Noms de domaine → walty.fr → Zone DNS → Ajouter une entrée**, créez-les un par un en recopiant exactement le type, le sous-domaine et la valeur. Ne touchez pas aux MX existants de walty.fr : ce sont ceux de votre boîte mail OVH.
+3. Revenez dans Resend → **Verify DNS records**. Comptez de quelques minutes à quelques heures.
+4. **Resend → API Keys → Create API key** (droit « Sending access », domaine walty.fr). Copiez la clé `re_…` (elle ne s'affiche qu'une fois).
+5. **Vercel → projet walty → Settings → Environment Variables** : ajoutez `RESEND_API_KEY` = la clé, cochez Production (et Preview), **Save**.
+6. **Deployments → … → Redeploy**. Testez le formulaire de `/contact` : l'e-mail arrive dans contact@walty.fr, avec des boutons Appeler / WhatsApp / Répondre.
+
+Tant que `RESEND_API_KEY` n'est pas en place, le formulaire invite le visiteur à vous appeler (rien n'est perdu sans prévenir).
+Facultatif : `CONTACT_TO` (autre adresse de réception) et `RESEND_FROM` (autre expéditeur, par défaut `Walty <site@walty.fr>`).
+
+## 3. Brancher la base de données de l'espace admin (Supabase) — plus tard
+
+> ⚠️ **Ne lancez pas `supabase/schema.sql` dans le projet « carte-fidelite »** : il contient déjà une table `admins` et une fonction `is_admin()` utilisées par l'application des cartes, que ce script remplacerait. Il faudra une version adaptée (à préparer ensemble).
+
+Ce qui suit concerne un projet Supabase dédié au site.
 
 1. Dans Supabase, créez un projet (région **Frankfurt / eu-central-1**, pour rester en Europe).
 2. **SQL Editor → New query** : collez `supabase/schema.sql` → **Run**. (Si vous l'aviez déjà exécuté avant, relancez-le : il ajoute les nouvelles colonnes, dont la facturation, sans rien effacer.)
@@ -51,29 +70,33 @@ Sécurité : les visiteurs peuvent seulement *déposer* une demande, jamais lire
 
 > Les chiffres de l'espace commerçant sont pour l'instant des **données d'exemple**. Ils deviendront réels quand votre application de cartes (tampons, Wallet) sera branchée : le fichier `lib/kpis.js` liste les 8 chiffres attendus.
 
-## 3. Avant d'ouvrir le site au public (obligatoire)
+## 4. Visibilité sur Google
 
-Ouvrez `lib/site.config.js` et remplacez chaque `[À COMPLÉTER]` :
+En production sur Vercel, le site est **visible par Google automatiquement** (robots.txt et sitemap ouverts).
+Les aperçus Vercel et les adresses `….vercel.app` restent cachés de Google. Pour tout cacher : `NEXT_PUBLIC_SITE_PUBLIC=false` dans Vercel, puis Redeploy.
+Ensuite, déclarez le site dans [Google Search Console](https://search.google.com/search-console) et envoyez `https://walty.fr/sitemap.xml`.
 
-- [x] Exploitant, adresse, SIREN, SIRET, téléphone, directeur de la publication (remplis)
-- [ ] E-mail de contact (`contact.email`) : tant qu'il est vide, le site affiche le téléphone à la place
-- [ ] Numéro WhatsApp (`contact.whatsapp`) si vous voulez le bouton
-- [ ] Base de données Supabase branchée (sinon les demandes de démo ne sont pas enregistrées : le site invite alors le visiteur à appeler)
+## 5. Vérifications légales
 
-Puis, dans Vercel, ajoutez `NEXT_PUBLIC_SITE_PUBLIC=true` et redéployez.
-Tant que cette variable n'est pas à `true`, le site n'est **pas indexé par Google** (aperçu privé).
+- [x] Exploitant, adresse, SIREN, SIRET, téléphone, e-mail contact@walty.fr, directeur de la publication
+- [x] Hébergeurs et prestataires : Vercel, Supabase (données en Irlande), Resend (envois depuis l'Irlande), OVH
+- [x] Page `/porteurs` : informations des clients des commerces, accord pour les offres, comment arrêter
+- [ ] Vérifier que l'activité « services numériques » est bien déclarée sur votre entreprise individuelle (guichet unique INPI)
+- [ ] Vérifier le nom « Walty » sur [data.inpi.fr](https://data.inpi.fr) avant de déposer la marque
+- [ ] Nom de domaine `walty.fr` (OVHcloud, au nom d'Alexandre MARTIAS) : valider la demande « titulaire » d'OVH avant le 16 novembre 2026
+- [ ] Rendez-vous chez un commerçant de 5 salariés au plus : remettre le formulaire de rétractation (annexe des CGV)
+- [ ] Faire relire les CGV par un professionnel du droit avant d'ajouter le paiement en ligne
+- Aucun cookie de suivi : pas de bandeau nécessaire. Si un jour vous ajoutez Google Analytics, un pixel Meta ou TikTok, il faudra un bandeau de consentement.
 
-Autres vérifications :
-- [ ] Vérifier le nom « Walty » sur [data.inpi.fr](https://data.inpi.fr) avant de déposer la marque.
-- [x] Nom de domaine : `walty.fr`, acheté chez OVHcloud (au nom d'Alexandre MARTIAS). Valider la demande « titulaire » d'OVH avant le 16 novembre 2026.
-- [ ] Les CGV prévoient le droit de rétractation de 14 jours des petites entreprises (5 salariés au plus) signées chez elles : remettez le formulaire en annexe lors des rendez-vous.
-- [ ] Faire relire les CGV par un professionnel du droit avant d'ajouter le paiement en ligne.
-- [ ] Si vous ajoutez un jour Google Analytics, un pixel Meta ou TikTok : il faudra un bandeau de consentement cookies.
+## Après la mise en ligne de la v10 sur GitHub
 
-## 4. Modifier le contenu
+Supprimez l'ancien fichier `app/(site)/tarifs/Plans.jsx` resté dans le dépôt (il n'est plus utilisé) : ouvrez-le sur GitHub → « … » → **Delete file** → **Commit changes**.
+
+## 6. Modifier le contenu
 
 - Formules, prix, limites de clients, options, durée d'essai : `lib/offer.js` (se répercute sur l'accueil, les tarifs, Créer ma carte, l'espace commerçant, les CGV et l'admin). `trialDays = 0` retire l'essai gratuit partout.
 - Les chiffres de l'espace commerçant : `lib/kpis.js`.
+- Les prestataires, l'e-mail, le téléphone : `lib/site.config.js`.
 - Les couleurs : en haut de `app/globals.css` (thème sombre ; la classe `.dark` donne un bloc teinté crépuscule).
 - Les types de carte, les secteurs et les validations (e-mail, téléphone, SIRET) : `lib/programs.js`.
 - La mascotte : `components/Mascot.jsx` (dessin) et `app/mascot.css` (animations).
@@ -86,7 +109,7 @@ npm run dev     # http://localhost:3000
 npm run build
 ```
 
-Next.js 16 (App Router), React 19, CSS pur, polices auto-hébergées (@fontsource), Supabase optionnel.
+Next.js 16 (App Router), React 19, CSS pur, polices auto-hébergées (@fontsource), Resend (via son API, sans dépendance), Supabase optionnel.
 
 ## Badges Apple Wallet et Google Wallet
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import LegalPage, { V, Email } from "@/components/Legal";
-import { legal, processors } from "@/lib/site.config";
+import { legal, processors, dataLocation } from "@/lib/site.config";
 
 export const metadata = { title: "Politique de confidentialité", description: "Comment Walty collecte, utilise et protège vos données personnelles, conformément au RGPD." };
 
@@ -10,7 +10,7 @@ export default function Confidentialite() {
       <p>Cette politique explique quelles données personnelles Walty collecte via ce site, pourquoi, combien de temps, et comment exercer vos droits. Elle est établie conformément au Règlement général sur la protection des données (RGPD, règlement UE 2016/679) et à la loi n° 78-17 du 6 janvier 1978 « Informatique et Libertés ».</p>
 
       <h2>1. Responsable du traitement</h2>
-      <p><strong>Walty</strong>, exploité par <V v={legal.ownerName} />, {legal.legalForm.toLowerCase()}, <V v={legal.address} />, SIRET <V v={legal.siret} />. Contact pour toute question sur vos données : <Email />.</p>
+      <p><strong>Walty</strong>, exploité par <V v={legal.ownerName} />, {legal.legalFormInline}, <V v={legal.address} />, SIRET <V v={legal.siret} />. Contact pour toute question sur vos données : <Email />.</p>
 
       <h2>2. Données collectées et utilisations</h2>
       <div className="table-wrap">
@@ -33,7 +33,7 @@ export default function Confidentialite() {
             </tr>
             <tr>
               <td>Espace commerçant (connexion à votre carte, à vos chiffres et envoi de vos notifications)</td>
-              <td>E-mail de connexion, mot de passe (stocké chiffré par notre hébergeur de base de données), formule, texte et date des notifications que vous nous demandez d'envoyer</td>
+              <td>E-mail de connexion, mot de passe (stocké chiffré par notre hébergeur de base de données, en {dataLocation}), formule, texte et date des notifications que vous nous demandez d'envoyer</td>
               <td>Exécution du contrat (6.1.b)</td>
               <td>Durée du contrat, puis suppression du compte de connexion</td>
             </tr>
@@ -59,6 +59,7 @@ export default function Confidentialite() {
         </table>
       </div>
       <p>Les champs obligatoires des formulaires sont signalés par un astérisque ou indiqués à l'écran. Sans eux, nous ne pouvons pas répondre à votre demande. Aucune décision automatisée ni profilage n'est réalisé.</p>
+      <p><strong>Le trajet de votre demande.</strong> Quand vous remplissez le formulaire de démo ou la liste d'attente, votre demande nous est envoyée par e-mail grâce au service Resend, puis arrive dans notre messagerie contact@walty.fr, hébergée par OVH en France. Elle n'est publiée nulle part et n'est lue que par nous.</p>
 
       <h2>3. Destinataires</h2>
       <p>Vos données sont destinées uniquement à Walty. Elles ne sont jamais vendues, louées ou cédées. Elles sont techniquement hébergées par les prestataires suivants, qui agissent comme sous-traitants et sont tenus par contrat de les protéger :</p>
@@ -69,8 +70,8 @@ export default function Confidentialite() {
       </ul>
       <p>Si vous nous écrivez sur WhatsApp, vos messages transitent aussi par WhatsApp (Meta Platforms Ireland Ltd), selon ses propres conditions.</p>
 
-      <h2>4. Transferts hors de l'Union européenne</h2>
-      <p>Lorsque des données sont accessibles depuis un pays hors de l'Union européenne (notamment les États-Unis pour l'hébergement du site), ce transfert est encadré par une décision d'adéquation de la Commission européenne (Data Privacy Framework UE–États-Unis) et/ou par les clauses contractuelles types adoptées par la Commission.</p>
+      <h2>4. Où sont vos données ?</h2>
+      <p>La base de données (espace commerçant et cartes de fidélité) est stockée en {dataLocation}. Notre messagerie est hébergée en France. Le site lui-même est servi par Vercel, et les e-mails du site sont envoyés par Resend depuis l'Irlande : ces deux sociétés sont américaines. Lorsque des données peuvent être consultées depuis les États-Unis, ce transfert est encadré par la décision d'adéquation de la Commission européenne (Data Privacy Framework UE–États-Unis), à laquelle ces sociétés ont adhéré, et par les clauses contractuelles types adoptées par la Commission.</p>
 
       <h2>5. Vos droits</h2>
       <p>Vous disposez des droits suivants sur vos données : accès, rectification, effacement, limitation du traitement, opposition (y compris, à tout moment et sans justification, à la prospection commerciale), portabilité, ainsi que du droit de définir des directives sur le sort de vos données après votre décès.</p>
@@ -78,7 +79,7 @@ export default function Confidentialite() {
       <p>Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à la CNIL : <a href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noopener noreferrer">www.cnil.fr/fr/plaintes</a>, 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.</p>
 
       <h2>6. Porteurs de cartes de fidélité</h2>
-      <p>Lorsqu'un client d'un commerce ajoute une carte Walty dans son téléphone, c'est <strong>le commerce</strong> qui est responsable du traitement de ses données ; Walty agit pour son compte en tant que sous-traitant (art. 28 RGPD). Les informations sur ce traitement (données, durée, droits) sont fournies au porteur au moment de l'inscription à la carte. Pour exercer vos droits, adressez-vous au commerce concerné, ou écrivez-nous et nous transmettrons votre demande.</p>
+      <p>Lorsqu'un client d'un commerce ajoute une carte Walty dans son téléphone, c'est <strong>le commerce</strong> qui est responsable du traitement de ses données ; Walty agit pour son compte en tant que sous-traitant (art. 28 RGPD). Les informations sur ce traitement (données, durée, droits, accord pour recevoir les offres) sont fournies au porteur au moment de l'inscription à la carte et détaillées sur la page <Link href="/porteurs">vos données de porteur de carte</Link>. Pour exercer vos droits, adressez-vous au commerce concerné, ou écrivez-nous et nous transmettrons votre demande.</p>
 
       <h2>7. Sécurité</h2>
       <p>Les échanges avec le site sont chiffrés (HTTPS). L'espace administrateur est protégé par une authentification individuelle, et l'accès aux données est limité par des règles de sécurité au niveau de la base de données. Aucun système n'étant infaillible, en cas de violation de données présentant un risque pour vous, nous vous en informerons ainsi que la CNIL, dans les conditions prévues par le RGPD.</p>

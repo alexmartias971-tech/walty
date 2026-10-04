@@ -97,7 +97,7 @@ function Waitlist({ plan }) {
         preferred_channel: tel ? "WhatsApp" : "E-mail",
         message: `Liste d'attente « Créer ma carte » (agent IA)${plan ? ` · formule envisagée : ${plan.name}` : ""}`,
         requested_plan: plan?.id,
-      });
+      }, "waitlist");
       setState({ status: "sent", error: "" });
     } catch (err) {
       setState({ status: "idle", error: err.message });

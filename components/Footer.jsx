@@ -14,6 +14,10 @@ export default function Footer() {
             <p className="muted" style={{ maxWidth: 340 }}>
               La carte de fidélité des commerces de Guadeloupe, dans le téléphone de vos clients.
             </p>
+            <p className="footer-contact" style={{ fontSize: 15 }}>
+              <a href={site.contact.phoneHref}>{site.contact.phone}</a>
+              <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
+            </p>
             <p className="faint footer-hours" style={{ fontSize: 13 }}>{site.contact.hours} · {site.contact.zone}</p>
           </div>
           <div>
@@ -40,6 +44,7 @@ export default function Footer() {
               <li><Link href="/cgv">CGV</Link></li>
               <li><Link href="/cgu">Conditions d'utilisation</Link></li>
               <li><Link href="/cookies">Cookies</Link></li>
+              <li><Link href="/porteurs">Porteurs de carte</Link></li>
             </ul>
           </div>
         </div>

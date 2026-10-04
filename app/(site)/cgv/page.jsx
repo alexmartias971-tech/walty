@@ -8,7 +8,7 @@ export const metadata = { title: "Conditions générales de vente", description:
 export default function CGV() {
   return (
     <LegalPage index="L3" label="Légal" title="Conditions générales de vente">
-      <p>Les présentes conditions générales de vente (« CGV ») s'appliquent à toutes les prestations fournies par <strong>Walty</strong>, exploité par <V v={legal.ownerName} />, {legal.legalForm.toLowerCase()}, <V v={legal.address} />, SIRET <V v={legal.siret} /> (« Walty »), à ses clients professionnels (« le Client »). Elles constituent, conformément à l'article L441-1 du Code de commerce, le socle unique de la relation commerciale.</p>
+      <p>Les présentes conditions générales de vente (« CGV ») s'appliquent à toutes les prestations fournies par <strong>Walty</strong>, exploité par <V v={legal.ownerName} />, {legal.legalFormInline}, <V v={legal.address} />, SIRET <V v={legal.siret} /> (« Walty »), à ses clients professionnels (« le Client »). Elles constituent, conformément à l'article L441-1 du Code de commerce, le socle unique de la relation commerciale.</p>
 
       <h2>1. Champ d'application</h2>
       <p>Les services Walty sont <strong>réservés aux professionnels</strong> (commerçants, artisans, indépendants, entreprises, associations) agissant pour les besoins de leur activité. Toute commande implique l'acceptation sans réserve des présentes CGV, qui prévalent sur tout autre document du Client, sauf accord écrit contraire. Les CGV applicables sont celles en vigueur à la date de la commande.</p>
@@ -23,6 +23,7 @@ export default function CGV() {
       <p>Le contenu détaillé de chaque formule (envoi de messages, automatismes, statistiques, accès équipe, accompagnement) et des options est celui décrit sur la page <Link href="/tarifs">Tarifs</Link> et/ou dans le devis à la date de la commande. En particulier :</p>
       <ul>
         <li><strong>Messages.</strong> La formule Essentiel ne permet pas d'envoyer des messages libres aux porteurs (seuls les messages automatiques de la carte sont envoyés). La formule Premium permet 2 messages par semaine (du lundi au dimanche), non reportables. La formule Pro permet un envoi illimité et programmé, dans le respect d'un usage raisonnable et des règles d'Apple et de Google. Le Client rédige ses messages depuis son espace ; Walty peut refuser ou reporter un message illicite, trompeur ou contraire à ces règles, et les envoie le jour même entre 8 h et 18 h, ou à l'heure programmée.</li>
+        <li><strong>Accord des porteurs.</strong> Les messages de service de la carte (tampon ajouté, récompense disponible, changement des conditions du programme) sont envoyés à tous les porteurs. Les messages commerciaux (offres, promotions, nouveautés) ne sont envoyés qu'aux porteurs qui l'ont accepté en cochant, lors de leur inscription, une case non cochée par défaut. Ce filtre est appliqué automatiquement par Walty. Un porteur peut retirer son accord à tout moment ; il ne reçoit alors plus aucune offre, dès la prise en compte de sa demande. Les informations données aux porteurs figurent sur la page <Link href="/porteurs">vos données de porteur de carte</Link>.</li>
         <li><strong>Limite de porteurs.</strong> Lorsque le nombre de porteurs atteint la limite de la formule, Walty en informe le Client et lui propose la formule supérieure. Les cartes déjà délivrées continuent de fonctionner. À défaut de changement de formule dans les 30 jours, les nouvelles inscriptions peuvent être suspendues.</li>
         <li><strong>Options.</strong> Les options ({addons.map((x) => { const n = x.name.replace(/ \(.*\)$/, ""); return n.charAt(0).toLowerCase() + n.slice(1); }).join(", ")}) sont facturées en sus, au prix indiqué sur le site ou sur devis. La plaque NFC n'est incluse dans aucune formule.</li>
         <li><strong>Plus de 3 boutiques</strong> : sur devis.</li>
@@ -65,8 +66,9 @@ export default function CGV() {
       <ul>
         <li>Fournir des éléments (logo, photos, textes) dont il détient les droits, et garantir Walty contre toute réclamation à ce titre.</li>
         <li>Rédiger ou valider des notifications licites, loyales et non trompeuses, et honorer les récompenses et offres annoncées aux porteurs.</li>
+        <li>N'adresser d'offres commerciales qu'aux porteurs ayant donné leur accord, ne pas contourner ce filtre (par exemple en glissant une promotion dans un message de service) et respecter sans délai tout retrait d'accord qui lui serait signalé directement. Les clients importés depuis un fichier existant ne reçoivent d'offres qu'après avoir installé la carte et donné leur accord.</li>
         <li>Garder confidentiels les accès caisse de son personnel et signaler sans délai toute perte ou usage anormal.</li>
-        <li>Informer les porteurs de carte du traitement de leurs données (Walty fournit un modèle de mention d'information).</li>
+        <li>Informer les porteurs de carte du traitement de leurs données : Walty affiche pour lui la mention d'information dans le formulaire d'inscription à la carte et la publie sur la page <Link href="/porteurs">vos données de porteur de carte</Link>.</li>
       </ul>
 
       <h2>10. Disponibilité et services tiers</h2>
@@ -79,6 +81,7 @@ export default function CGV() {
         <li>veiller à ce que les personnes autorisées à traiter les données soient soumises à la confidentialité ;</li>
         <li>mettre en œuvre des mesures de sécurité appropriées (chiffrement des échanges, authentification, cloisonnement des données par client) ;</li>
         <li>ne recourir qu'aux sous-traitants ultérieurs suivants : {processors.map((p) => p.name).join(", ")}, ainsi qu'Apple Inc. et Google LLC pour la mise à jour des cartes et l'envoi des notifications, et informer le Client de tout changement prévu, qui pourra s'y opposer ;</li>
+        <li>recueillir pour le compte du Client l'accord des porteurs pour recevoir ses offres, en conserver la preuve (date, heure et version du texte affiché) et la lui remettre sur demande ;</li>
         <li>aider le Client à répondre aux demandes d'exercice des droits des porteurs et à respecter ses obligations de sécurité et d'analyse d'impact ;</li>
         <li>notifier au Client toute violation de données dans les meilleurs délais après en avoir pris connaissance ;</li>
         <li>au terme du contrat, restituer les données au Client puis les supprimer, au plus tard 30 jours après la fin du contrat, sauf obligation légale de conservation ;</li>

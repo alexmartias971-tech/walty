@@ -28,9 +28,10 @@ export default function MentionsLegales() {
       </div>
 
       <h2>2. Hébergement</h2>
-      {processors.map((p) => (
-        <p key={p.name}><strong>{p.name}</strong> ({p.role})<br />{p.address}<br /><a href={p.web} target="_blank" rel="noopener noreferrer">{p.web}</a></p>
+      {processors.filter((p) => p.host).map((p) => (
+        <p key={p.name}><strong>{p.name}</strong> ({p.role})<br />{p.address}<br />Contact : {p.contact}<br /><a href={p.web} target="_blank" rel="noopener noreferrer">{p.web}</a></p>
       ))}
+      <p>Autres prestataires techniques : {processors.filter((p) => !p.host).map((p) => `${p.name} (${p.role.charAt(0).toLowerCase() + p.role.slice(1)})`).join(" ; ")}. Le détail figure dans la <Link href="/confidentialite">politique de confidentialité</Link>.</p>
 
       <h2>3. Propriété intellectuelle</h2>
       <p>L'ensemble des éléments de ce site (textes, graphismes, logo, nom « Walty », mascotte Walty, illustrations, maquettes de cartes, code) est la propriété exclusive de l'éditeur, sauf mention contraire. Toute reproduction, représentation, modification ou exploitation, totale ou partielle, sans autorisation écrite préalable est interdite et constitue une contrefaçon sanctionnée par les articles L335-2 et suivants du Code de la propriété intellectuelle.</p>
@@ -41,7 +42,7 @@ export default function MentionsLegales() {
       <p>L'éditeur s'efforce de fournir des informations exactes et à jour, sans pouvoir garantir l'absence d'erreur. Les informations du site sont données à titre indicatif ; seules les conditions figurant dans le devis et les <Link href="/cgv">conditions générales de vente</Link> engagent l'éditeur. L'éditeur ne peut être tenu responsable du contenu des sites externes vers lesquels des liens renvoient.</p>
 
       <h2>5. Données personnelles et cookies</h2>
-      <p>Le traitement de vos données est décrit dans la <Link href="/confidentialite">politique de confidentialité</Link>. Ce site n'utilise aucun cookie publicitaire ni de mesure d'audience : voir la page <Link href="/cookies">cookies</Link>.</p>
+      <p>Le traitement de vos données est décrit dans la <Link href="/confidentialite">politique de confidentialité</Link>. Si vous avez une carte de fidélité Walty dans votre téléphone, tout est expliqué sur la page <Link href="/porteurs">vos données de porteur de carte</Link>. Ce site n'utilise aucun cookie publicitaire ni de mesure d'audience : voir la page <Link href="/cookies">cookies</Link>.</p>
 
       <h2>6. Crédits</h2>
       <p>Conception, identité visuelle et mascotte : Walty. Polices Unbounded et Manrope, sous licence SIL Open Font License, hébergées directement sur ce site (aucun appel à un service tiers).</p>

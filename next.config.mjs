@@ -14,6 +14,8 @@ const nextConfig = {
     return [
       { source: "/:path*", headers: securityHeaders },
       { source: "/admin/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // Les adresses techniques de Vercel (walty-xxx.vercel.app) ne doivent pas apparaître sur Google : seule walty.fr compte.
+      { source: "/:path*", has: [{ type: "host", value: ".*\\.vercel\\.app" }], headers: [{ key: "X-Robots-Tag", value: "noindex" }] },
     ];
   },
 };

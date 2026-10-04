@@ -123,7 +123,7 @@
 /* Connexion */
 .login { min-height: 100vh; display: grid; place-items: center; padding: 24px; position: relative; overflow: hidden; }
 .login-card { position: relative; z-index: 1; width: min(440px, 100%); padding: 36px 32px; border-radius: 32px; display: grid; gap: 18px; }
-.login-card .walti { margin: -110px auto -8px; }
+.login-card .walty { margin: -110px auto -8px; }
 .admin-root { min-height: 100vh; }
 .adm-made .wcard { max-width: 300px; }
 .adm-swatch { display: inline-block; width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.3); }

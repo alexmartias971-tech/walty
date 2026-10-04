@@ -57,7 +57,7 @@ export default function Mascot({ pose = "stamp", size = 260, className = "", sty
       viewBox={viewBox}
       width={size}
       height={Math.round((size * vh) / vw)}
-      className={`walti walti--${pose} ${className}`}
+      className={`walty walty--${pose} ${className}`}
       style={style}
       role="img"
       aria-label={title}

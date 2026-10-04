@@ -26,6 +26,7 @@ export default function Cookies() {
             <tr><td>walty-merchant-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace commerçant de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
             <tr><td>walty-intro</td><td>Stockage de session</td><td>Ne montrer l'écran de chargement qu'une fois par visite</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
             <tr><td>walty-demo-pushes</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur les notifications écrites dans l'espace commerçant de démonstration</td><td>Jusqu'à effacement par vous</td></tr>
+            <tr><td>walty-my-card</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur la carte d'exemple affichée dans l'espace commerçant</td><td>Jusqu'à effacement par vous</td></tr>
             <tr><td>walty-demo-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace admin de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
           </tbody>
         </table>
