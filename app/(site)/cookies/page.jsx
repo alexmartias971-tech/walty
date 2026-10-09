@@ -1,11 +1,11 @@
 import LegalPage from "@/components/Legal";
 
-export const metadata = { title: "Cookies", description: "Walty n'utilise aucun cookie publicitaire ni de mesure d'audience." };
+export const metadata = { title: "Cookies", description: "Walty n'utilise aucun cookie publicitaire ni traceur : les visites sont comptées de façon anonyme, sans cookie." };
 
 export default function Cookies() {
   return (
     <LegalPage index="L5" label="Légal" title="Cookies et traceurs">
-      <p><strong>En bref : aucun cookie publicitaire, aucun outil de mesure d'audience, aucun bouton de réseau social qui vous suit.</strong> C'est pourquoi ce site ne vous affiche pas de bandeau de consentement.</p>
+      <p><strong>En bref : aucun cookie publicitaire, aucun outil de suivi, aucun bouton de réseau social qui vous suit.</strong> Nous comptons seulement les pages vues, de façon anonyme et sans cookie. C'est pourquoi ce site ne vous affiche pas de bandeau de consentement.</p>
 
       <h2>1. Ce que nous n'utilisons pas</h2>
       <ul>
@@ -32,10 +32,15 @@ export default function Cookies() {
         </table>
       </div>
 
-      <h2>3. Si cela change</h2>
+      <h2>3. Statistiques de visite anonymes</h2>
+      <p>Pour savoir quelles pages sont utiles et d'où viennent nos visiteurs, nous comptons les pages vues : la page consultée, le site d'où vous venez (par exemple Instagram ou Google, ou les paramètres « utm » d'un lien de campagne), le type d'appareil (téléphone, tablette ou ordinateur) et la date.</p>
+      <p>Ce comptage n'utilise aucun cookie, n'écrit et ne lit rien dans votre navigateur, ne vous attribue aucun identifiant et n'enregistre pas votre adresse IP : il ne permet pas de vous reconnaître d'une page à l'autre, ni d'une visite à l'autre. Ces chiffres restent chez nous (base de données hébergée en Irlande, Union européenne) et sont effacés au bout de 25 mois.</p>
+      <p>Si votre navigateur envoie le signal « Do Not Track » ou « Global Privacy Control », aucune page n'est comptée.</p>
+
+      <h2>4. Si cela change</h2>
       <p>Si nous ajoutons un jour un outil de mesure d'audience ou tout traceur non essentiel, nous vous demanderons votre accord au préalable, avec la possibilité de refuser aussi facilement que d'accepter, et cette page sera mise à jour.</p>
 
-      <h2>4. Effacer ces données</h2>
+      <h2>5. Effacer ces données</h2>
       <p>Vous pouvez à tout moment effacer le stockage local de ce site depuis les réglages de votre navigateur (rubrique « Confidentialité » ou « Données de sites »).</p>
     </LegalPage>
   );

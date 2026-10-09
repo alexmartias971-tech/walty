@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import Reveal from "@/components/Reveal";
 import StickyCta from "@/components/StickyCta";
 import IntroLoader from "@/components/IntroLoader";
+import Visites from "@/components/Visites";
 
 export default function SiteLayout({ children }) {
   return (
@@ -14,6 +15,7 @@ export default function SiteLayout({ children }) {
       <Footer />
       <StickyCta />
       <Reveal />
+      <Visites />
     </>
   );
 }

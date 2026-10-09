@@ -1,7 +1,7 @@
 # Walty — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 10 (e-mail contact@walty.fr, demandes reçues par e-mail via Resend, page « porteurs de carte », prestataires à jour, visible sur Google en production).
+Site Next.js prêt pour GitHub → Vercel. Version 11 : branché au CRM Walty (chaque demande de démo arrive dans le CRM avec une notification, visites comptées sans cookie). Version 10 (e-mail contact@walty.fr, demandes reçues par e-mail via Resend, page « porteurs de carte », prestataires à jour, visible sur Google en production).
 
 ## Ce qu'il y a dedans
 
@@ -31,6 +31,14 @@ Le site marche tout de suite en **mode démo** :
 - `/creer` : la carte créée apparaît dans l'admin et dans l'espace commerçant **du même navigateur** ;
 - `/espace` : n'importe quel e-mail fonctionne, ou « Voir un exemple » ; un sélecteur permet de comparer Essentiel / Premium / Pro (pratique en rendez-vous) ;
 - `/admin` → « Entrer dans la démo » : données fictives.
+
+## 1 bis. Brancher le CRM Walty (version 11)
+
+1. **Supabase → projet carte-fidelite → Table Editor → `crm_config`** : copiez la valeur de la ligne `site_token`.
+2. **Vercel → projet walty → Settings → Environment Variables** : ajoutez `CRM_SITE_TOKEN` = cette valeur, cochez Production et Preview, **Save**.
+3. Envoyez cette version sur GitHub (comme d'habitude) : Vercel redéploie tout seul.
+
+Ensuite, chaque demande de démo crée (ou complète) la fiche du commerce dans le CRM, avec une tâche « Rappeler » et une notification sur le téléphone. Les visites (page, provenance, téléphone ou ordinateur) sont comptées sans cookie, sans identifiant et sans adresse IP : pas de bandeau de consentement à ajouter. Sans `CRM_SITE_TOKEN`, le site fonctionne exactement comme la version 10.
 
 ## 2. Recevoir les demandes par e-mail (Resend)
 

@@ -1,14 +1,19 @@
 /**
- * Formulaires du site → e-mail dans la boîte contact@walty.fr, via Resend.
+ * Formulaires du site → CRM Walty (fiche commerce, tâche « Rappeler », notification sur le téléphone)
+ * et e-mail dans la boîte contact@walty.fr, via Resend.
  *
  * Variables à mettre dans Vercel (Settings → Environment Variables) :
  *   RESEND_API_KEY  (obligatoire)  la clé « re_… » créée dans Resend → API Keys
  *   CONTACT_TO      (facultatif)   adresse qui reçoit les demandes. Par défaut : contact@walty.fr
  *   RESEND_FROM     (facultatif)   expéditeur. Par défaut : « Walty <site@walty.fr> » (domaine vérifié dans Resend)
  *
- * Sans RESEND_API_KEY, la route répond 503 et le site garde son comportement d'avant (il invite à appeler).
+ *   CRM_SITE_TOKEN  (facultatif)   la clé du site donnée par le CRM Walty : chaque demande arrive aussi dans le CRM
+ *
+ * Si ni le CRM ni Resend ne reçoivent la demande, la route répond 503/502 et le site invite à appeler.
  */
 import { site } from "@/lib/site.config";
+import { versCrm } from "@/lib/crm";
+import { hoteReferent, provenance } from "@/lib/origine";
 
 const MAX_BODY = 20_000; // octets
 const WINDOW = 10 * 60 * 1000; // 10 minutes
@@ -88,9 +93,16 @@ export async function POST(request) {
     if (body.consent !== true) return json({ error: "Cochez la case d'accord pour qu'on puisse vous recontacter." }, 400);
   }
 
-  // 4. Envoi
+  // 4. Copie dans le CRM Walty (fiche commerce, tâche « Rappeler », notification sur le téléphone)
+  let page = null;
+  try { page = new URL(request.headers.get("referer") || "").pathname.slice(0, 200); } catch {}
+  const o = body.origine && typeof body.origine === "object" ? body.origine : null;
+  const source = o ? provenance(line(o.utm_source, 80), hoteReferent(line(o.referrer, 300))) : null;
+  const crm = await versCrm("contact", { kind, ...f, page, source });
+
+  // 5. E-mail
   const key = process.env.RESEND_API_KEY;
-  if (!key) return json({ error: "not_configured" }, 503);
+  if (!key) return crm ? json({ ok: true }) : json({ error: "not_configured" }, 503);
   const to = process.env.CONTACT_TO || site.contact.email;
   const from = process.env.RESEND_FROM || `Walty <site@${site.domain}>`;
 
@@ -146,11 +158,11 @@ export async function POST(request) {
     });
     if (!res.ok) {
       console.error("[contact] Resend a refusé l'envoi :", res.status, (await res.text()).slice(0, 300));
-      return json({ error: "send_failed" }, 502);
+      return crm ? json({ ok: true }) : json({ error: "send_failed" }, 502);
     }
   } catch (err) {
     console.error("[contact] Resend injoignable :", err?.name || err);
-    return json({ error: "send_failed" }, 502);
+    return crm ? json({ ok: true }) : json({ error: "send_failed" }, 502);
   }
   return json({ ok: true });
 }

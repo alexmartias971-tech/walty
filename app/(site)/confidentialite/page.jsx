@@ -55,11 +55,17 @@ export default function Confidentialite() {
               <td>Intérêt légitime à sécuriser le service (6.1.f)</td>
               <td>Selon la politique de l'hébergeur, 12 mois maximum</td>
             </tr>
+            <tr>
+              <td>Savoir quelles pages du site sont utiles et d'où viennent les visites (statistiques)</td>
+              <td>Page consultée, site d'où vous venez (par exemple Instagram ou Google), type d'appareil (téléphone, tablette ou ordinateur), date. Aucun cookie, aucun identifiant, adresse IP non enregistrée : ces chiffres ne permettent pas de vous reconnaître.</td>
+              <td>Intérêt légitime à améliorer le site (6.1.f)</td>
+              <td>25 mois</td>
+            </tr>
           </tbody>
         </table>
       </div>
       <p>Les champs obligatoires des formulaires sont signalés par un astérisque ou indiqués à l'écran. Sans eux, nous ne pouvons pas répondre à votre demande. Aucune décision automatisée ni profilage n'est réalisé.</p>
-      <p><strong>Le trajet de votre demande.</strong> Quand vous remplissez le formulaire de démo ou la liste d'attente, votre demande nous est envoyée par e-mail grâce au service Resend, puis arrive dans notre messagerie contact@walty.fr, hébergée par OVH en France. Elle n'est publiée nulle part et n'est lue que par nous.</p>
+      <p><strong>Le trajet de votre demande.</strong> Quand vous remplissez le formulaire de démo ou la liste d'attente, votre demande est enregistrée dans notre outil de suivi commercial (base de données hébergée par Supabase en {dataLocation}) et nous est envoyée par e-mail grâce au service Resend, puis arrive dans notre messagerie contact@walty.fr, hébergée par OVH en France. Elle n'est publiée nulle part et n'est lue que par nous.</p>
 
       <h2>3. Destinataires</h2>
       <p>Vos données sont destinées uniquement à Walty. Elles ne sont jamais vendues, louées ou cédées. Elles sont techniquement hébergées par les prestataires suivants, qui agissent comme sous-traitants et sont tenus par contrat de les protéger :</p>
@@ -71,7 +77,7 @@ export default function Confidentialite() {
       <p>Si vous nous écrivez sur WhatsApp, vos messages transitent aussi par WhatsApp (Meta Platforms Ireland Ltd), selon ses propres conditions.</p>
 
       <h2>4. Où sont vos données ?</h2>
-      <p>La base de données (espace commerçant et cartes de fidélité) est stockée en {dataLocation}. Notre messagerie est hébergée en France. Le site lui-même est servi par Vercel, et les e-mails du site sont envoyés par Resend depuis l'Irlande : ces deux sociétés sont américaines. Lorsque des données peuvent être consultées depuis les États-Unis, ce transfert est encadré par la décision d'adéquation de la Commission européenne (Data Privacy Framework UE–États-Unis), à laquelle ces sociétés ont adhéré, et par les clauses contractuelles types adoptées par la Commission.</p>
+      <p>La base de données (espace commerçant, cartes de fidélité, suivi des demandes et statistiques de visite) est stockée en {dataLocation}. Notre messagerie est hébergée en France. Le site lui-même est servi par Vercel, et les e-mails du site sont envoyés par Resend depuis l'Irlande : ces deux sociétés sont américaines. Lorsque des données peuvent être consultées depuis les États-Unis, ce transfert est encadré par la décision d'adéquation de la Commission européenne (Data Privacy Framework UE–États-Unis), à laquelle ces sociétés ont adhéré, et par les clauses contractuelles types adoptées par la Commission.</p>
 
       <h2>5. Vos droits</h2>
       <p>Vous disposez des droits suivants sur vos données : accès, rectification, effacement, limitation du traitement, opposition (y compris, à tout moment et sans justification, à la prospection commerciale), portabilité, ainsi que du droit de définir des directives sur le sort de vos données après votre décès.</p>
@@ -85,7 +91,7 @@ export default function Confidentialite() {
       <p>Les échanges avec le site sont chiffrés (HTTPS). L'espace administrateur est protégé par une authentification individuelle, et l'accès aux données est limité par des règles de sécurité au niveau de la base de données. Aucun système n'étant infaillible, en cas de violation de données présentant un risque pour vous, nous vous en informerons ainsi que la CNIL, dans les conditions prévues par le RGPD.</p>
 
       <h2>8. Cookies</h2>
-      <p>Ce site n'utilise ni cookie publicitaire, ni outil de mesure d'audience, ni réseau social intégré. Le détail figure sur la page <Link href="/cookies">cookies</Link>.</p>
+      <p>Ce site n'utilise ni cookie publicitaire, ni outil de suivi, ni réseau social intégré. Il compte seulement les pages vues, de façon anonyme, sans cookie ni identifiant. Le détail figure sur la page <Link href="/cookies">cookies</Link>.</p>
 
       <h2>9. Modifications</h2>
       <p>Cette politique peut évoluer, par exemple si un nouveau service est ajouté. La date de mise à jour figure en haut de la page.</p>
