@@ -32,7 +32,7 @@ export default function DashPreview() {
         </div>
         <div className="bars-x">{demoStats.weeks.map((w) => <span key={w}>{w}</span>)}</div>
       </div>
-      <Link href="/espace" className="text-link" style={{ justifySelf: "start", fontSize: 15 }}>Voir l'espace commerçant en exemple</Link>
+      <Link href="/contact" className="text-link" style={{ justifySelf: "start", fontSize: 15 }}>Voir votre espace commerçant en démo</Link>
     </div>
   );
 }

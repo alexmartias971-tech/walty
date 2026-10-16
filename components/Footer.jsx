@@ -33,7 +33,6 @@ export default function Footer() {
             <ul>
               <li><Link href="/contact">Réserver une démo</Link></li>
               <li><Link href="/creer">Créer ma carte (bientôt)</Link></li>
-              <li><Link href="/espace">Espace commerçant</Link></li>
             </ul>
           </div>
           <div>
@@ -50,7 +49,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© {new Date().getFullYear()} Walty</span>
+        <span>© {new Date().getFullYear()} Walty · <Link href="/mentions-legales">Mentions légales</Link> · {/* lien classique (pas <Link>) : la page se recharge et le téléphone autorise la caméra pour scanner */}<a href="/espace" className="footer-espace">Espace commerçant</a> · <a href="https://walty-crm.vercel.app" className="footer-espace footer-walty">Espace Walty</a></span>
         <span>Apple Wallet est une marque d'Apple Inc., Google Wallet une marque de Google LLC. Walty n'est affilié à aucune des deux.</span>
       </div>
     </footer>

@@ -933,3 +933,7 @@
 .porteurs-optin { display: flex; gap: 14px; align-items: flex-start; margin: 16px 0; padding: 16px 18px; border-radius: 16px; border: 1px dashed var(--line-strong); background: var(--bg-2); }
 .legal .porteurs-optin p { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.55; }
 .porteurs-box { flex: none; width: 20px; height: 20px; margin-top: 2px; border-radius: 5px; border: 2px solid var(--muted); background: transparent; }
+
+/* Pied de page : liens discrets à côté du © (mentions légales, espace commerçant) */
+.footer-bottom a { color: var(--muted); font-weight: 700; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; padding: 6px 0; }
+.footer-bottom a:hover { color: var(--ink); text-decoration-color: var(--flamboyant); }

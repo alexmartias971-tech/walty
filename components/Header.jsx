@@ -9,7 +9,6 @@ export const navLinks = [
   { href: "/", label: "Accueil" },
   { href: "/#comment", label: "Comment ça marche" },
   { href: "/tarifs", label: "Tarifs" },
-  { href: "/espace", label: "Se connecter" },
 ];
 
 export default function Header() {
@@ -23,6 +22,8 @@ export default function Header() {
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
   }, []);
+  // L'espace commerçant a sa propre barre (logo + commerce + Quitter)
+  if (pathname?.startsWith("/espace")) return null;
 
   return (
     <header className={`header ${scrolled ? "is-scrolled" : ""}`}>

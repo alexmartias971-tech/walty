@@ -3,7 +3,8 @@
  * Il ne bloque jamais le site : il est purement visuel, ne capte pas les clics,
  * et disparaît tout seul. Désactivé si l'appareil demande moins d'animations.
  */
-const SKIP = "try{if(sessionStorage.getItem('walty-intro')){document.documentElement.classList.add('no-intro')}else{sessionStorage.setItem('walty-intro','1')}}catch(e){}";
+// (jamais sur l'espace commerçant : en caisse, on veut l'écran tout de suite)
+const SKIP = "try{if(sessionStorage.getItem('walty-intro')||location.pathname.indexOf('/espace')===0){document.documentElement.classList.add('no-intro')}else{sessionStorage.setItem('walty-intro','1')}}catch(e){}";
 
 export default function IntroLoader() {
   return (
