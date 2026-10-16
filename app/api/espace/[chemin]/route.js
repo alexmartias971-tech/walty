@@ -11,6 +11,9 @@
  *   customer, insights tant que leurs fichiers ne sont pas installés), la passerelle répond
  *   { unavailable: true } (code 501) : l'espace s'en passe et affiche une version simple.
  *
+ * - login-password / password (connexion du gérant par mot de passe) : POST seulement, depuis walty.fr seulement ;
+ *   le mot de passe ne passe que dans le corps de la demande, jamais dans l'adresse, et n'est jamais écrit dans les journaux.
+ *
  * Variable facultative : CARTEDEFID_URL (par défaut https://cartedefid.vercel.app).
  */
 
@@ -20,7 +23,11 @@ const ROUTES = new Set([
   "login", "logout", "me", "scan", "customers", "stats", "offers", "notifications",
   // v13 : ma carte, mon programme, historique des passages, fiche client, chiffres détaillés
   "card", "program", "history", "customer", "insights",
+  // connexion du gérant par e-mail (ou identifiant) + mot de passe, et changement du mot de passe
+  "login-password", "password",
 ]);
+/** Adresses qui n'acceptent que POST (jamais de mot de passe dans une adresse GET). */
+const POST_ONLY = new Set(["login-password", "password"]);
 const COOKIE = "commercant_session";
 
 export const dynamic = "force-dynamic";
@@ -60,10 +67,31 @@ function sameOrigin(request) {
   }
 }
 
+/** Le logiciel de cartes a-t-il l'adresse login-password ? (demande vide : il répond 400 en JSON s'il l'a, 404 sinon) */
+async function passwordAvailable() {
+  try {
+    const res = await fetch(`${BASE}/api/merchant/login-password`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: "{}",
+      cache: "no-store",
+      redirect: "manual",
+      signal: AbortSignal.timeout(10000),
+    });
+    const available = (res.headers.get("content-type") || "").includes("application/json");
+    return json({ ok: true, available });
+  } catch {
+    return json({ ok: true, available: true }); // réseau indisponible : on affiche quand même le formulaire
+  }
+}
+
 async function relay(request, ctx) {
   const { chemin = "" } = await ctx.params;
   const route = Array.isArray(chemin) ? chemin.join("/") : String(chemin);
   if (!ROUTES.has(route)) return json({ ok: false, error: "Adresse inconnue." }, 404);
+  // GET login-password : la connexion par mot de passe est-elle installée sur le logiciel de cartes ? (sans aucune donnée)
+  if (route === "login-password" && request.method === "GET") return passwordAvailable();
+  if (POST_ONLY.has(route) && request.method !== "POST") return json({ ok: false, error: "Méthode non autorisée." }, 405);
 
   // Les actions (POST, DELETE) ne sont acceptées que depuis walty.fr lui-même
   if (request.method !== "GET" && !sameOrigin(request)) return json({ ok: false, error: "Demande refusée." }, 403);
@@ -110,7 +138,13 @@ async function relay(request, ctx) {
   if (data.done) data.done = vous(data.done);
   if (data.warning) data.warning = vous(data.warning);
 
-  const out = json(data, res.status);
+  // Mauvais identifiant / mot de passe / code PIN : réponse normale (200, ok: false) pour ne pas remplir la console du navigateur
+  // d'erreurs réseau ; la session expirée (401 sur « password ») garde son code.
+  let status = res.status;
+  if ((route === "login-password" || route === "login") && !data.ok && [400, 401, 429].includes(status)) status = 200;
+  if (route === "password" && !data.ok && [400, 404].includes(status)) status = 200;
+
+  const out = json(data, status);
   // Le badge de connexion (créé ou effacé par le logiciel de cartes) est posé sur walty.fr
   const cookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
   for (const c of cookies) {

@@ -394,3 +394,16 @@ select.input { appearance: auto; }
   .ec-spinner { animation-duration: 2.4s; }
   .ec-sheet, .ec-sheet-back { animation: none; }
 }
+
+/* ───────── Connexion par mot de passe (gérant) ───────── */
+.ec-pw { position: relative; }
+.ec-pw .input { width: 100%; padding-right: 54px; }
+.ec-pw-eye { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 12px; background: none; color: var(--muted); cursor: pointer; }
+.ec-pw-eye:hover, .ec-pw-eye[aria-pressed="true"] { color: var(--ink); }
+.ec-pw-eye:focus-visible { outline: 2.5px solid var(--crepuscule); outline-offset: -2px; }
+.ec-quick { font-size: 13.5px; color: var(--faint); }
+.ec-gate .ec-info a { color: var(--ink); font-weight: 700; white-space: nowrap; }
+.ec-pw-page { display: grid; gap: 16px; max-width: 480px; }
+.ec-pw-page .muted { margin: 0; }
+.ec-sheet .ec-sheet-wide { grid-column: 1 / -1; }
+.ec-side .ec-side-pw { margin-top: 6px; box-shadow: inset 0 1px 0 var(--line); border-radius: 0 0 14px 14px; }

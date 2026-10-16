@@ -1,13 +1,18 @@
 "use client";
 
 /**
- * Espace commerçant de Walty (walty.fr/espace), version 13.
- * Connexion par le lien d'accès remis par Walty + code PIN, puis :
- * Accueil · Scanner · Clients (et fiche client) · Historique · Ma carte (QR du comptoir) · Mon programme
- * · Chiffres · Offres · Messages.
+ * Espace commerçant de Walty (walty.fr/espace), version 13 + connexion par mot de passe.
+ * Connexion :
+ * - le gérant : adresse e-mail (ou identifiant) + mot de passe, compte créé par Walty (mot de passe provisoire
+ *   à changer à la première connexion) ;
+ * - « connexion rapide » (employé en caisse) : le lien d'accès remis par Walty + code PIN, comme avant
+ *   (un lien walty.fr/espace?acces=… ouvre directement le code PIN).
+ * Puis : Accueil · Scanner · Clients (et fiche client) · Historique · Ma carte (QR du comptoir) · Mon programme
+ * · Chiffres · Offres · Messages · Changer mon mot de passe.
  * Toutes les données passent par /api/espace/… (passerelle vers le logiciel de cartes).
  *
  * Versions plus simples, automatiques, si le logiciel de cartes n'a pas encore certaines adresses :
+ * - sans login-password / password : seulement le lien + code PIN (comme avant) ;
  * - sans card / program / history / customer / insights : l'espace de la v12 (pas d'historique, fiche client simple…) ;
  * - sans me / stats / offers : le mode « de base » (login, scan, customers et notifications seulement).
  */
@@ -25,14 +30,28 @@ import Programme from "./Programme";
 import { api, euro, fmtAgo, fmtDate, fmtDateTime, initials, post, TZ } from "./outils";
 
 const LS = "walty-espace-acces";
+/** Comment cet appareil s'est connecté la dernière fois : « password » (gérant) ou « pin » (caisse). */
+const LS_MODE = "walty-espace-mode";
+/** L'identifiant (jamais le mot de passe) gardé sur l'appareil pour la prochaine connexion. */
+const LS_LOGIN = "walty-espace-identifiant";
+/** Mot de passe provisoire pas encore changé (survit à un rechargement de la page, pas à la fermeture de l'onglet). */
+const SS_MUST = "walty-espace-mdp-a-changer";
 
 /** Retrouve le code d'accès (48 caractères) dans un lien collé, dans l'adresse, ou tel quel. */
 const readToken = (text) => {
   const m = /(?:^|[^0-9a-f])([0-9a-f]{48})(?![0-9a-f])/i.exec(text || "");
   return m ? m[1].toLowerCase() : null;
 };
-const lsGet = () => { try { return localStorage.getItem(LS); } catch { return null; } };
-const lsSet = (v) => { try { v ? localStorage.setItem(LS, v) : localStorage.removeItem(LS); } catch {} };
+const store = (key, session = false) => ({
+  get: () => { try { return (session ? sessionStorage : localStorage).getItem(key); } catch { return null; } },
+  set: (v) => { try { const s = session ? sessionStorage : localStorage; v ? s.setItem(key, v) : s.removeItem(key); } catch {} },
+});
+const lsToken = store(LS);
+const lsMode = store(LS_MODE);
+const lsLogin = store(LS_LOGIN);
+const ssMust = store(SS_MUST, true);
+const lsGet = lsToken.get;
+const lsSet = lsToken.set;
 
 /** "38,412" / "1:02.345" → millisecondes */
 function parseLap(text) {
@@ -48,14 +67,42 @@ const readSerial = (text) => {
 };
 
 const EXPIRED = "Votre session a expiré (12 heures) : retapez votre code PIN.";
+const EXPIRED_PW = "Votre session a expiré (12 heures) : reconnectez-vous.";
 
 /* ═════════════════════════════ Entrée ═════════════════════════════ */
 export default function EspaceApp() {
-  const [phase, setPhase] = useState("loading"); // loading | access | pin | app | error
+  const [phase, setPhase] = useState("loading"); // loading | login | access | pin | change | app | error
   const [token, setToken] = useState(null);
   const [business, setBusiness] = useState(null);
   const [me, setMe] = useState(null);
   const [notice, setNotice] = useState("");
+  // Connexion par mot de passe installée sur le logiciel de cartes ? null = on vérifie, false = lien + code PIN seulement
+  const [pwOk, setPwOk] = useState(null);
+  const pwProbe = useRef(null);
+  // « password » (gérant) ou « pin » (caisse) : comment cet appareil se connecte
+  const [via, setVia] = useState("pin");
+  // Mot de passe provisoire tapé à la connexion (gardé en mémoire seulement, pour le changer tout de suite)
+  const tempPw = useRef("");
+
+  /** Une seule vérification : la connexion par mot de passe est-elle installée sur le logiciel de cartes ? */
+  const probe = useCallback(() => {
+    if (!pwProbe.current) {
+      pwProbe.current = api("login-password").then((r) => {
+        const ok = r.ok ? r.available !== false : !r.unavailable;
+        setPwOk(ok);
+        return ok;
+      });
+    }
+    return pwProbe.current;
+  }, []);
+
+  /** Pas (ou plus) connecté : quel écran de connexion montrer ? */
+  const gate = useCallback(async (tk, mode) => {
+    if (tk && mode !== "password") return setPhase("pin");
+    const ok = await probe();
+    if (ok) return setPhase("login");
+    setPhase(tk ? "pin" : "access");
+  }, [probe]);
 
   /** Lien d'accès refusé par le logiciel de cartes : on l'oublie sur cet appareil. */
   const invalidLink = useCallback(() => {
@@ -66,51 +113,52 @@ export default function EspaceApp() {
     setPhase("access");
   }, []);
 
+  /** Connecté : l'espace, ou d'abord le choix du mot de passe si le provisoire n'est pas encore changé. */
+  const enter = useCallback((r) => {
+    setMe(r);
+    setPhase(ssMust.get() ? "change" : "app");
+  }, []);
+
   /** Mode de base (adresse « me » pas encore installée) : on devine l'état avec les adresses existantes. */
-  const loadBasic = useCallback(async (tk) => {
+  const loadBasic = useCallback(async (tk, mode) => {
     const c = await api("customers?q=");
     if (c.ok) {
       const n = await api("notifications");
-      setMe({
+      return enter({
         basic: true,
         business: { name: "", logo_url: null },
         label: "",
         canNotify: n.status !== 403,
         program: null,
       });
-      return setPhase("app");
     }
     if (c.status === 401) {
       setBusiness(null);
-      return setPhase(tk ? "pin" : "access");
+      return gate(tk, mode);
     }
     setNotice(c.error || "Le service ne répond pas.");
     setPhase("error");
-  }, []);
+  }, [enter, gate]);
 
-  const load = useCallback(async (tk) => {
+  /** mode « password » : la session du gérant ne dépend d'aucun lien d'accès (on n'envoie pas le lien). */
+  const load = useCallback(async (tk, mode = "pin") => {
     setPhase("loading");
-    const r = await api(`me${tk ? `?token=${tk}` : ""}`);
-    if (r.unavailable) return loadBasic(tk);
+    const withToken = tk && mode !== "password";
+    const r = await api(`me${withToken ? `?token=${tk}` : ""}`);
+    if (r.unavailable) return loadBasic(tk, mode);
     if (!r.ok) {
-      if (r.status === 404 && tk) return invalidLink();
+      if (r.status === 404 && withToken) return invalidLink();
       setNotice(r.error || "Le service ne répond pas.");
       return setPhase("error");
     }
-    if (r.loggedIn) {
-      setMe(r);
-      return setPhase("app");
-    }
-    if (tk) {
-      setBusiness(r.business || null);
-      return setPhase("pin");
-    }
-    setPhase("access");
-  }, [invalidLink, loadBasic]);
+    if (r.loggedIn) return enter(r);
+    if (withToken) setBusiness(r.business || null);
+    return gate(tk, mode);
+  }, [enter, gate, invalidLink, loadBasic]);
 
   useEffect(() => {
     // Le lien d'accès peut arriver dans l'adresse : walty.fr/espace?acces=… ou #acces=…
-    // On le garde sur cet appareil (jamais le code PIN), puis on l'efface de l'adresse.
+    // On le garde sur cet appareil (jamais le code PIN), puis on l'efface de l'adresse : il ouvre le code PIN.
     const { search, hash, pathname } = window.location;
     const fromUrl = readToken(`${search} ${hash}`);
     if (fromUrl) {
@@ -118,8 +166,10 @@ export default function EspaceApp() {
       window.history.replaceState(null, "", pathname);
     }
     const tk = fromUrl || readToken(lsGet());
+    const mode = fromUrl ? "pin" : lsMode.get() === "password" ? "password" : "pin";
     setToken(tk);
-    load(tk);
+    setVia(mode);
+    load(tk, mode);
     // Lien d'accès ouvert alors que la page était déjà affichée (seul le « #acces=… » change)
     const onHash = () => {
       const t = readToken(window.location.hash);
@@ -127,12 +177,16 @@ export default function EspaceApp() {
       lsSet(t);
       window.history.replaceState(null, "", window.location.pathname);
       setToken(t);
+      setVia("pin");
       setNotice("");
-      load(t);
+      load(t, "pin");
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, [load]);
+
+  // La connexion par mot de passe est-elle disponible ? (pour proposer le lien depuis l'écran du code PIN)
+  useEffect(() => { probe(); }, [probe]);
 
   // Changement d'écran (code PIN, espace…) : on repart du haut de la page
   useEffect(() => { try { window.scrollTo({ top: 0 }); } catch {} }, [phase]);
@@ -140,8 +194,9 @@ export default function EspaceApp() {
   function openLink(tk) {
     lsSet(tk);
     setToken(tk);
+    setVia("pin");
     setNotice("");
-    load(tk);
+    load(tk, "pin");
   }
   async function forget() {
     // Changer de commerce : on oublie le lien ET on ferme la session éventuelle
@@ -155,15 +210,50 @@ export default function EspaceApp() {
   }
   async function logout() {
     await post("logout");
+    ssMust.set(null);
+    tempPw.current = "";
     setMe(null);
     setNotice("");
-    load(token);
+    load(token, via);
   }
   const expired = useCallback(() => {
     setMe(null);
-    setNotice(EXPIRED);
-    load(token);
-  }, [load, token]);
+    setNotice(via === "password" ? EXPIRED_PW : EXPIRED);
+    load(token, via);
+  }, [load, token, via]);
+
+  /** Connexion réussie par mot de passe. */
+  function passwordIn(login, password, mustChange) {
+    lsMode.set("password");
+    lsLogin.set(login);
+    setVia("password");
+    setNotice("");
+    if (mustChange) {
+      ssMust.set("1");
+      tempPw.current = password;
+    } else {
+      ssMust.set(null);
+      tempPw.current = "";
+    }
+    load(token, "password");
+  }
+  /** Connexion réussie par code PIN. */
+  function pinIn() {
+    lsMode.set("pin");
+    ssMust.set(null);
+    setVia("pin");
+    setNotice("");
+    load(token, "pin");
+  }
+  /** Depuis l'écran de connexion : passer au lien + code PIN. */
+  function quick() {
+    setNotice("");
+    setPhase(token ? "pin" : "access");
+  }
+  function toPassword() {
+    setNotice("");
+    setPhase("login");
+  }
 
   return (
     <div className="ec">
@@ -178,19 +268,29 @@ export default function EspaceApp() {
             <Mascot pose="lost" size={130} title="Walty cherche le réseau" />
             <h1 className="ec-title">Petit souci de connexion</h1>
             <p className="muted">{notice}</p>
-            <button className="btn btn-primary btn-lg ec-full" onClick={() => load(token)}>Réessayer</button>
+            <button className="btn btn-primary btn-lg ec-full" onClick={() => load(token, via)}>Réessayer</button>
           </div>
         </div>
       )}
-      {phase === "access" && <AccessScreen notice={notice} onLink={openLink} />}
+      {phase === "login" && <LoginScreen notice={notice} onIn={passwordIn} onQuick={quick} />}
+      {phase === "access" && <AccessScreen notice={notice} onLink={openLink} onPassword={pwOk ? toPassword : null} />}
       {phase === "pin" && (
         <PinScreen
           token={token}
           business={business}
           notice={notice === EXPIRED ? notice : ""}
-          onIn={() => { setNotice(""); load(token); }}
+          onIn={pinIn}
           onInvalid={invalidLink}
           onForget={forget}
+          onPassword={pwOk ? toPassword : null}
+        />
+      )}
+      {phase === "change" && (
+        <ChangePasswordScreen
+          initialOld={tempPw.current}
+          onDone={() => { ssMust.set(null); tempPw.current = ""; setPhase("app"); }}
+          onLogout={logout}
+          onExpired={expired}
         />
       )}
       {phase === "app" && me && <Dashboard me={me} onLogout={logout} onExpired={expired} />}
@@ -198,8 +298,205 @@ export default function EspaceApp() {
   );
 }
 
-/* ═════════════════════════ Écran sans lien ═════════════════════════ */
-function AccessScreen({ notice, onLink }) {
+/* ═════════════════════════ Champ mot de passe (avec l'œil afficher / masquer) ═════════════════════════ */
+function Eye({ open }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {!open && <path d="M4 4l16 16" />}
+    </svg>
+  );
+}
+function PasswordField({ id, label, value, onChange, autoComplete = "current-password", autoFocus = false, hint, minLength }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <div className="ec-pw">
+        <input
+          id={id}
+          className="input"
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete={autoComplete}
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          autoFocus={autoFocus}
+          minLength={minLength}
+          maxLength={72}
+          aria-describedby={hint ? `${id}-hint` : undefined}
+        />
+        <button type="button" className="ec-pw-eye" onClick={() => setShow((s) => !s)} aria-label={show ? "Masquer le mot de passe" : "Afficher le mot de passe"} aria-pressed={show}>
+          <Eye open={show} />
+        </button>
+      </div>
+      {hint && <span id={`${id}-hint`} className="field-hint">{hint}</span>}
+    </div>
+  );
+}
+
+/* ═════════════════════════ Connexion : e-mail (ou identifiant) + mot de passe ═════════════════════════ */
+function LoginScreen({ notice, onIn, onQuick }) {
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [forgot, setForgot] = useState(false);
+  const pwRef = useRef(null);
+  // L'identifiant de la dernière connexion sur cet appareil (jamais le mot de passe)
+  useEffect(() => { const l = lsLogin.get(); if (l) setLogin(l); }, []);
+
+  async function submit(e) {
+    e.preventDefault();
+    const l = login.trim().toLowerCase();
+    if (!l || !password || busy) return;
+    setBusy(true);
+    setError("");
+    const r = await post("login-password", { login: l, password });
+    setBusy(false);
+    if (!r.ok) {
+      setPassword("");
+      if (r.unavailable) return setError("La connexion par mot de passe arrive bientôt : utilisez la connexion rapide (lien + code PIN) ci-dessous.");
+      return setError(r.error || "Identifiant ou mot de passe incorrect.");
+    }
+    onIn(l, password, !!r.mustChangePassword);
+  }
+  return (
+    <div className="ec-center">
+      <div className="ec-gate">
+        <Mascot pose="wave" size={130} title="Walty vous dit bonjour" />
+        <p className="ec-kicker">Espace commerçant</p>
+        <h1 className="ec-title">Connectez-vous à votre espace</h1>
+        {notice && <p className="ec-info" role="status">{notice}</p>}
+        <form onSubmit={submit} className="ec-form" noValidate>
+          <div className="field">
+            <label htmlFor="ec-login">Adresse e-mail ou identifiant</label>
+            <input
+              id="ec-login"
+              className="input"
+              type="text"
+              inputMode="email"
+              name="username"
+              value={login}
+              onChange={(e) => { setLogin(e.target.value); setError(""); }}
+              autoComplete="username"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={120}
+              autoFocus={!lsLogin.get()}
+              onKeyDown={(e) => { if (e.key === "Enter" && login.trim() && !password) { e.preventDefault(); pwRef.current?.querySelector("input")?.focus(); } }}
+            />
+          </div>
+          <div ref={pwRef}>
+            <PasswordField id="ec-password" label="Mot de passe" value={password} onChange={(v) => { setPassword(v); setError(""); }} autoFocus={!!lsLogin.get()} />
+          </div>
+          {error && <p className="ec-alert" role="alert">{error}</p>}
+          <button className="btn btn-primary btn-lg ec-full" disabled={busy || !login.trim() || !password}>{busy ? "Connexion…" : "Se connecter"}</button>
+        </form>
+        <button type="button" className="ec-linkbtn" aria-expanded={forgot} onClick={() => setForgot((f) => !f)}>Mot de passe oublié ?</button>
+        {forgot && (
+          <p className="ec-info" role="status">
+            Appelez Walty au <a href={site.contact.phoneHref}>{site.contact.phone}</a> ou écrivez à <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a> : on vous en donne un nouveau.
+          </p>
+        )}
+        <button type="button" className="ec-linkbtn ec-quick" onClick={onQuick}>Connexion rapide (employé en caisse) : lien + code PIN</button>
+        <p className="faint ec-help">
+          Pas encore client ? <Link href="/contact" className="text-link">Réserver une démo</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════ Mot de passe provisoire : le gérant choisit le sien ═════════════════════════ */
+function ChangePasswordScreen({ initialOld, onDone, onLogout, onExpired }) {
+  return (
+    <div className="ec-center">
+      <div className="ec-gate">
+        <Mascot pose="wave" size={110} title="Walty vous accueille" />
+        <p className="ec-kicker">Première connexion</p>
+        <h1 className="ec-title">Choisissez votre mot de passe</h1>
+        <p className="muted">Le mot de passe que Walty vous a donné est provisoire. Choisissez le vôtre : 8 caractères au moins.</p>
+        <PasswordForm initialOld={initialOld} submitLabel="Enregistrer et entrer" onDone={onDone} onExpired={onExpired} />
+        <button type="button" className="ec-linkbtn" onClick={onLogout}>Quitter</button>
+      </div>
+    </div>
+  );
+}
+
+/** Formulaire de changement du mot de passe (première connexion, ou « Changer mon mot de passe » dans le menu). */
+function PasswordForm({ initialOld = "", submitLabel = "Changer mon mot de passe", onDone, onExpired }) {
+  const [old, setOld] = useState(initialOld);
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const knowsOld = !!initialOld;
+
+  async function submit(e) {
+    e.preventDefault();
+    if (busy) return;
+    if (!old) return setError("Tapez votre mot de passe actuel.");
+    if (next.length < 8) return setError("Le nouveau mot de passe doit faire au moins 8 caractères.");
+    if (next !== again) return setError("Les deux nouveaux mots de passe ne sont pas identiques.");
+    if (next === old) return setError("Choisissez un mot de passe différent de l'actuel.");
+    setBusy(true);
+    setError("");
+    const r = await post("password", { old, new: next });
+    setBusy(false);
+    if (!r.ok) {
+      if (r.status === 401) return onExpired?.();
+      if (r.unavailable) return setError("Le changement de mot de passe arrive bientôt. Appelez Walty si besoin.");
+      if (r.error && /actuel/i.test(r.error) && knowsOld) setOld("");
+      return setError(r.error || "Mot de passe non modifié. Réessayez.");
+    }
+    setNext("");
+    setAgain("");
+    setOld("");
+    onDone?.();
+  }
+  return (
+    <form onSubmit={submit} className="ec-form" noValidate>
+      {/* champ caché pour les gestionnaires de mots de passe (identifiant du compte) */}
+      <input type="text" name="username" autoComplete="username" value={lsLogin.get() || ""} readOnly hidden />
+      {(!knowsOld || !old) && (
+        <PasswordField id="ec-pw-old" label="Mot de passe actuel" value={old} onChange={(v) => { setOld(v); setError(""); }} autoFocus />
+      )}
+      <PasswordField id="ec-pw-new" label="Nouveau mot de passe" value={next} onChange={(v) => { setNext(v); setError(""); }} autoComplete="new-password" autoFocus={knowsOld && !!old} hint="8 caractères au moins. Une petite phrase est facile à retenir." minLength={8} />
+      <PasswordField id="ec-pw-again" label="Retapez le nouveau mot de passe" value={again} onChange={(v) => { setAgain(v); setError(""); }} autoComplete="new-password" minLength={8} />
+      {error && <p className="ec-alert" role="alert">{error}</p>}
+      <button className="btn btn-primary btn-lg ec-full" disabled={busy || !next || !again}>{busy ? "Enregistrement…" : submitLabel}</button>
+    </form>
+  );
+}
+
+/** Rubrique « Changer mon mot de passe » (menu de l'espace). */
+function MotDePasse({ guard, say }) {
+  const [state, setState] = useState("form"); // form | done
+  return (
+    <div className="ec-pw-page">
+      {state === "done" ? (
+        <p className="ec-ok" role="status"><Icon name="check" size={18} /> Votre mot de passe est changé. Utilisez-le à votre prochaine connexion.</p>
+      ) : (
+        <>
+          <p className="muted">Pour le compte du gérant (connexion par e-mail ou identifiant). Le code PIN de la caisse ne change pas.</p>
+          <PasswordForm
+            onDone={() => { setState("done"); say("Mot de passe changé."); }}
+            onExpired={() => guard({ status: 401 })}
+          />
+          <p className="faint ec-help">Pas de mot de passe ? Walty peut vous créer un compte : <a href={site.contact.phoneHref}>0690 51 36 46</a>.</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ═════════════════════════ Connexion rapide : pas encore de lien ═════════════════════════ */
+function AccessScreen({ notice, onLink, onPassword }) {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   function submit(e) {
@@ -212,7 +509,7 @@ function AccessScreen({ notice, onLink }) {
     <div className="ec-center">
       <div className="ec-gate">
         <Mascot pose="wave" size={140} title="Walty vous dit bonjour" />
-        <p className="ec-kicker">Espace commerçant</p>
+        <p className="ec-kicker">{onPassword ? "Connexion rapide (caisse)" : "Espace commerçant"}</p>
         <h1 className="ec-title">Scannez, tamponnez, suivez vos clients</h1>
         <p className="muted">
           Ouvrez le <b>lien d'accès</b> que Walty vous a remis (ou scannez le QR code de votre kit en caisse), puis tapez votre code PIN.
@@ -226,6 +523,7 @@ function AccessScreen({ notice, onLink }) {
           {error && <p className="field-error" role="alert">{error}</p>}
           <button className="btn btn-primary btn-lg ec-full" disabled={!text.trim()}>Continuer</button>
         </form>
+        {onPassword && <button type="button" className="ec-linkbtn" onClick={onPassword}>Se connecter avec un e-mail et un mot de passe</button>}
         <p className="faint ec-help">
           Lien perdu ou code PIN oublié ? Appelez-nous au <a href={site.contact.phoneHref}>{site.contact.phone}</a> ou écrivez à <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>.
           <br />Pas encore client ? <Link href="/contact" className="text-link">Réserver une démo</Link>
@@ -236,7 +534,7 @@ function AccessScreen({ notice, onLink }) {
 }
 
 /* ═════════════════════════════ Code PIN ═════════════════════════════ */
-function PinScreen({ token, business, notice, onIn, onInvalid, onForget }) {
+function PinScreen({ token, business, notice, onIn, onInvalid, onForget, onPassword }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -250,7 +548,7 @@ function PinScreen({ token, business, notice, onIn, onInvalid, onForget }) {
     if (!r.ok) {
       setPin("");
       // Lien inconnu du logiciel de cartes (mode de base : on ne pouvait pas le savoir avant)
-      if (r.status === 401 && /^Lien invalide/.test(r.error || "")) return onInvalid();
+      if (/^Lien invalide/.test(r.error || "")) return onInvalid();
       return setError(r.error || "Code PIN incorrect.");
     }
     onIn();
@@ -287,6 +585,7 @@ function PinScreen({ token, business, notice, onIn, onInvalid, onForget }) {
         {error && <p className="ec-alert" role="alert">{error}</p>}
         <button className="btn btn-primary btn-lg ec-full" disabled={busy || pin.length < 4}>{busy ? "Vérification…" : "Entrer"}</button>
         <button type="button" className="ec-linkbtn" onClick={onForget}>{business?.name ? "Ce n'est pas votre commerce ? Changer d'accès" : "Changer de lien d'accès"}</button>
+        {onPassword && <button type="button" className="ec-linkbtn" onClick={onPassword}>Se connecter avec un e-mail et un mot de passe</button>}
         <p className="faint ec-help">Code PIN oublié ? Appelez Walty au <a href={site.contact.phoneHref}>{site.contact.phone}</a>.</p>
       </form>
     </div>
@@ -305,6 +604,8 @@ const SECTIONS = [
   { id: "offres", label: "Offres", icon: "gift", full: true },
   { id: "notifs", label: "Messages", icon: "bell", needs: "canNotify" },
 ];
+/** Rubrique du menu sans onglet : « Changer mon mot de passe » (compte du gérant). */
+const PASSWORD = { id: "motdepasse", label: "Changer mon mot de passe", icon: "shield" };
 
 function Dashboard({ me, onLogout, onExpired }) {
   const [tab, setTab] = useState("accueil");
@@ -321,7 +622,7 @@ function Dashboard({ me, onLogout, onExpired }) {
   const main = sections.filter((t) => t.main);
   if (main.length < 4) main.push(...sections.filter((t) => !t.main).slice(0, 4 - main.length));
   const rest = sections.filter((t) => !main.includes(t));
-  const current = sections.find((t) => t.id === tab) || sections[0];
+  const current = tab === PASSWORD.id ? PASSWORD : sections.find((t) => t.id === tab) || sections[0];
   const bizName = me.business?.name || "Votre espace";
 
   const say = useCallback((t) => setToast(t), []);
@@ -389,6 +690,7 @@ function Dashboard({ me, onLogout, onExpired }) {
         {/* Ordinateur et tablette : menu à gauche */}
         <nav className="ec-side" aria-label="Rubriques de l'espace">
           {sections.map((t) => navButton(t))}
+          {navButton(PASSWORD, "ec-side-pw")}
           <a className="ec-side-help" href={site.contact.phoneHref}><Icon name="phone" size={18} /> <span>Aide : {site.contact.phone}</span></a>
         </nav>
 
@@ -402,6 +704,7 @@ function Dashboard({ me, onLogout, onExpired }) {
           {current.id === "programme" && <Programme me={me} guard={guard} say={say} />}
           {current.id === "chiffres" && <Chiffres guard={guard} program={me.program} />}
           {current.id === "offres" && <Offres guard={guard} say={say} canSend={me.canNotify} />}
+          {current.id === PASSWORD.id && <MotDePasse guard={guard} say={say} />}
           {current.id === "notifs" && me.canNotify && <Notifications guard={guard} say={say} max={me.maxNotificationsPerWeek} business={{ name: me.business?.name || "Votre commerce", logo_url: me.business?.logo_url || null }} />}
         </main>
       </div>
@@ -409,12 +712,11 @@ function Dashboard({ me, onLogout, onExpired }) {
       {/* Téléphone : barre en bas */}
       <nav className="ec-tabs" aria-label="Rubriques principales">
         {main.map((t) => navButton(t))}
-        {rest.length > 0 && (
-          <button className={`${rest.includes(current) ? "on" : ""} ec-more-btn`} aria-expanded={more} aria-haspopup="true" onClick={() => setMore((m) => !m)}>
-            <Icon name="grid" size={20} />
-            <span>{rest.includes(current) ? current.label : "Plus"}</span>
-          </button>
-        )}
+        {/* « Plus » : les autres rubriques et « Changer mon mot de passe » */}
+        <button className={`${rest.includes(current) || current === PASSWORD ? "on" : ""} ec-more-btn`} aria-expanded={more} aria-haspopup="true" onClick={() => setMore((m) => !m)}>
+          <Icon name="grid" size={20} />
+          <span>{rest.includes(current) ? current.label : current === PASSWORD ? "Compte" : "Plus"}</span>
+        </button>
       </nav>
       {more && (
         <div className="ec-sheet-back" onClick={() => setMore(false)}>
@@ -425,6 +727,10 @@ function Dashboard({ me, onLogout, onExpired }) {
                 <span>{t.label}</span>
               </button>
             ))}
+            <button className={`ec-sheet-wide ${current.id === PASSWORD.id ? "on" : ""}`} onClick={() => go(PASSWORD.id)}>
+              <Icon name={PASSWORD.icon} size={22} />
+              <span>{PASSWORD.label}</span>
+            </button>
           </div>
         </div>
       )}
