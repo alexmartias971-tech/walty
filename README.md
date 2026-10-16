@@ -1,7 +1,7 @@
 # Walty — site, création de carte en ligne, espace commerçant, espace admin
 
 Carte de fidélité digitale (Apple Wallet & Google Wallet) pour les commerces de Guadeloupe.
-Site Next.js prêt pour GitHub → Vercel. Version 11 : branché au CRM Walty (chaque demande de démo arrive dans le CRM avec une notification, visites comptées sans cookie). Version 10 (e-mail contact@walty.fr, demandes reçues par e-mail via Resend, page « porteurs de carte », prestataires à jour, visible sur Google en production).
+Site Next.js prêt pour GitHub → Vercel. **Version 12 : le vrai espace commerçant sur walty.fr/espace** (lien d'accès + code PIN, scanner des cartes, clients, chiffres, offres, messages, branché au logiciel de cartes « cartedefid » ; voir `A-LIRE.md` livré avec cette version). Version 11 : branché au CRM Walty (chaque demande de démo arrive dans le CRM avec une notification, visites comptées sans cookie). Version 10 (e-mail contact@walty.fr, demandes reçues par e-mail via Resend, page « porteurs de carte », prestataires à jour, visible sur Google en production).
 
 ## Ce qu'il y a dedans
 
@@ -11,7 +11,7 @@ Site Next.js prêt pour GitHub → Vercel. Version 11 : branché au CRM Walty (c
 | Le produit | `/produit` |
 | Tarifs (Essentiel 29 € · Premium 49 € · Pro 79 €) | `/tarifs` |
 | **Créer ma carte** : écran « Bientôt disponible » animé (agent IA à venir) avec « Réserver une démo » et une liste d'attente « Me prévenir ». L'ancien assistant en 9 étapes est gardé dans `app/(site)/creer/CreerWizard.jsx` | `/creer` |
-| **Espace commerçant** (sa carte, ses chiffres, l'envoi de messages, les automatismes) | `/espace` |
+| **Espace commerçant** (lien d'accès + code PIN ; scanner les cartes, clients, chiffres, offres, messages). Lien discret en bas de chaque page | `/espace` |
 | Contact (réserver une démo) | `/contact` |
 | À propos | `/a-propos` |
 | Identité de marque + planche mascotte (page interne : pas de lien sur le site, pas sur Google) | `/marque` |
@@ -29,7 +29,7 @@ Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, 
 
 Le site marche tout de suite en **mode démo** :
 - `/creer` : la carte créée apparaît dans l'admin et dans l'espace commerçant **du même navigateur** ;
-- `/espace` : n'importe quel e-mail fonctionne, ou « Voir un exemple » ; un sélecteur permet de comparer Essentiel / Premium / Pro (pratique en rendez-vous) ;
+- `/espace` : le **vrai** espace commerçant (lien d'accès et code PIN donnés par Walty à chaque commerce), relié au logiciel de cartes ;
 - `/admin` → « Entrer dans la démo » : données fictives.
 
 ## 1 bis. Brancher le CRM Walty (version 11)
@@ -72,11 +72,11 @@ Ce qui suit concerne un projet Supabase dédié au site.
    - `NEXT_PUBLIC_SITE_URL` (`https://walty.fr`)
 7. **Deployments → Redeploy**.
 
-**Donner son accès à un commerçant** : dans l'admin, passez sa fiche à l'étape « Client » avec son e-mail. Puis dans Supabase, **Authentication → Users → Add user** avec ce même e-mail et un mot de passe que vous lui envoyez. Il se connecte sur `/espace` et ne voit que sa carte.
+**Donner son accès à un commerçant** : ce n'est plus ici. L'accès se crée dans le logiciel de cartes (cartedefid → fiche du commerce → accès commerçant : lien + code PIN). Le commerçant ouvre `https://walty.fr/espace?acces=<le code du lien>` et tape son PIN.
 
 Sécurité : les visiteurs peuvent seulement *déposer* une demande, jamais lire la base. Les commerçants ne voient que leur carte (jamais vos notes ni les autres clients). Seuls les e-mails de la table `admins` voient tout.
 
-> Les chiffres de l'espace commerçant sont pour l'instant des **données d'exemple**. Ils deviendront réels quand votre application de cartes (tampons, Wallet) sera branchée : le fichier `lib/kpis.js` liste les 8 chiffres attendus.
+> L'espace commerçant (`/espace`) affiche les **vrais** chiffres, lus dans le logiciel de cartes. `lib/kpis.js` ne sert plus qu'à l'aperçu d'exemple de la page d'accueil.
 
 ## 4. Visibilité sur Google
 
@@ -103,7 +103,7 @@ Supprimez l'ancien fichier `app/(site)/tarifs/Plans.jsx` resté dans le dépôt 
 ## 6. Modifier le contenu
 
 - Formules, prix, limites de clients, options, durée d'essai : `lib/offer.js` (se répercute sur l'accueil, les tarifs, Créer ma carte, l'espace commerçant, les CGV et l'admin). `trialDays = 0` retire l'essai gratuit partout.
-- Les chiffres de l'espace commerçant : `lib/kpis.js`.
+- Les chiffres d'exemple de l'aperçu (page d'accueil) : `lib/kpis.js`.
 - Les prestataires, l'e-mail, le téléphone : `lib/site.config.js`.
 - Les couleurs : en haut de `app/globals.css` (thème sombre ; la classe `.dark` donne un bloc teinté crépuscule).
 - Les types de carte, les secteurs et les validations (e-mail, téléphone, SIRET) : `lib/programs.js`.
@@ -134,11 +134,9 @@ Règles : ne pas recolorer, déformer, animer ni redessiner ces badges, et garde
 `components/IntroLoader.jsx` : 1,6 s, une seule fois par visite (onglet), désactivé si l'appareil demande moins d'animations.
 Pour le retirer, supprimez la ligne `<IntroLoader />` dans `app/(site)/layout.jsx`.
 
-## Notifications des commerçants (comment ça marche)
+## Espace commerçant (comment ça marche)
 
-1. Le commerçant ouvre son espace (`/espace`), onglet **Notifications**, écrit son message (ou choisit une idée toute prête), choisit « Maintenant » ou « Programmer » (Pro), puis confirme.
-2. La notification arrive dans votre admin, onglet **Notifications** (le nombre en orange = à envoyer).
-3. Vous l'envoyez depuis votre application de cartes (bouton « Copier le texte »), puis vous cliquez **« Marquer comme envoyée »**. Le commerçant voit « Envoyée » dans son espace.
-
-Limites appliquées par la base de données : Essentiel = pas de notification, Premium = 2 par semaine (lundi → dimanche) sans programmation, Pro = illimité et programmable.
-Le texte « envoyée le jour même, entre 8 h et 18 h » se change dans `lib/offer.js` (`pushRules.delay`).
+- Le commerçant ouvre son lien d'accès (`walty.fr/espace?acces=…`), tape son code PIN : son téléphone retient le lien (jamais le PIN). Session : 12 heures.
+- Tout passe par `app/api/espace/[...chemin]/route.js`, qui relaie vers le logiciel de cartes (`CARTEDEFID_URL`, par défaut `https://cartedefid.vercel.app`). Aucun secret côté walty.fr.
+- Scanner (tampons, achats, cadeaux, offres, annulation), Clients, Chiffres, Offres, Messages : les règles (limites par jour, nombre de messages par semaine…) sont appliquées par le logiciel de cartes.
+- Si le logiciel de cartes n'a pas encore les adresses `me`, `stats`, `offers`, l'espace marche quand même (écran du PIN sans le nom du commerce, chiffres simples, pas d'onglet Offres).

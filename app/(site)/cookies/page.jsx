@@ -21,12 +21,11 @@ export default function Cookies() {
         <table>
           <thead><tr><th>Nom</th><th>Type</th><th>Utilité</th><th>Durée</th></tr></thead>
           <tbody>
-            <tr><td>sb-…-auth-token</td><td>Stockage local</td><td>Rester connecté à l'espace commerçant ou à l'espace admin (uniquement pour les personnes qui se connectent)</td><td>Jusqu'à la déconnexion</td></tr>
+            <tr><td>commercant_session</td><td>Cookie</td><td>Espace commerçant : rester connecté après avoir tapé votre code PIN (badge chiffré, sans donnée personnelle)</td><td>12 heures, ou jusqu'à « Quitter »</td></tr>
+            <tr><td>walty-espace-acces</td><td>Stockage local</td><td>Espace commerçant : retenir sur votre appareil le lien d'accès de votre commerce, pour ne pas avoir à le rouvrir</td><td>Jusqu'à « Changer d'accès » ou effacement par vous</td></tr>
+            <tr><td>sb-…-auth-token</td><td>Stockage local</td><td>Rester connecté à l'espace admin (uniquement pour les personnes autorisées)</td><td>Jusqu'à la déconnexion</td></tr>
             <tr><td>walty-demo-accounts-v1</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur les données fictives de l'espace admin</td><td>Jusqu'à effacement par vous</td></tr>
-            <tr><td>walty-merchant-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace commerçant de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
             <tr><td>walty-intro</td><td>Stockage de session</td><td>Ne montrer l'écran de chargement qu'une fois par visite</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
-            <tr><td>walty-demo-pushes</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur les notifications écrites dans l'espace commerçant de démonstration</td><td>Jusqu'à effacement par vous</td></tr>
-            <tr><td>walty-my-card</td><td>Stockage local</td><td>Mode démonstration uniquement : garder dans votre navigateur la carte d'exemple affichée dans l'espace commerçant</td><td>Jusqu'à effacement par vous</td></tr>
             <tr><td>walty-demo-auth</td><td>Stockage de session</td><td>Mode démonstration uniquement : rester dans l'espace admin de démonstration</td><td>Jusqu'à la fermeture de l'onglet</td></tr>
           </tbody>
         </table>

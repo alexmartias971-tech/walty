@@ -1,596 +1,1228 @@
 "use client";
 
+/**
+ * Espace commerçant de Walty (walty.fr/espace), version 13.
+ * Connexion par le lien d'accès remis par Walty + code PIN, puis :
+ * Accueil · Scanner · Clients (et fiche client) · Historique · Ma carte (QR du comptoir) · Mon programme
+ * · Chiffres · Offres · Messages.
+ * Toutes les données passent par /api/espace/… (passerelle vers le logiciel de cartes).
+ *
+ * Versions plus simples, automatiques, si le logiciel de cartes n'a pas encore certaines adresses :
+ * - sans card / program / history / customer / insights : l'espace de la v12 (pas d'historique, fiche client simple…) ;
+ * - sans me / stats / offers : le mode « de base » (login, scan, customers et notifications seulement).
+ */
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import WalletCard, { cardFromConfig } from "@/components/WalletCard";
-import Mascot from "@/components/Mascot";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LogoMark } from "@/components/Logo";
 import Icon from "@/components/Icon";
-import { plans, planById, highlights, pushRules } from "@/lib/offer";
+import Mascot from "@/components/Mascot";
 import { site } from "@/lib/site.config";
-import { PLAN_RANK, demoStats, emptyStats, kpiTiles, planLabel } from "@/lib/kpis";
-import { isDemo, merchantSession, merchantSignIn, merchantSignOut, getMyAccount, listMyPushes, requestPush, cancelPush } from "@/lib/store";
+import Accueil from "./Accueil";
+import ClientFiche from "./ClientFiche";
+import Historique from "./Historique";
+import MaCarte from "./MaCarte";
+import Programme from "./Programme";
+import { api, euro, fmtAgo, fmtDate, fmtDateTime, initials, post, TZ } from "./outils";
 
-const EXAMPLE = {
-  business: "Le Bokit du Lagon",
-  plan: "premium",
-  contact_name: "Démo",
-  card_config: { merchant: "Le Bokit du Lagon", color: "flamboyant", strip: "sunset", total: 10, reward: "1 bokit offert" },
+const LS = "walty-espace-acces";
+
+/** Retrouve le code d'accès (48 caractères) dans un lien collé, dans l'adresse, ou tel quel. */
+const readToken = (text) => {
+  const m = /(?:^|[^0-9a-f])([0-9a-f]{48})(?![0-9a-f])/i.exec(text || "");
+  return m ? m[1].toLowerCase() : null;
 };
-const nextPlan = { essentiel: "premium", premium: "pro", pro: null };
-/** Compte d'aperçu du site (sans base de données branchée) : un commerçant tout juste activé. */
-const freshAccount = (email) => ({
-  business: "Mon commerce",
-  plan: "premium",
-  contact_name: (email || "").split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-  card_config: { merchant: "Mon commerce", color: "flamboyant", strip: "sunset", program: { type: "tampons", rules: { total: 10, reward: "1 produit offert" } } },
-});
+const lsGet = () => { try { return localStorage.getItem(LS); } catch { return null; } };
+const lsSet = (v) => { try { v ? localStorage.setItem(LS, v) : localStorage.removeItem(LS); } catch {} };
 
-/* ───────── Connexion ───────── */
-function Login({ onIn, onExample }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function submit(e) {
-    e.preventDefault();
-    setError("");
-    if (!isDemo && (!email || !password)) return setError("Indiquez votre e-mail et votre mot de passe.");
-    setBusy(true);
-    try { await merchantSignIn(email, password); onIn(); } catch (err) { setError(err.message); } finally { setBusy(false); }
+/** "38,412" / "1:02.345" → millisecondes */
+function parseLap(text) {
+  const m = /^(?:(\d{1,2}):)?(\d{1,3})(?:\.(\d{1,3}))?$/.exec(text.trim().replace(",", "."));
+  if (!m) return null;
+  const ms = (Number(m[1] || 0) * 60 + Number(m[2])) * 1000 + Number((m[3] || "0").padEnd(3, "0"));
+  return ms > 0 ? ms : null;
+}
+/** Le QR code d'une carte contient son numéro de série (format UUID). */
+const readSerial = (text) => {
+  const m = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.exec(text || "");
+  return m ? m[0].toLowerCase() : null;
+};
+
+const EXPIRED = "Votre session a expiré (12 heures) : retapez votre code PIN.";
+
+/* ═════════════════════════════ Entrée ═════════════════════════════ */
+export default function EspaceApp() {
+  const [phase, setPhase] = useState("loading"); // loading | access | pin | app | error
+  const [token, setToken] = useState(null);
+  const [business, setBusiness] = useState(null);
+  const [me, setMe] = useState(null);
+  const [notice, setNotice] = useState("");
+
+  /** Lien d'accès refusé par le logiciel de cartes : on l'oublie sur cet appareil. */
+  const invalidLink = useCallback(() => {
+    lsSet(null);
+    setToken(null);
+    setBusiness(null);
+    setNotice("Ce lien d'accès n'est plus valable. Demandez un nouveau lien à Walty.");
+    setPhase("access");
+  }, []);
+
+  /** Mode de base (adresse « me » pas encore installée) : on devine l'état avec les adresses existantes. */
+  const loadBasic = useCallback(async (tk) => {
+    const c = await api("customers?q=");
+    if (c.ok) {
+      const n = await api("notifications");
+      setMe({
+        basic: true,
+        business: { name: "", logo_url: null },
+        label: "",
+        canNotify: n.status !== 403,
+        program: null,
+      });
+      return setPhase("app");
+    }
+    if (c.status === 401) {
+      setBusiness(null);
+      return setPhase(tk ? "pin" : "access");
+    }
+    setNotice(c.error || "Le service ne répond pas.");
+    setPhase("error");
+  }, []);
+
+  const load = useCallback(async (tk) => {
+    setPhase("loading");
+    const r = await api(`me${tk ? `?token=${tk}` : ""}`);
+    if (r.unavailable) return loadBasic(tk);
+    if (!r.ok) {
+      if (r.status === 404 && tk) return invalidLink();
+      setNotice(r.error || "Le service ne répond pas.");
+      return setPhase("error");
+    }
+    if (r.loggedIn) {
+      setMe(r);
+      return setPhase("app");
+    }
+    if (tk) {
+      setBusiness(r.business || null);
+      return setPhase("pin");
+    }
+    setPhase("access");
+  }, [invalidLink, loadBasic]);
+
+  useEffect(() => {
+    // Le lien d'accès peut arriver dans l'adresse : walty.fr/espace?acces=… ou #acces=…
+    // On le garde sur cet appareil (jamais le code PIN), puis on l'efface de l'adresse.
+    const { search, hash, pathname } = window.location;
+    const fromUrl = readToken(`${search} ${hash}`);
+    if (fromUrl) {
+      lsSet(fromUrl);
+      window.history.replaceState(null, "", pathname);
+    }
+    const tk = fromUrl || readToken(lsGet());
+    setToken(tk);
+    load(tk);
+    // Lien d'accès ouvert alors que la page était déjà affichée (seul le « #acces=… » change)
+    const onHash = () => {
+      const t = readToken(window.location.hash);
+      if (!t) return;
+      lsSet(t);
+      window.history.replaceState(null, "", window.location.pathname);
+      setToken(t);
+      setNotice("");
+      load(t);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [load]);
+
+  // Changement d'écran (code PIN, espace…) : on repart du haut de la page
+  useEffect(() => { try { window.scrollTo({ top: 0 }); } catch {} }, [phase]);
+
+  function openLink(tk) {
+    lsSet(tk);
+    setToken(tk);
+    setNotice("");
+    load(tk);
   }
+  async function forget() {
+    // Changer de commerce : on oublie le lien ET on ferme la session éventuelle
+    await post("logout");
+    lsSet(null);
+    setToken(null);
+    setBusiness(null);
+    setMe(null);
+    setNotice("");
+    setPhase("access");
+  }
+  async function logout() {
+    await post("logout");
+    setMe(null);
+    setNotice("");
+    load(token);
+  }
+  const expired = useCallback(() => {
+    setMe(null);
+    setNotice(EXPIRED);
+    load(token);
+  }, [load, token]);
+
   return (
-    <section className="esp-login">
-      <div className="esp-login-card">
-        <Mascot pose="wave" size={150} title="Walty vous dit bonjour" />
-        <h1 className="display-m">Mon espace</h1>
-        <p className="muted">Votre carte, vos clients, vos chiffres.</p>
-        <form onSubmit={submit} className="stack" style={{ "--gap": "14px", width: "100%" }}>
-          <div className="field">
-            <label htmlFor="esp-email">E-mail</label>
-            <input id="esp-email" type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+    <div className="ec">
+      {phase === "loading" && (
+        <div className="ec-center" aria-busy="true">
+          <div className="ec-spinner" aria-label="Chargement" />
+        </div>
+      )}
+      {phase === "error" && (
+        <div className="ec-center">
+          <div className="ec-gate">
+            <Mascot pose="lost" size={130} title="Walty cherche le réseau" />
+            <h1 className="ec-title">Petit souci de connexion</h1>
+            <p className="muted">{notice}</p>
+            <button className="btn btn-primary btn-lg ec-full" onClick={() => load(token)}>Réessayer</button>
           </div>
-          <div className="field">
-            <label htmlFor="esp-pass">Mot de passe</label>
-            <input id="esp-pass" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-          </div>
-          {error && <p className="notice" role="alert">{error}</p>}
-          <button className="btn btn-primary btn-lg" disabled={busy}>{busy ? "Connexion…" : "Se connecter"}</button>
-        </form>
-        <button type="button" className="btn btn-ghost" onClick={onExample} style={{ width: "100%" }}>Voir un exemple</button>
-        <p className="faint" style={{ fontSize: 14, textAlign: "center" }}>
-          Pas encore de carte ? <Link href="/contact" className="text-link" style={{ fontSize: 14 }}>Réserver une démo</Link><br />
-          Mot de passe oublié ? <Link href="/contact" className="text-link" style={{ fontSize: 14 }}>Écrivez-nous</Link>
-        </p>
-        {isDemo && <p className="faint" style={{ fontSize: 12.5, textAlign: "center" }}>Aperçu du site : n'importe quel e-mail fonctionne.</p>}
-      </div>
-    </section>
+        </div>
+      )}
+      {phase === "access" && <AccessScreen notice={notice} onLink={openLink} />}
+      {phase === "pin" && (
+        <PinScreen
+          token={token}
+          business={business}
+          notice={notice === EXPIRED ? notice : ""}
+          onIn={() => { setNotice(""); load(token); }}
+          onInvalid={invalidLink}
+          onForget={forget}
+        />
+      )}
+      {phase === "app" && me && <Dashboard me={me} onLogout={logout} onExpired={expired} />}
+    </div>
   );
 }
 
-/* ───────── Petits outils ───────── */
-const TABS = [
-  { id: "accueil", label: "Accueil", icon: "grid" },
-  { id: "notifications", label: "Notifications", short: "Notifs", icon: "bell" },
-  { id: "carte", label: "Ma carte", icon: "wallet" },
-  { id: "chiffres", label: "Mes chiffres", short: "Chiffres", icon: "chart" },
-  { id: "offre", label: "Mon offre", short: "Offre", icon: "sparkle" },
-];
-const TEMPLATES = [
-  { label: "Offre du jour", text: "Aujourd'hui seulement : -20 % sur tout ! On vous attend 🎉" },
-  { label: "Nouveauté", text: "Nouveau chez nous : venez goûter avant tout le monde 😍" },
-  { label: "Créneau libre", text: "Il reste des places cet après-midi. On vous garde un créneau ?" },
-  { label: "Double tampon", text: "Ce week-end, chaque passage vous rapporte 2 tampons ✌️" },
-  { label: "Fermeture", text: "Info : nous serons fermés lundi. À très vite !" },
-];
-const fmtDate = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-const fmtDateTime = (iso) => new Date(iso).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-function weekStart() {
-  const d = new Date();
-  const day = (d.getDay() + 6) % 7; // lundi = 0
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - day);
-  return d;
-}
-function pushStatus(p) {
-  if (p.status === "envoye") return { label: `Envoyée${p.sent_at ? ` le ${fmtDate(p.sent_at)}` : ""}`, cls: "chip-lagon" };
-  if (p.status === "annule") return { label: "Annulée", cls: "" };
-  if (p.send_at && new Date(p.send_at) > new Date()) return { label: `Programmée · ${fmtDateTime(p.send_at)}`, cls: "chip-violet" };
-  return { label: "En cours d'envoi", cls: "chip-orange" };
-}
-const exampleHistory = () => [
-  { id: "ex1", created_at: new Date(Date.now() - 9 * 864e5).toISOString(), message: "Ce soir on est à Bois-Jolan ! Votre 10e bokit est offert 🌅", status: "envoye", sent_at: new Date(Date.now() - 9 * 864e5).toISOString() },
-  { id: "ex2", created_at: new Date(Date.now() - 16 * 864e5).toISOString(), message: "Nouveau : le bokit morue-avocat. Le 1er à -50 % pour vous.", status: "envoye", sent_at: new Date(Date.now() - 16 * 864e5).toISOString() },
-];
-
-/* Aperçu : la notification telle qu'elle s'affiche sur l'écran verrouillé */
-function LockPreview({ card, text }) {
+/* ═════════════════════════ Écran sans lien ═════════════════════════ */
+function AccessScreen({ notice, onLink }) {
+  const [text, setText] = useState("");
+  const [error, setError] = useState("");
+  function submit(e) {
+    e.preventDefault();
+    const tk = readToken(text);
+    if (!tk) return setError("Ce n'est pas un lien d'accès Walty. Copiez le lien complet reçu par e-mail ou sur votre kit.");
+    onLink(tk);
+  }
   return (
-    <div className="esp-lockscreen" aria-label="Aperçu sur le téléphone de vos clients">
-      <div className="esp-lock-time">18:42</div>
-      <div className="esp-lock-date">{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</div>
-      <div className={`esp-lock-notif ${text ? "" : "empty"}`}>
-        <span className="esp-lock-icon" style={card.logo ? { backgroundImage: `url(${card.logo})`, backgroundColor: "#fff" } : { background: card.accent }}>{card.logo ? "" : card.initials}</span>
-        <div>
-          <div className="esp-lock-head"><b>{card.merchant}</b><span>maintenant</span></div>
-          <p>{text || "Votre message apparaîtra ici."}</p>
-        </div>
+    <div className="ec-center">
+      <div className="ec-gate">
+        <Mascot pose="wave" size={140} title="Walty vous dit bonjour" />
+        <p className="ec-kicker">Espace commerçant</p>
+        <h1 className="ec-title">Scannez, tamponnez, suivez vos clients</h1>
+        <p className="muted">
+          Ouvrez le <b>lien d'accès</b> que Walty vous a remis (ou scannez le QR code de votre kit en caisse), puis tapez votre code PIN.
+        </p>
+        {notice && <p className="ec-alert" role="alert">{notice}</p>}
+        <form onSubmit={submit} className="ec-form">
+          <div className="field">
+            <label htmlFor="ec-link">Ou collez votre lien d'accès ici</label>
+            <input id="ec-link" className="input" value={text} onChange={(e) => { setText(e.target.value); setError(""); }} placeholder="https://…" autoComplete="off" autoCapitalize="off" spellCheck={false} />
+          </div>
+          {error && <p className="field-error" role="alert">{error}</p>}
+          <button className="btn btn-primary btn-lg ec-full" disabled={!text.trim()}>Continuer</button>
+        </form>
+        <p className="faint ec-help">
+          Lien perdu ou code PIN oublié ? Appelez-nous au <a href={site.contact.phoneHref}>{site.contact.phone}</a> ou écrivez à <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>.
+          <br />Pas encore client ? <Link href="/contact" className="text-link">Réserver une démo</Link>
+        </p>
       </div>
     </div>
   );
 }
 
-/* ───────── Onglet Notifications ───────── */
-function Notifications({ card, plan, rank, clients, example, email, say }) {
-  const [history, setHistory] = useState(example ? exampleHistory() : []);
-  const [loaded, setLoaded] = useState(example);
-  const [msg, setMsg] = useState("");
-  const [when, setWhen] = useState("now");
-  const [at, setAt] = useState("");
-  const [confirm, setConfirm] = useState(false);
-  const [busy, setBusy] = useState(false);
+/* ═════════════════════════════ Code PIN ═════════════════════════════ */
+function PinScreen({ token, business, notice, onIn, onInvalid, onForget }) {
+  const [pin, setPin] = useState("");
   const [error, setError] = useState("");
-  const perWeek = pushRules.perWeek[plan];
-  const canSchedule = pushRules.schedule[plan];
-  const used = history.filter((p) => p.status !== "annule" && new Date(p.created_at) >= weekStart()).length;
-  const left = perWeek === Infinity ? Infinity : Math.max(0, perWeek - used);
-  const minAt = new Date(Date.now() + 15 * 60e3 - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 16);
-
-  useEffect(() => {
-    if (example) { setHistory(exampleHistory()); setLoaded(true); return; }
-    listMyPushes(email).then((h) => { setHistory(h || []); setLoaded(true); }).catch((e) => { setError(e.message); setLoaded(true); });
-  }, [example, email]);
-
-  function check() {
+  const [busy, setBusy] = useState(false);
+  async function submit(e) {
+    e.preventDefault();
+    if (pin.length < 4 || busy) return;
+    setBusy(true);
     setError("");
-    if (!msg.trim()) return setError("Écrivez votre message d'abord.");
-    if (left <= 0) return setError("Vous avez utilisé vos notifications de la semaine.");
-    if (when === "later" && (!at || new Date(at) <= new Date())) return setError("Choisissez une date et une heure à venir.");
-    setConfirm(true);
+    const r = await post("login", { token, pin });
+    setBusy(false);
+    if (!r.ok) {
+      setPin("");
+      // Lien inconnu du logiciel de cartes (mode de base : on ne pouvait pas le savoir avant)
+      if (r.status === 401 && /^Lien invalide/.test(r.error || "")) return onInvalid();
+      return setError(r.error || "Code PIN incorrect.");
+    }
+    onIn();
   }
-  async function send() {
-    setBusy(true); setError("");
-    const send_at = when === "later" ? new Date(at).toISOString() : null;
-    try {
-      if (example) {
-        setHistory((h) => [{ id: `ex${Date.now()}`, created_at: new Date().toISOString(), message: msg.trim(), status: "a_envoyer", send_at }, ...h]);
-        say("Exemple : rien n'a été envoyé.");
-      } else {
-        const saved = await requestPush({ email, business: card.merchant, message: msg, send_at });
-        setHistory((h) => [saved, ...h]);
-        say(send_at ? "Notification programmée ✓" : "Notification reçue ✓ Elle part aujourd'hui.");
-      }
-      setMsg(""); setAt(""); setWhen("now"); setConfirm(false);
-    } catch (e) {
-      setError(e.message); setConfirm(false);
-    } finally { setBusy(false); }
-  }
-  async function cancel(p) {
-    try {
-      if (!example) await cancelPush(p.id);
-      setHistory((h) => h.filter((x) => x.id !== p.id));
-      say("Notification annulée.");
-    } catch (e) { say(e.message); }
-  }
-
-  if (rank < 1) {
-    return (
-      <div className="esp-tabpanel">
-        <div className="esp-notif-grid">
-          <div className="esp-box">
-            <span className="chip chip-violet" style={{ justifySelf: "start" }}>Avec Premium et Pro</span>
-            <h2 className="esp-h-lg">Prévenez vos clients en 1 clic</h2>
-            <p className="muted">Une offre, une nouveauté, un créneau libre : votre message s'affiche sur le téléphone de vos clients, même écran éteint. Comme un SMS, sans payer chaque envoi.</p>
-            <ul className="list">
-              <li><span className="check"><Icon name="check" size={12} stroke={2.6} /></span>Premium : 2 notifications par semaine</li>
-              <li><span className="check"><Icon name="check" size={12} stroke={2.6} /></span>Pro : illimité, et vous pouvez les programmer</li>
-            </ul>
-            <Link href="/contact?formule=premium" className="btn btn-primary" style={{ justifySelf: "start" }}>Débloquer avec Premium · 49 €</Link>
+  return (
+    <div className="ec-center">
+      <form className="ec-gate" onSubmit={submit}>
+        {business?.name ? (
+          <div className="ec-biz-logo">
+            {business.logo_url ? <img src={business.logo_url} alt="" /> : <span>{initials(business.name)}</span>}
           </div>
-          <LockPreview card={card} text="Aujourd'hui seulement : -20 % sur tout ! On vous attend 🎉" />
+        ) : (
+          <div className="ec-biz-logo ec-biz-walty"><LogoMark size={56} /></div>
+        )}
+        <p className="ec-kicker">Espace commerçant</p>
+        <h1 className="ec-title">{business?.name || "Votre commerce"}</h1>
+        {notice && <p className="ec-info" role="status">{notice}</p>}
+        <div className="field ec-full">
+          <label htmlFor="ec-pin" className="ec-pin-label">Votre code PIN</label>
+          <input
+            id="ec-pin"
+            className="input ec-pin"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            type="password"
+            pattern="\d{4,8}"
+            autoFocus
+            value={pin}
+            onChange={(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 8)); setError(""); }}
+            aria-describedby="ec-pin-help"
+          />
+          <span id="ec-pin-help" className="field-hint">4 à 8 chiffres. Après 5 erreurs, l'accès est bloqué par sécurité.</span>
         </div>
-        <AutoMessages rank={rank} example={example} />
-      </div>
-    );
-  }
+        {error && <p className="ec-alert" role="alert">{error}</p>}
+        <button className="btn btn-primary btn-lg ec-full" disabled={busy || pin.length < 4}>{busy ? "Vérification…" : "Entrer"}</button>
+        <button type="button" className="ec-linkbtn" onClick={onForget}>{business?.name ? "Ce n'est pas votre commerce ? Changer d'accès" : "Changer de lien d'accès"}</button>
+        <p className="faint ec-help">Code PIN oublié ? Appelez Walty au <a href={site.contact.phoneHref}>{site.contact.phone}</a>.</p>
+      </form>
+    </div>
+  );
+}
+
+/* ═════════════════════════════ Tableau de bord ═════════════════════════════ */
+const SECTIONS = [
+  { id: "accueil", label: "Accueil", icon: "store", main: true },
+  { id: "scan", label: "Scanner", icon: "qr", main: true },
+  { id: "clients", label: "Clients", icon: "users", main: true },
+  { id: "historique", label: "Historique", icon: "clock", main: true, v13: true },
+  { id: "carte", label: "Ma carte", icon: "wallet" },
+  { id: "programme", label: "Mon programme", icon: "edit" },
+  { id: "chiffres", label: "Chiffres", icon: "chart" },
+  { id: "offres", label: "Offres", icon: "gift", full: true },
+  { id: "notifs", label: "Messages", icon: "bell", needs: "canNotify" },
+];
+
+function Dashboard({ me, onLogout, onExpired }) {
+  const [tab, setTab] = useState("accueil");
+  const [toast, setToast] = useState("");
+  const [more, setMore] = useState(false);
+  const [clientId, setClientId] = useState(null);
+  const [scanAuto, setScanAuto] = useState(false);
+  const [today, setToday] = useState(null);
+  // v13 : null = on ne sait pas encore, false = adresses card / program / history… pas encore installées
+  const [v13, setV13] = useState(null);
+
+  const sections = SECTIONS.filter((t) => (!t.needs || me[t.needs]) && !(t.full && me.basic) && !(t.v13 && v13 === false));
+  // Barre du bas (téléphone) : 4 rubriques + « Plus »
+  const main = sections.filter((t) => t.main);
+  if (main.length < 4) main.push(...sections.filter((t) => !t.main).slice(0, 4 - main.length));
+  const rest = sections.filter((t) => !main.includes(t));
+  const current = sections.find((t) => t.id === tab) || sections[0];
+  const bizName = me.business?.name || "Votre espace";
+
+  const say = useCallback((t) => setToast(t), []);
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(""), 3800);
+    return () => clearTimeout(id);
+  }, [toast]);
+  // Session expirée pendant l'utilisation : retour au code PIN
+  const guard = useCallback((r) => {
+    if (r.status === 401) { onExpired(); return false; }
+    return true;
+  }, [onExpired]);
+
+  // La journée en cours (accueil) : sert aussi à savoir si les adresses de la v13 sont installées
+  const refreshToday = useCallback(async () => {
+    const r = await api("history?limit=8");
+    if (!guard(r)) return;
+    if (r.unavailable) { setV13(false); setToday(null); return; }
+    if (r.ok) { setV13(true); setToday(r); }
+  }, [guard]);
+  // (appelée par l'accueil, la première rubrique affichée)
+
+  const go = useCallback((id) => {
+    setTab(id);
+    setMore(false);
+    if (id !== "clients") setClientId(null);
+    try { window.scrollTo({ top: 0 }); } catch {}
+  }, []);
+  const openClient = useCallback((id) => {
+    setClientId(id);
+    setTab("clients");
+    setMore(false);
+    try { window.scrollTo({ top: 0 }); } catch {}
+  }, []);
+  const goScan = useCallback(() => { setScanAuto(true); go("scan"); }, [go]);
+  // Fermer le menu « Plus » avec la touche Échap
+  useEffect(() => {
+    if (!more) return;
+    const onKey = (e) => e.key === "Escape" && setMore(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [more]);
+
+  const navButton = (t, extra = "") => (
+    <button key={t.id} className={`${current.id === t.id ? "on" : ""} ${extra}`} aria-current={current.id === t.id ? "page" : undefined} onClick={() => (t.id === "clients" ? openClient(null) : go(t.id))}>
+      <Icon name={t.icon} size={20} />
+      <span>{t.label}</span>
+    </button>
+  );
 
   return (
-    <div className="esp-tabpanel">
-      <div className="esp-notif-grid">
-        <div className="esp-box">
-          <div className="esp-box-head">
-            <h2 className="esp-h-lg">Nouvelle notification</h2>
-            <span className={`chip ${left === 0 ? "" : "chip-orange"}`}>{left === Infinity ? "Illimité" : `Il vous en reste ${left} cette semaine`}</span>
+    <div className="ec-app">
+      <header className="ec-top">
+        <Link href="/" prefetch={false} className="ec-top-mark" aria-label="Walty, accueil du site"><LogoMark size={34} /></Link>
+        <div className="ec-top-biz">
+          <b>{bizName}</b>
+          <span>{me.label || "Connecté"}</span>
+        </div>
+        <button className="ec-top-scan" onClick={goScan} aria-label="Scanner une carte"><Icon name="qr" size={18} /> <span>Scanner</span></button>
+        <button className="ec-top-out" onClick={onLogout} aria-label="Quitter"><Icon name="logout" size={18} /> <span>Quitter</span></button>
+      </header>
+
+      <div className="ec-layout">
+        {/* Ordinateur et tablette : menu à gauche */}
+        <nav className="ec-side" aria-label="Rubriques de l'espace">
+          {sections.map((t) => navButton(t))}
+          <a className="ec-side-help" href={site.contact.phoneHref}><Icon name="phone" size={18} /> <span>Aide : {site.contact.phone}</span></a>
+        </nav>
+
+        <main className="ec-main">
+          {current.id !== "accueil" && <h1 className="ec-page-title">{current.label}</h1>}
+          {current.id === "accueil" && <Accueil me={me} today={today} refreshToday={refreshToday} guard={guard} go={go} goScan={goScan} openClient={openClient} features={{ v13 }} />}
+          {current.id === "scan" && <Scanner guard={guard} autoStart={scanAuto} onAutoStarted={() => setScanAuto(false)} onDone={refreshToday} />}
+          {current.id === "clients" && <Clients guard={guard} say={say} program={me.program} clientId={clientId} openClient={openClient} />}
+          {current.id === "historique" && <Historique guard={guard} say={say} openClient={openClient} mode={me.program?.mode} onChanged={refreshToday} />}
+          {current.id === "carte" && <MaCarte me={me} guard={guard} say={say} />}
+          {current.id === "programme" && <Programme me={me} guard={guard} say={say} />}
+          {current.id === "chiffres" && <Chiffres guard={guard} program={me.program} />}
+          {current.id === "offres" && <Offres guard={guard} say={say} canSend={me.canNotify} />}
+          {current.id === "notifs" && me.canNotify && <Notifications guard={guard} say={say} max={me.maxNotificationsPerWeek} business={{ name: me.business?.name || "Votre commerce", logo_url: me.business?.logo_url || null }} />}
+        </main>
+      </div>
+
+      {/* Téléphone : barre en bas */}
+      <nav className="ec-tabs" aria-label="Rubriques principales">
+        {main.map((t) => navButton(t))}
+        {rest.length > 0 && (
+          <button className={`${rest.includes(current) ? "on" : ""} ec-more-btn`} aria-expanded={more} aria-haspopup="true" onClick={() => setMore((m) => !m)}>
+            <Icon name="grid" size={20} />
+            <span>{rest.includes(current) ? current.label : "Plus"}</span>
+          </button>
+        )}
+      </nav>
+      {more && (
+        <div className="ec-sheet-back" onClick={() => setMore(false)}>
+          <div className="ec-sheet" role="dialog" aria-label="Autres rubriques" onClick={(e) => e.stopPropagation()}>
+            {rest.map((t) => (
+              <button key={t.id} className={current.id === t.id ? "on" : ""} onClick={() => go(t.id)}>
+                <Icon name={t.icon} size={22} />
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {toast && <div className="esp-toast" role="status">{toast}</div>}
+    </div>
+  );
+}
+
+/* ═════════════════════════════ Scanner ═════════════════════════════ */
+function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
+  const scannerRef = useRef(null);
+  const [scanning, setScanning] = useState(false);
+  const [serial, setSerial] = useState(null);
+  const [card, setCard] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [useAmount, setUseAmount] = useState("");
+  const [lap, setLap] = useState("");
+  const [confirm, setConfirm] = useState(null);
+
+  const stopCamera = useCallback(async () => {
+    const s = scannerRef.current;
+    if (s?.isScanning) await s.stop().catch(() => {});
+    setScanning(false);
+  }, []);
+  useEffect(() => () => { stopCamera(); }, [stopCamera]);
+  // « Scanner une carte » touché sur l'accueil : la caméra s'ouvre tout de suite
+  const autoRef = useRef(false);
+  useEffect(() => {
+    if (!autoStart || autoRef.current) return;
+    autoRef.current = true;
+    onAutoStarted?.();
+    startCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
+
+  async function send(action, extra = {}, value) {
+    const target = value || serial;
+    if (!target) return;
+    setBusy(true);
+    setConfirm(null);
+    const r = await post("scan", { serial: target, action, ...extra });
+    setBusy(false);
+    if (!guard(r)) return;
+    if (!r.ok) {
+      setMessage({ ok: false, text: r.error || "Action impossible." });
+      if (action === "lookup") setSerial(null);
+      return;
+    }
+    setSerial(target);
+    setCard(r);
+    if (action === "lookup") { setMessage(null); return; }
+    try { navigator.vibrate?.(40); } catch {}
+    setMessage({ ok: true, text: r.done || "C'est enregistré ✓" });
+    setCanUndo(action === "stamp" || action === "purchase");
+    onDone?.();
+    setAmount("");
+    setUseAmount("");
+  }
+
+  async function startCamera() {
+    setMessage(null);
+    setCard(null);
+    setSerial(null);
+    setCanUndo(false);
+    setConfirm(null);
+    await stopCamera();
+    setScanning(true);
+    let handled = false;
+    try {
+      const { Html5Qrcode } = await import("html5-qrcode");
+      const scanner = new Html5Qrcode("ec-lecteur", { verbose: false });
+      scannerRef.current = scanner;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.72); return { width: s, height: s }; } },
+        async (text) => {
+          if (handled) return;
+          handled = true;
+          await stopCamera();
+          try { navigator.vibrate?.(30); } catch {}
+          const found = readSerial(text);
+          if (!found) return setMessage({ ok: false, text: "Ce QR code n'est pas une carte de fidélité Walty. Visez le QR code de la carte du client (dans Apple Wallet ou Google Wallet)." });
+          await send("lookup", {}, found);
+        },
+        () => {},
+      );
+    } catch (err) {
+      await stopCamera();
+      const name = err?.name || String(err || "");
+      setMessage({
+        ok: false,
+        text: /NotAllowed|Permission/i.test(name)
+          ? "La caméra est bloquée. Autorisez l'accès à la caméra pour walty.fr (iPhone : Réglages › Safari › Caméra ; Android : cadenas à gauche de l'adresse › Autorisations), puis réessayez."
+          : /NotFound|Overconstrained/i.test(name)
+            ? "Aucune caméra trouvée sur cet appareil."
+            : "Impossible d'ouvrir la caméra. Fermez les autres applications qui l'utilisent, puis réessayez.",
+      });
+    }
+  }
+
+  const amountNum = Number(amount.replace(",", ".")) || 0;
+  const preview =
+    card?.mode === "points" ? `+${Math.floor(amountNum * card.points_per_euro)} points`
+    : card?.mode === "cashback" ? `+${euro(Math.round(amountNum * card.cashback_percent) / 100)} sur la cagnotte`
+    : "";
+
+  return (
+    <div className="ec-panel">
+      <div id="ec-lecteur" className={`ec-reader ${scanning ? "" : "is-hidden"}`} />
+
+      {!scanning && !card && (
+        <button onClick={startCamera} className="ec-scan-big">
+          <span className="ec-scan-icon"><Icon name="qr" size={44} stroke={1.8} /></span>
+          <b>Scanner une carte</b>
+          <span>Visez le QR code de la carte du client</span>
+        </button>
+      )}
+      {scanning && <button onClick={stopCamera} className="btn btn-ghost ec-full">Arrêter la caméra</button>}
+      {busy && <p className="ec-wait" aria-live="polite">Un instant…</p>}
+
+      {card && (
+        <section className="ec-card" aria-label="Carte du client">
+          <div className="ec-card-head">
+            <span className="ec-avatar">{initials(`${card.first_name} ${card.last_name || ""}`)}</span>
+            <div>
+              <h2>{card.first_name} {card.last_name || ""}</h2>
+              {card.tier && <p className="ec-tier"><Icon name="crown" size={14} /> Niveau {card.tier.name}{card.tier.perk ? ` · ${card.tier.perk}` : ""}</p>}
+            </div>
           </div>
 
-          {!confirm ? (
+          <div className="ec-balance">
+            <span>{card.balance_label}</span>
+            <b>{card.balance_value}</b>
+          </div>
+          {card.stamps && (
+            <div className="ec-dots" role="img" aria-label={`${card.stamps.filled} tampons sur ${card.stamps.total}`}>
+              {Array.from({ length: card.stamps.total }).map((_, i) => <i key={i} className={i < card.stamps.filled ? "on" : ""} />)}
+            </div>
+          )}
+          {card.streak && <p className="ec-small">🔥 Série : {card.streak.count} semaine{card.streak.count > 1 ? "s" : ""}{card.streak.thisWeek ? " (déjà venu cette semaine)" : ""}</p>}
+          {card.lap_enabled && <p className="ec-small">⏱️ Record : {card.best_lap || "aucun pour l'instant"}{card.rank ? ` · P${card.rank.pos} / ${card.rank.total}` : ""}</p>}
+
+          {/* Tampons */}
+          {card.mode === "stamps" && (card.reward_ready ? (
             <>
-              <div className="field">
-                <label htmlFor="push-msg">1. Votre message</label>
-                <textarea id="push-msg" className="textarea" value={msg} onChange={(e) => { setMsg(e.target.value.slice(0, pushRules.maxLength)); setError(""); }} maxLength={pushRules.maxLength} placeholder="Ex. : Ce soir, le 2e bokit à moitié prix 🌅" style={{ minHeight: 96 }} disabled={left === 0} />
-                <span className="field-hint">{msg.length}/{pushRules.maxLength} caractères · court et direct, ça marche mieux</span>
-              </div>
-              <div className="field">
-                <span className="esp-label">Besoin d'une idée ?</span>
-                <div className="wiz-suggest">{TEMPLATES.map((t) => <button type="button" key={t.label} onClick={() => { setMsg(t.text); setError(""); }} disabled={left === 0}>{t.label}</button>)}</div>
-              </div>
-              <fieldset className="field wiz-fieldset">
-                <legend>2. Quand ?</legend>
-                <div className="wiz-seg">
-                  <label><input type="radio" name="push-when" checked={when === "now"} onChange={() => setWhen("now")} /><span>Maintenant</span></label>
-                  <label className={canSchedule ? "" : "is-off"} title={canSchedule ? undefined : "Avec la formule Pro"}>
-                    <input type="radio" name="push-when" checked={when === "later"} disabled={!canSchedule} onChange={() => setWhen("later")} />
-                    <span>Programmer {!canSchedule && <em className="esp-mini-lock">Pro</em>}</span>
-                  </label>
-                </div>
-                {when === "later" && (
-                  <input type="datetime-local" className="input input-sm" value={at} min={minAt} onChange={(e) => setAt(e.target.value)} aria-label="Date et heure d'envoi" style={{ maxWidth: 260, marginTop: 8 }} />
-                )}
-              </fieldset>
-              {error && <p className="field-error" role="alert">{error}</p>}
-              <button type="button" className="btn btn-primary btn-lg" onClick={check} disabled={left === 0} style={{ justifySelf: "start" }}>
-                <Icon name="bell" size={18} /> {when === "later" ? "Programmer la notification" : `Envoyer à ${clients > 0 ? `mes ${clients} clients` : "mes clients"}`}
-              </button>
-              {left === 0 && (
-                <div className="esp-lock">
-                  <p><b>Vous avez utilisé vos 2 notifications de la semaine.</b><br />Les compteurs repartent lundi. Avec Pro, c'est illimité.</p>
-                  <Link href="/contact?formule=pro" className="btn btn-dark btn-sm">Passer en Pro · 79 €</Link>
-                </div>
-              )}
-              <p className="field-hint">{pushRules.delay}</p>
+              <p className="ec-ok"><Icon name="gift" size={18} /> Cadeau débloqué : <b>{card.reward}</b></p>
+              <button disabled={busy} onClick={() => send("redeem")} className="btn btn-primary btn-lg ec-full">J'ai remis le cadeau : valider</button>
             </>
           ) : (
-            <div className="esp-confirm" role="alertdialog" aria-label="Confirmer l'envoi">
-              <p className="esp-confirm-q">{when === "later" ? `Programmer cette notification pour le ${fmtDateTime(new Date(at).toISOString())} ?` : `Envoyer cette notification à ${clients > 0 ? `vos ${clients} clients` : "vos clients"} ?`}</p>
-              <blockquote>{msg}</blockquote>
-              {error && <p className="field-error" role="alert">{error}</p>}
-              <div className="row">
-                <button type="button" className="btn btn-primary" onClick={send} disabled={busy}>{busy ? "Envoi…" : "Oui, envoyer"}</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setConfirm(false)} disabled={busy}>Modifier</button>
+            <button disabled={busy} onClick={() => send("stamp")} className="btn btn-primary btn-lg ec-full ec-stamp-btn"><Icon name="plus" size={20} /> Ajouter 1 tampon</button>
+          ))}
+
+          {/* Points et cagnotte : montant de l'achat */}
+          {card.mode !== "stamps" && (
+            <form className="field" onSubmit={(e) => {
+              e.preventDefault();
+              if (amountNum <= 0) return;
+              setConfirm({ label: `Enregistrer un achat de ${euro(amountNum)} (${preview}) ?`, run: () => send("purchase", { amount: amountNum }) });
+            }}>
+              <label htmlFor="ec-achat">Montant de l'achat (€)</label>
+              <div className="ec-inline">
+                <input id="ec-achat" inputMode="decimal" className="input ec-amount" value={amount} placeholder="12,50" onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))} />
+                <button type="submit" disabled={busy || amountNum <= 0} className="btn btn-primary">Valider</button>
+              </div>
+              {amountNum > 0 && <span className="field-hint">{preview}</span>}
+            </form>
+          )}
+
+          {card.mode === "points" && card.catalog?.length > 0 && (
+            <div className="ec-list-actions">
+              <p className="ec-label">Échanger des points</p>
+              {card.catalog.map((r) => (
+                <button key={r.id} disabled={busy || !r.affordable} className="ec-row-btn" onClick={() => setConfirm({ label: `Échanger ${r.cost} points contre « ${r.name} » ?`, run: () => send("reward", { reward_id: r.id }) })}>
+                  <span>{r.name}</span><b>{r.cost} pts</b>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {card.mode === "cashback" && card.cashback > 0 && (
+            <form className="field" onSubmit={(e) => {
+              e.preventDefault();
+              const n = Number(useAmount.replace(",", ".")) || 0;
+              if (n <= 0) return;
+              setConfirm({ label: `Déduire ${euro(n)} de la cagnotte (${euro(card.cashback)} disponibles) ?`, run: () => send("cashback", { amount: n }) });
+            }}>
+              <label htmlFor="ec-cagnotte">Utiliser la cagnotte (max {euro(card.cashback)})</label>
+              <div className="ec-inline">
+                <input id="ec-cagnotte" inputMode="decimal" className="input" value={useAmount} placeholder={String(card.cashback).replace(".", ",")} onChange={(e) => setUseAmount(e.target.value.replace(/[^\d.,]/g, ""))} />
+                <button type="submit" disabled={busy} className="btn btn-dark">Déduire</button>
+              </div>
+            </form>
+          )}
+
+          {card.lap_enabled && (
+            <form className="field" onSubmit={(e) => {
+              e.preventDefault();
+              const ms = parseLap(lap);
+              if (!ms) return setMessage({ ok: false, text: "Temps invalide. Exemple : 38,412 ou 1:02,345" });
+              send("lap", { lap_ms: ms });
+              setLap("");
+            }}>
+              <label htmlFor="ec-chrono">⏱️ Meilleur tour de la session (secondes)</label>
+              <div className="ec-inline">
+                <input id="ec-chrono" inputMode="decimal" className="input" value={lap} placeholder="38,412" onChange={(e) => setLap(e.target.value.replace(/[^\d.,:]/g, ""))} />
+                <button type="submit" disabled={busy || !lap} className="btn btn-dark">Enregistrer</button>
+              </div>
+            </form>
+          )}
+
+          {card.coupons?.length > 0 && (
+            <div className="ec-list-actions">
+              <p className="ec-label">Offres sur sa carte</p>
+              {card.coupons.map((c) => (
+                <button key={c.id} disabled={busy} className="ec-row-btn" onClick={() => setConfirm({ label: `Valider l'offre « ${c.title} » ?`, run: () => send("coupon", { coupon_id: c.id }) })}>
+                  <span><Icon name="ticket" size={16} /> {c.title}{c.expires_at ? <em> · jusqu'au {fmtDate(c.expires_at)}</em> : null}</span><b>Utiliser</b>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {confirm && (
+            <div className="ec-confirm" role="alertdialog" aria-label="Confirmation">
+              <p>{confirm.label}</p>
+              <div className="ec-inline">
+                <button disabled={busy} onClick={confirm.run} className="btn btn-primary">Oui, valider</button>
+                <button onClick={() => setConfirm(null)} className="btn btn-ghost">Annuler</button>
               </div>
             </div>
           )}
+
+          {card.next_tier && <p className="field-hint ec-center-text">Niveau {card.next_tier.name} dans {card.next_tier.remaining}.</p>}
+        </section>
+      )}
+
+      {message && <p className={message.ok ? "ec-ok ec-msg" : "ec-alert ec-msg"} role="status">{message.text}</p>}
+      {canUndo && <button disabled={busy} onClick={() => send("undo")} className="ec-linkbtn ec-undo">Annuler ce passage (erreur de saisie)</button>}
+      {card && !scanning && (
+        <button onClick={startCamera} className="btn btn-dark btn-lg ec-full"><Icon name="qr" size={20} /> Client suivant</button>
+      )}
+      {!card && !scanning && (
+        <p className="field-hint ec-center-text">Le client ouvre sa carte dans Apple Wallet ou Google Wallet : visez son QR code. Les règles (limite de passages par jour, soldes suffisants…) sont vérifiées automatiquement.</p>
+      )}
+    </div>
+  );
+}
+
+/* ═════════════════════════════ Clients ═════════════════════════════ */
+function Clients({ guard, say, clientId, openClient }) {
+  const [q, setQ] = useState("");
+  const [rows, setRows] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [error, setError] = useState("");
+  const load = useCallback(async (search) => {
+    const r = await api(`customers?q=${encodeURIComponent(search)}`);
+    if (!guard(r)) return;
+    if (!r.ok) return setError(r.error || "Impossible de charger vos clients.");
+    setError("");
+    setRows(r.customers);
+    setStats(r.stats);
+  }, [guard]);
+  useEffect(() => { load(""); }, [load]);
+
+  if (clientId) {
+    return <ClientFiche id={clientId} row={rows?.find((r) => r.id === clientId) || null} guard={guard} say={say} onBack={() => openClient(null)} />;
+  }
+  return (
+    <div className="ec-panel">
+      {stats && (
+        <div className="ec-kpis ec-kpis-3">
+          <Kpi label="Clients" value={stats.total} />
+          <Kpi label="Passages ce mois" value={stats.stampsThisMonth} />
+          <Kpi label="Récompenses utilisées" value={stats.rewardsRedeemed} />
         </div>
-        <div className="esp-preview-col">
-          <p className="esp-label">Aperçu sur le téléphone de vos clients</p>
-          <LockPreview card={card} text={msg.trim()} />
+      )}
+      <form className="ec-search" role="search" onSubmit={(e) => { e.preventDefault(); load(q); }}>
+        <Icon name="search" size={18} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} className="input" placeholder="Rechercher un client" aria-label="Rechercher un client (nom, téléphone ou e-mail)" />
+        <button className="btn btn-dark btn-sm">Chercher</button>
+      </form>
+      {error && <p className="ec-alert">{error}</p>}
+      {rows === null && !error && <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" />}
+      {rows && rows.length === 0 && (
+        <div className="esp-empty"><Icon name="users" size={26} /><p>{q ? "Aucun client ne correspond." : "Pas encore de client. Affichez votre QR code d'inscription en caisse : les premiers arrivent vite."}</p></div>
+      )}
+      {rows && rows.length > 0 && (
+        <ul className="ec-clients">
+          {rows.map((c) => (
+            <li key={c.id}>
+              <button className="ec-client-open" onClick={() => openClient(c.id)} aria-label={`Ouvrir la fiche de ${c.first_name} ${c.last_name || ""}`.trim()} />
+              <span className="ec-avatar sm">{initials(`${c.first_name} ${c.last_name || ""}`)}</span>
+              <div className="ec-client-main">
+                <b>{c.first_name} {c.last_name || ""}</b>
+                <span>{c.phone || c.email || ""}{c.marketing_optin ? " · accepte les offres" : ""}</span>
+              </div>
+              <div className="ec-client-side">
+                <b>{c.balance}</b>
+                <span>{c.tier ? `${c.tier} · ` : ""}{fmtAgo(c.last_visit_at)}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {rows && rows.length >= 100 && <p className="field-hint ec-center-text">Les 100 clients venus le plus récemment. Utilisez la recherche pour trouver les autres.</p>}
+    </div>
+  );
+}
+
+function Kpi({ label, value, sub, tone }) {
+  return (
+    <div className={`ec-kpi ${tone || ""}`}>
+      <b>{value}</b>
+      <span>{label}</span>
+      {sub && <em>{sub}</em>}
+    </div>
+  );
+}
+
+/* ═════════════════════════════ Chiffres ═════════════════════════════ */
+function Chiffres({ guard, program }) {
+  const [s, setS] = useState(null);
+  const [basic, setBasic] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const r = await api("stats");
+      if (!live || !guard(r)) return;
+      if (r.ok) return setS(r.stats);
+      if (!r.unavailable) return setError(r.error || "Impossible de charger vos chiffres.");
+      // Mode de base : les chiffres simples de la liste des clients
+      const c = await api("customers?q=");
+      if (!live || !guard(c)) return;
+      if (!c.ok) return setError(c.error || "Impossible de charger vos chiffres.");
+      setBasic(c.stats || { total: 0, stampsThisMonth: 0, rewardsRedeemed: 0 });
+    })();
+    return () => { live = false; };
+  }, [guard]);
+  if (error) return <div className="ec-panel"><p className="ec-alert">{error}</p></div>;
+  if (basic) {
+    const monthName = new Intl.DateTimeFormat("fr-FR", { month: "long", timeZone: TZ }).format(new Date());
+    return (
+      <div className="ec-panel">
+        <h2 className="ec-h">Vos chiffres</h2>
+        <div className="ec-kpis ec-kpis-3">
+          <Kpi label="Clients inscrits" value={basic.total} />
+          <Kpi label={`Passages en ${monthName}`} value={basic.stampsThisMonth} />
+          <Kpi label="Récompenses utilisées" value={basic.rewardsRedeemed} />
+        </div>
+        <p className="field-hint ec-center-text">Graphique des 14 derniers jours et clients les plus fidèles : bientôt disponibles ici.</p>
+      </div>
+    );
+  }
+  if (!s) return <div className="ec-panel"><div className="ec-spinner ec-spinner-sm" aria-label="Chargement" /></div>;
+
+  const diff = s.visitsThisMonth - s.visitsLastMonth;
+  const max = Math.max(1, ...s.daily.map((d) => d.count));
+  const dayLabel = (d) => new Intl.DateTimeFormat("fr-FR", { weekday: "narrow", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
+  const monthName = new Intl.DateTimeFormat("fr-FR", { month: "long", timeZone: TZ }).format(new Date());
+
+  return (
+    <div className="ec-panel">
+      <h2 className="ec-h">En {monthName}</h2>
+      <div className="ec-kpis">
+        <Kpi label="Passages" value={s.visitsThisMonth} sub={s.visitsLastMonth || diff ? `${diff >= 0 ? "+" : ""}${diff} vs mois dernier` : null} tone={diff > 0 ? "up" : ""} />
+        <Kpi label="Nouveaux clients" value={s.newThisMonth} sub={`${s.newLastMonth} le mois dernier`} />
+        <Kpi label="Récompenses remises" value={s.rewardsThisMonth} sub={`${s.rewardsTotal} au total`} />
+        {program?.mode && program.mode !== "stamps"
+          ? <Kpi label="Achats enregistrés" value={euro(s.salesThisMonth)} />
+          : <Kpi label="Clients actifs (30 j)" value={s.active30} sub={`sur ${s.total}`} />}
+      </div>
+
+      <section className="ec-box">
+        <div className="ec-box-head"><h3>Passages des 14 derniers jours</h3><span className="chip">{s.daily.reduce((a, d) => a + d.count, 0)} au total</span></div>
+        <div className="ec-bars" role="img" aria-label={`Passages par jour : ${s.daily.map((d) => d.count).join(", ")}`}>
+          {s.daily.map((d, i) => (
+            <div key={d.day} className={`ec-bar ${i === s.daily.length - 1 ? "today" : ""}`} title={`${fmtDate(`${d.day}T16:00:00Z`)} : ${d.count}`}>
+              <em>{d.count || ""}</em>
+              <i style={{ height: `${Math.max(3, (d.count / max) * 100)}%` }} />
+              <span>{dayLabel(d.day)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="ec-two">
+        <section className="ec-box">
+          <h3>Vos clients</h3>
+          <ul className="ec-facts">
+            <li><span>Clients inscrits</span><b>{s.total}</b></li>
+            <li><span>Venus ces 30 derniers jours</span><b>{s.active30}</b></li>
+            <li><span>Acceptent vos offres et messages</span><b>{s.optin}</b></li>
+          </ul>
+        </section>
+        <section className="ec-box">
+          <h3>Les plus fidèles</h3>
+          {s.best.length === 0 ? <p className="muted ec-small">Ils apparaîtront ici après leurs premiers passages.</p> : (
+            <ol className="ec-top5">
+              {s.best.map((b, i) => <li key={i}><span>{b.name}</span><b>{b.visits} passage{b.visits > 1 ? "s" : ""}</b></li>)}
+            </ol>
+          )}
+        </section>
+      </div>
+      <Insights guard={guard} mode={program?.mode} />
+    </div>
+  );
+}
+
+const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+const monthLabel = (m) => new Intl.DateTimeFormat("fr-FR", { month: "short", timeZone: "UTC" }).format(new Date(`${m}-15T12:00:00Z`)).replace(".", "");
+
+/** Chiffres détaillés : affluence, 6 derniers mois, fidélité, téléphones. Absents si l'adresse n'existe pas encore. */
+function Insights({ guard, mode }) {
+  const [d, setD] = useState(null);
+  useEffect(() => {
+    let live = true;
+    api("insights").then((r) => { if (live && guard(r) && r.ok) setD(r.insights); });
+    return () => { live = false; };
+  }, [guard]);
+  if (!d) return null;
+  const maxW = Math.max(1, ...d.weekday);
+  const best = d.weekday.indexOf(Math.max(...d.weekday));
+  const first = d.hours.findIndex((n) => n > 0);
+  const last = 23 - [...d.hours].reverse().findIndex((n) => n > 0);
+  const hours = first < 0 ? [] : d.hours.map((n, h) => ({ h, n })).slice(Math.max(0, first - 1), Math.min(24, last + 2));
+  const maxH = Math.max(1, ...d.hours);
+  const maxM = Math.max(1, ...d.months.map((m) => m.visits));
+  const w = d.wallets;
+  return (
+    <>
+      <div className="ec-two">
+        <section className="ec-box">
+          <div className="ec-box-head"><h3>Vos jours d'affluence</h3><span className="chip">90 derniers jours</span></div>
+          <div className="ec-hbars" role="img" aria-label={`Passages par jour de la semaine : ${d.weekday.map((n, i) => `${WEEKDAYS[i]} ${n}`).join(", ")}`}>
+            {d.weekday.map((n, i) => (
+              <div key={i} className={`ec-hbar ${i === best && n > 0 ? "top" : ""}`}><span>{WEEKDAYS[i]}</span><i><s style={{ width: `${(n / maxW) * 100}%` }} /></i><b>{n}</b></div>
+            ))}
+          </div>
+        </section>
+        <section className="ec-box">
+          <div className="ec-box-head"><h3>Vos heures d'affluence</h3><span className="chip">90 derniers jours</span></div>
+          {hours.length === 0 ? <p className="muted ec-small">Elles apparaîtront après vos premiers passages.</p> : (
+            <div className="ec-bars ec-bars-h" style={{ gridTemplateColumns: `repeat(${hours.length}, 1fr)` }} role="img" aria-label="Passages par heure">
+              {hours.map(({ h, n }) => (
+                <div key={h} className="ec-bar" title={`${h} h : ${n}`}><em>{n || ""}</em><i style={{ height: `${Math.max(3, (n / maxH) * 100)}%` }} /><span>{h}h</span></div>
+              ))}
+            </div>
+          )}
+          <p className="field-hint">Une heure creuse ? Pensez aux heures boostées (« Mon programme »).</p>
+        </section>
+      </div>
+      <section className="ec-box">
+        <div className="ec-box-head"><h3>Les 6 derniers mois</h3></div>
+        <div className="ec-bars ec-bars-m" role="img" aria-label={`Passages par mois : ${d.months.map((m) => `${monthLabel(m.month)} ${m.visits}`).join(", ")}`}>
+          {d.months.map((m, i) => (
+            <div key={m.month} className={`ec-bar ${i === d.months.length - 1 ? "today" : ""}`}><em>{m.visits}</em><i style={{ height: `${Math.max(3, (m.visits / maxM) * 100)}%` }} /><span>{monthLabel(m.month)}</span></div>
+          ))}
+        </div>
+        <ul className="ec-facts ec-months">
+          {d.months.slice().reverse().map((m) => (
+            <li key={m.month}><span>{monthLabel(m.month)}</span><b>{m.newCustomers} nouveau{m.newCustomers > 1 ? "x" : ""} client{m.newCustomers > 1 ? "s" : ""}{mode && mode !== "stamps" ? ` · ${euro(m.sales)}` : ""}</b></li>
+          ))}
+        </ul>
+      </section>
+      <div className="ec-two">
+        <section className="ec-box">
+          <h3>Fidélité</h3>
+          <ul className="ec-facts">
+            <li><span>Clients revenus au moins 2 fois</span><b>{d.returningRate} %</b></li>
+            <li><span>Passages en moyenne par client</span><b>{String(d.avgVisits).replace(".", ",")}</b></li>
+            <li><span>Pas revenus depuis 2 mois</span><b>{d.dormant}</b></li>
+            <li><span>Acceptent vos offres et messages</span><b>{d.optinRate} %</b></li>
+          </ul>
+          {d.dormant > 0 && <p className="field-hint">Un petit message (« Messages ») ou une offre fait souvent revenir les clients endormis.</p>}
+        </section>
+        <section className="ec-box">
+          <h3>Leurs téléphones</h3>
+          <ul className="ec-facts">
+            <li><span>iPhone (Apple Wallet)</span><b>{w.apple}</b></li>
+            <li><span>Android (Google Wallet)</span><b>{w.google}</b></li>
+            {w.web > 0 && <li><span>Carte web</span><b>{w.web}</b></li>}
+            <li><span>Carte pas encore ajoutée</span><b>{w.none}</b></li>
+          </ul>
+        </section>
+      </div>
+    </>
+  );
+}
+
+/* ═════════════════════════════ Offres ═════════════════════════════ */
+const DURATIONS = [
+  { v: 7, label: "7 jours" },
+  { v: 14, label: "14 jours" },
+  { v: 30, label: "30 jours" },
+  { v: 0, label: "Sans limite" },
+];
+const OFFER_IDEAS = ["-20 % sur tout ce week-end", "1 boisson offerte pour 1 achat", "Un petit cadeau pour votre fidélité", "-10 % sur votre prochain passage"];
+
+function Offres({ guard, say, canSend }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [title, setTitle] = useState("");
+  const [days, setDays] = useState(7);
+  const [notify, setNotify] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [soon, setSoon] = useState(false);
+
+  const load = useCallback(async () => {
+    const r = await api("offers");
+    if (!guard(r)) return;
+    if (r.unavailable) return setSoon(true);
+    if (!r.ok) return setError(r.error || "Impossible de charger vos offres.");
+    setData(r);
+  }, [guard]);
+  useEffect(() => { load(); }, [load]);
+
+  async function send() {
+    setBusy(true);
+    setFormError("");
+    const r = await post("offers", { title, days: days || null, notify });
+    setBusy(false);
+    if (!guard(r)) return;
+    setConfirm(false);
+    if (!r.ok) return setFormError(r.error || "Impossible d'ajouter l'offre.");
+    say(r.warning || `Offre ajoutée sur la carte de ${r.count} client${r.count > 1 ? "s" : ""} ✓`);
+    setTitle("");
+    setNotify(false);
+    load();
+  }
+
+  const now = Date.now();
+  if (soon) {
+    return (
+      <div className="ec-panel">
+        <p className="ec-info">Les offres arrivent très bientôt dans votre espace. En attendant, demandez à Walty d'ajouter une offre sur la carte de vos clients : {site.contact.phone}.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="ec-panel">
+      {canSend ? (
+        <section className="ec-box">
+          <h2 className="ec-h">Nouvelle offre</h2>
+          <p className="muted ec-small">L'offre s'ajoute sur la carte de tous vos clients. En caisse, vous la validez en scannant leur carte.</p>
+          {!confirm ? (
+            <form className="ec-form" onSubmit={(e) => { e.preventDefault(); if (title.trim().length < 3) return setFormError("Écrivez votre offre (3 caractères minimum)."); setFormError(""); setConfirm(true); }}>
+              <div className="field">
+                <label htmlFor="ec-offre">Votre offre</label>
+                <input id="ec-offre" className="input" maxLength={120} value={title} onChange={(e) => { setTitle(e.target.value); setFormError(""); }} placeholder="Ex. : -20 % sur tout ce week-end" />
+                <span className="field-hint">{title.length}/120</span>
+              </div>
+              <div className="wiz-suggest">{OFFER_IDEAS.map((t) => <button type="button" key={t} onClick={() => setTitle(t)}>{t}</button>)}</div>
+              <fieldset className="field wiz-fieldset">
+                <legend>Valable</legend>
+                <div className="ec-seg">
+                  {DURATIONS.map((d) => (
+                    <label key={d.v}><input type="radio" name="ec-duree" checked={days === d.v} onChange={() => setDays(d.v)} /><span>{d.label}</span></label>
+                  ))}
+                </div>
+              </fieldset>
+              <label className="ec-check">
+                <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+                <span>Prévenir mes clients par notification<em>Compte dans vos messages de la semaine. Seuls les clients qui acceptent les offres la reçoivent.</em></span>
+              </label>
+              {formError && <p className="field-error" role="alert">{formError}</p>}
+              <button className="btn btn-primary btn-lg ec-full"><Icon name="gift" size={18} /> Ajouter l'offre</button>
+            </form>
+          ) : (
+            <div className="ec-confirm" role="alertdialog" aria-label="Confirmer l'offre">
+              <p>Ajouter « {title.trim()} » sur la carte de tous vos clients{days ? `, pendant ${days} jours` : ""}{notify ? ", avec une notification" : ""} ?</p>
+              {formError && <p className="field-error" role="alert">{formError}</p>}
+              <div className="ec-inline">
+                <button className="btn btn-primary" onClick={send} disabled={busy}>{busy ? "Ajout…" : "Oui, ajouter"}</button>
+                <button className="btn btn-ghost" onClick={() => setConfirm(false)} disabled={busy}>Modifier</button>
+              </div>
+            </div>
+          )}
+        </section>
+      ) : (
+        <p className="ec-info">Les offres et les messages ne sont pas activés pour cet accès. Demandez-les à Walty : {site.contact.phone}.</p>
+      )}
+
+      {error && <p className="ec-alert">{error}</p>}
+      {data && (
+        <>
+          {(data.welcome || data.birthday) && (
+            <section className="ec-box">
+              <h3>Offres automatiques</h3>
+              <ul className="ec-facts">
+                {data.welcome && <li><span><Icon name="sparkle" size={16} /> Bienvenue (à l'inscription)</span><b>{data.welcome}</b></li>}
+                {data.birthday && <li><span><Icon name="cake" size={16} /> Anniversaire</span><b>{data.birthday}</b></li>}
+              </ul>
+              <p className="field-hint">Pour les modifier, contactez Walty.</p>
+            </section>
+          )}
+          <section className="ec-box">
+            <h3>Vos offres</h3>
+            {data.offers.length === 0 ? <p className="muted ec-small">Aucune offre ponctuelle pour l'instant.</p> : (
+              <ul className="ec-offers">
+                {data.offers.map((o) => {
+                  const live = o.active > 0 && (!o.expires_at || Date.parse(o.expires_at) > now);
+                  return (
+                    <li key={`${o.title}-${o.created_at}`}>
+                      <div>
+                        <b>{o.title}</b>
+                        <span>Ajoutée le {fmtDate(o.created_at)}{o.expires_at ? ` · jusqu'au ${fmtDate(o.expires_at)}` : ""}</span>
+                      </div>
+                      <div className="ec-offer-side">
+                        <span className={`chip ${live ? "chip-lagon" : ""}`}>{live ? "En cours" : "Terminée"}</span>
+                        <em>{o.used} utilisée{o.used > 1 ? "s" : ""} / {o.total}</em>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ═════════════════════════════ Messages (notifications) ═════════════════════════════ */
+const STATUS = {
+  scheduled: ["Programmé", "chip-violet"],
+  sending: ["En cours d'envoi", "chip-orange"],
+  sent: ["Envoyé", "chip-lagon"],
+  cancelled: ["Annulé", ""],
+  failed: ["Échec", ""],
+  skipped: ["Non envoyé (limite)", ""],
+};
+const IDEAS = [
+  { label: "Offre du jour", text: "Aujourd'hui seulement : -20 % sur tout ! On vous attend 🎉" },
+  { label: "Nouveauté", text: "Nouveau chez nous : venez goûter avant tout le monde 😍" },
+  { label: "Créneau libre", text: "Il reste des places cet après-midi. On vous garde un créneau ?" },
+  { label: "Fermeture", text: "Info : nous serons fermés lundi. À très vite !" },
+];
+/** "2026-10-15T18:30" en heure de Guadeloupe, pour le champ date */
+const gpLocal = (t) => new Date(t - 4 * 3600e3).toISOString().slice(0, 16);
+
+function Notifications({ guard, say, business, max }) {
+  const [list, setList] = useState(null);
+  const [remaining, setRemaining] = useState(null);
+  const [msg, setMsg] = useState("");
+  const [when, setWhen] = useState("now");
+  const [at, setAt] = useState("");
+  const [repeat, setRepeat] = useState(false);
+  const [every, setEvery] = useState(7);
+  const [until, setUntil] = useState("");
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    const r = await api("notifications");
+    if (!guard(r)) return;
+    if (!r.ok) return setError(r.error || "Impossible de charger vos messages.");
+    setList(r.notifications);
+    setRemaining(r.remaining);
+  }, [guard]);
+  useEffect(() => { load(); }, [load]);
+
+  function check(e) {
+    e.preventDefault();
+    setError("");
+    if (!msg.trim()) return setError("Écrivez votre message d'abord.");
+    if (remaining === 0) return setError("Vous avez utilisé vos messages de la semaine (du lundi au dimanche).");
+    if (when === "later" && (!at || at <= gpLocal(Date.now()))) return setError("Choisissez une date et une heure à venir.");
+    if (when === "later" && repeat && (every < 3 || every > 60)) return setError("La répétition doit être d'au moins 3 jours.");
+    setConfirm(true);
+  }
+  async function send() {
+    setBusy(true);
+    setError("");
+    const r = await post("notifications", {
+      message: msg.trim(),
+      when,
+      sendAt: when === "later" ? at : undefined,
+      repeatEveryDays: when === "later" && repeat ? every : null,
+      repeatUntil: when === "later" && repeat && until ? `${until}T23:59` : null,
+    });
+    setBusy(false);
+    if (!guard(r)) return;
+    setConfirm(false);
+    if (!r.ok) return setError(r.error || "Le message n'a pas pu être enregistré.");
+    say(r.sentNow ? "Message envoyé ✓" : "Message programmé ✓");
+    setMsg(""); setAt(""); setWhen("now"); setRepeat(false); setUntil("");
+    load();
+  }
+  async function cancel(id) {
+    const r = await api(`notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!guard(r)) return;
+    say(r.ok ? "Message annulé." : r.error || "Impossible d'annuler.");
+    load();
+  }
+
+  return (
+    <div className="ec-panel">
+      <div className="ec-notif-grid">
+        <section className="ec-box">
+          <div className="ec-box-head">
+            <h2 className="ec-h">Nouveau message</h2>
+            {remaining !== null && (
+              <span className="ec-quota">
+                {max ? <b className={`chip ${remaining ? "chip-orange" : ""}`}>{Math.max(0, max - remaining)} / {max} cette semaine</b> : null}
+                <span className="ec-quota-left">{remaining ? `Il vous en reste ${remaining} cette semaine` : "Plus d'envoi cette semaine"}</span>
+              </span>
+            )}
+          </div>
+          {!confirm ? (
+            <form className="ec-form" onSubmit={check}>
+              <div className="field">
+                <label htmlFor="ec-msg">Votre message</label>
+                <textarea id="ec-msg" className="textarea" maxLength={180} value={msg} onChange={(e) => { setMsg(e.target.value); setError(""); }} placeholder="Ex. : Ce soir, le 2e bokit à moitié prix 🌅" style={{ minHeight: 96 }} />
+                <span className="field-hint">{msg.length}/180 · court et direct, ça marche mieux</span>
+              </div>
+              <div className="wiz-suggest">{IDEAS.map((t) => <button type="button" key={t.label} onClick={() => setMsg(t.text)}>{t.label}</button>)}</div>
+              <fieldset className="field wiz-fieldset">
+                <legend>Quand ?</legend>
+                <div className="ec-seg">
+                  <label><input type="radio" name="ec-when" checked={when === "now"} onChange={() => setWhen("now")} /><span>Maintenant</span></label>
+                  <label><input type="radio" name="ec-when" checked={when === "later"} onChange={() => setWhen("later")} /><span>Programmer</span></label>
+                </div>
+              </fieldset>
+              {when === "later" && (
+                <div className="ec-later">
+                  <div className="field">
+                    <label htmlFor="ec-at">Date et heure (heure de Guadeloupe)</label>
+                    <input id="ec-at" type="datetime-local" className="input" value={at} min={gpLocal(Date.now())} onChange={(e) => setAt(e.target.value)} />
+                  </div>
+                  <label className="ec-check"><input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /><span>Répéter ce message</span></label>
+                  {repeat && (
+                    <div className="ec-inline">
+                      <div className="field"><label htmlFor="ec-every">Tous les … jours</label><input id="ec-every" type="number" min={3} max={60} className="input" value={every} onChange={(e) => setEvery(Number(e.target.value))} /></div>
+                      <div className="field"><label htmlFor="ec-until">Jusqu'au (facultatif)</label><input id="ec-until" type="date" className="input" value={until} onChange={(e) => setUntil(e.target.value)} /></div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {error && <p className="field-error" role="alert">{error}</p>}
+              <button className="btn btn-primary btn-lg ec-full" disabled={remaining === 0}><Icon name="bell" size={18} /> {when === "later" ? "Programmer le message" : "Envoyer à mes clients"}</button>
+              <p className="field-hint">Envoyé uniquement aux clients qui ont accepté les offres à l'inscription. Il s'affiche sur leur téléphone, même écran éteint.</p>
+            </form>
+          ) : (
+            <div className="ec-confirm" role="alertdialog" aria-label="Confirmer l'envoi">
+              <p>{when === "later" ? `Programmer ce message pour le ${fmtDateTime(`${at}:00-04:00`)}${repeat ? `, puis tous les ${every} jours` : ""} ?` : "Envoyer ce message maintenant à vos clients ?"}</p>
+              <blockquote>{msg}</blockquote>
+              {error && <p className="field-error" role="alert">{error}</p>}
+              <div className="ec-inline">
+                <button className="btn btn-primary" onClick={send} disabled={busy}>{busy ? "Envoi…" : "Oui, envoyer"}</button>
+                <button className="btn btn-ghost" onClick={() => setConfirm(false)} disabled={busy}>Modifier</button>
+              </div>
+            </div>
+          )}
+        </section>
+        <div className="ec-preview">
+          <div className="esp-lockscreen" aria-label="Aperçu sur le téléphone de vos clients">
+            <div className="esp-lock-time">18:42</div>
+            <div className="esp-lock-date">{new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: TZ }).format(new Date())}</div>
+            <div className={`esp-lock-notif ${msg ? "" : "empty"}`}>
+              <span className="esp-lock-icon" style={business.logo_url ? { backgroundImage: `url(${business.logo_url})`, backgroundColor: "#fff" } : { background: "var(--cta)" }}>{business.logo_url ? "" : initials(business.name)}</span>
+              <div>
+                <div className="esp-lock-head"><b>{business.name}</b><span>maintenant</span></div>
+                <p>{msg || "Votre message apparaîtra ici."}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="esp-box">
-        <h2 className="esp-h">Mes notifications</h2>
-        {!loaded ? <p className="muted">Chargement…</p> : history.length === 0 ? (
-          <div className="esp-empty"><Icon name="bell" size={22} /><p>Aucune notification pour l'instant. Écrivez votre première offre ci-dessus.</p></div>
-        ) : (
-          <ul className="esp-history">
-            {history.map((p) => {
-              const st = pushStatus(p);
+      <section className="ec-box">
+        <h3>Derniers messages</h3>
+        {list === null ? <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" /> : list.length === 0 ? <p className="muted ec-small">Aucun message pour l'instant.</p> : (
+          <ul className="ec-offers">
+            {list.map((n) => {
+              const [label, cls] = STATUS[n.status] || [n.status, ""];
               return (
-                <li key={p.id}>
-                  <div><p>{p.message}</p><small>Écrite le {fmtDate(p.created_at)}</small></div>
-                  <div className="esp-history-side">
-                    <span className={`chip ${st.cls}`}>{st.label}</span>
-                    {p.status === "a_envoyer" && <button type="button" className="link-btn" onClick={() => cancel(p)}>Annuler</button>}
+                <li key={n.id}>
+                  <div>
+                    <b className="ec-msg-text">{n.message}</b>
+                    <span>{fmtDateTime(n.send_at)}{n.repeat_every_days ? ` · tous les ${n.repeat_every_days} j` : ""}{n.recipients_count != null ? ` · ${n.recipients_count} client${n.recipients_count > 1 ? "s" : ""}` : ""}</span>
+                  </div>
+                  <div className="ec-offer-side">
+                    <span className={`chip ${cls}`}>{label}</span>
+                    {n.status === "scheduled" && <button className="ec-linkbtn" onClick={() => cancel(n.id)}>Annuler</button>}
                   </div>
                 </li>
               );
             })}
           </ul>
         )}
-      </div>
-
-      <AutoMessages rank={rank} example={example} />
-    </div>
-  );
-}
-
-function AutoMessages({ rank, example }) {
-  const rows = [
-    { i: "stamp", t: "« +1 tampon ! »", d: "À chaque passage, avec le nombre de tampons restants.", min: 0 },
-    { i: "gift", t: "« Votre cadeau est prêt ! »", d: "Quand la carte est pleine.", min: 0 },
-    { i: "clock", t: "Relance des clients absents", d: "Un message part tout seul après 30 jours sans visite.", min: 2 },
-    { i: "cake", t: "Cadeau d'anniversaire", d: "Le jour J, votre client reçoit son cadeau.", min: 2 },
-    { i: "heart", t: "Demande d'avis Google", d: "Après le 3e passage, on lui demande un avis.", min: 2 },
-  ];
-  return (
-    <div className="esp-box">
-      <div className="esp-box-head">
-        <h2 className="esp-h">Messages automatiques</h2>
-        <span className="faint" style={{ fontSize: 13 }}>Vous n'avez rien à faire</span>
-      </div>
-      <ul className="esp-autos">
-        {rows.map((a) => {
-          const on = rank >= a.min;
-          return (
-            <li key={a.t} className={on ? "" : "off"}>
-              <span className="esp-auto-icon"><Icon name={a.i} size={18} /></span>
-              <div><b>{a.t}</b><p>{a.d}</p></div>
-              {on ? <span className="chip chip-lagon" style={{ whiteSpace: "nowrap" }}>Activé</span> : <Link href="/contact?formule=pro" className="chip chip-violet" style={{ whiteSpace: "nowrap" }}>Avec Pro</Link>}
-            </li>
-          );
-        })}
-      </ul>
-      {!example && rank >= 2 && <p className="field-hint">Les automatismes Pro sont réglés avec vous à l'installation.</p>}
-    </div>
-  );
-}
-
-/* ───────── Tableau de bord à onglets ───────── */
-function Dashboard({ account, example, email, onOut }) {
-  const [plan, setPlan] = useState(account.plan in PLAN_RANK ? account.plan : "essentiel");
-  const [tab, setTab] = useState("accueil");
-  const [toast, setToast] = useState("");
-  const stats = example ? demoStats : emptyStats; // vrais chiffres : branchés à l'application de cartes
-  const fresh = !stats.visits;
-  const rank = PLAN_RANK[plan];
-  const p = planById[plan];
-  const card = useMemo(() => cardFromConfig({ ...account.card_config, ...(example ? {} : { filled: 0 }) }), [account, example]);
-  const tiles = kpiTiles(stats);
-  const max = Math.max(1, ...stats.weekly);
-  const cap = p.clients;
-  const used = stats.clients;
-  const nearFull = cap && used / cap >= 0.85;
-  const up = nextPlan[plan] ? planById[nextPlan[plan]] : null;
-  const firstName = account.contact_name && account.contact_name !== "Démo" ? account.contact_name.split(" ")[0] : "";
-  const topRef = useRef(null);
-
-  useEffect(() => {
-    const h = window.location.hash.replace("#", "");
-    if (TABS.some((t) => t.id === h)) setTab(h);
-  }, []);
-  function go(id) {
-    setTab(id);
-    try { history.replaceState(null, "", `#${id}`); } catch {}
-    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-  function say(t) { setToast(t); setTimeout(() => setToast(""), 3200); }
-
-  return (
-    <section className="esp" ref={topRef}>
-      <div className="esp-top">
-        <div>
-          <p className="esp-hello">Bonjour{firstName ? ` ${firstName}` : ""} 👋</p>
-          <h1 className="display-m">{card.merchant}</h1>
-        </div>
-        <div className="esp-top-right">
-          <span className="chip chip-violet">Formule {planLabel[plan]}</span>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onOut}><Icon name="logout" size={16} /> {example ? "Quitter l'exemple" : "Se déconnecter"}</button>
-        </div>
-      </div>
-
-      {example && (
-        <div className="esp-demo">
-          <span><b>Exemple</b> avec de faux chiffres. Comparez les formules :</span>
-          <div className="esp-seg" role="radiogroup" aria-label="Voir l'espace en formule">
-            {plans.map((x) => (
-              <label key={x.id}><input type="radio" name="esp-plan" checked={plan === x.id} onChange={() => setPlan(x.id)} /><span>{x.name}</span></label>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <nav className="esp-tabs" role="tablist" aria-label="Mon espace">
-        {TABS.map((t) => (
-          <button key={t.id} type="button" role="tab" aria-label={t.label} aria-selected={tab === t.id} aria-controls={`esp-${t.id}`} id={`esp-tab-${t.id}`} className={tab === t.id ? "on" : ""} onClick={() => go(t.id)}>
-            <Icon name={t.icon} size={18} /><span className="esp-tab-long">{t.label}</span><span className="esp-tab-short" aria-hidden="true">{t.short || t.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      <div id={`esp-${tab}`} role="tabpanel" aria-labelledby={`esp-tab-${tab}`}>
-        {/* ── Accueil ── */}
-        {tab === "accueil" && (
-          <div className="esp-tabpanel">
-            {!example && fresh && (
-              <div className="esp-welcome">
-                <Mascot pose="wave" size={92} title="Walty vous souhaite la bienvenue" />
-                <div>
-                  <b>Votre carte est prête.</b>
-                  <p>Posez l'affiche au comptoir : vos chiffres apparaîtront ici dès le premier tampon.</p>
-                </div>
-              </div>
-            )}
-            <div className="tiles t3">
-              {tiles.slice(0, 3).map((t) => (
-                <div key={t.id} className="tile"><small>{t.label}</small><b>{t.value}</b><span className={t.up ? "up" : ""}>{t.note}</span></div>
-              ))}
-            </div>
-            <h2 className="esp-h">Que voulez-vous faire ?</h2>
-            <div className="esp-actions">
-              <button type="button" className="esp-action main" onClick={() => go("notifications")}>
-                <span className="esp-action-icon"><Icon name="bell" size={22} /></span>
-                <b>Envoyer une notification</b>
-                <span>Une offre sur le téléphone de vos clients{rank < 1 ? " · avec Premium" : ""}</span>
-              </button>
-              <button type="button" className="esp-action" onClick={() => go("carte")}>
-                <span className="esp-action-icon"><Icon name="wallet" size={22} /></span>
-                <b>Voir ma carte</b><span>Et mon QR code comptoir</span>
-              </button>
-              <button type="button" className="esp-action" onClick={() => go("chiffres")}>
-                <span className="esp-action-icon"><Icon name="chart" size={22} /></span>
-                <b>Voir mes chiffres</b><span>Clients, passages, cadeaux</span>
-              </button>
-              <a className="esp-action" href={site.contact.phoneHref}>
-                <span className="esp-action-icon"><Icon name="phone" size={22} /></span>
-                <b>Besoin d'aide ?</b><span>Appelez-nous : {site.contact.phone}</span>
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* ── Notifications ── */}
-        {tab === "notifications" && <Notifications card={card} plan={plan} rank={rank} clients={used} example={example} email={email} say={say} />}
-
-        {/* ── Ma carte ── */}
-        {tab === "carte" && (
-          <div className="esp-tabpanel esp-two">
-            <div className="esp-box">
-              <h2 className="esp-h">Ma carte</h2>
-              <WalletCard card={card} member={example ? "Maëlys" : "Votre client"} />
-              <p className="muted" style={{ fontSize: 15 }}>{card.summary}</p>
-              <Link href="/contact" className="btn btn-ghost btn-sm" style={{ justifySelf: "start" }}><Icon name="edit" size={16} /> Demander un changement</Link>
-            </div>
-            <div className="esp-box">
-              <h2 className="esp-h">Mon QR code comptoir</h2>
-              <div className="counter-sign" style={{ margin: "0 auto" }}>
-                <span className="counter-sign-title">Votre carte de fidélité est ici</span>
-                <span className="counter-qr" />
-                <span className="counter-sign-sub">Scannez avec l'appareil photo</span>
-              </div>
-              <ol className="esp-steps">
-                <li>Le client scanne le QR code avec son téléphone.</li>
-                <li>Il ajoute la carte à son Wallet en 1 touche.</li>
-                <li>À chaque passage, votre équipe tamponne sa carte.</li>
-              </ol>
-              <p className="field-hint">Votre affiche vous est remise à l'installation. Besoin d'une autre ? <Link href="/contact" className="text-link" style={{ fontSize: 13 }}>Demandez-la</Link></p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Mes chiffres ── */}
-        {tab === "chiffres" && (
-          <div className="esp-tabpanel">
-            <div className="esp-box">
-              <div className="esp-box-head">
-                <h2 className="esp-h">Ce mois-ci</h2>
-                {!example && <span className="faint" style={{ fontSize: 13 }}>Mis à jour à chaque tampon</span>}
-              </div>
-              <div className="tiles t4">
-                {tiles.map((t) => {
-                  const locked = PLAN_RANK[t.plan] > rank;
-                  return (
-                    <div key={t.id} className={`tile ${locked ? "locked" : ""}`}>
-                      <small>{t.label}</small>
-                      <b aria-hidden={locked}>{locked && !example ? "—" : t.value}</b>
-                      {locked
-                        ? <Link href={`/contact?formule=${t.plan}`} className="tile-lock"><Icon name="sparkle" size={14} /> Avec {planLabel[t.plan]}</Link>
-                        : <span className={t.up ? "up" : ""}>{t.note}</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="esp-two">
-              <div className="esp-box">
-                <h2 className="esp-h">Passages par semaine</h2>
-                {fresh ? (
-                  <div className="esp-empty"><Icon name="chart" size={22} /><p>Vos passages s'afficheront ici, semaine après semaine.</p></div>
-                ) : (
-                  <>
-                    <div className="bars" role="img" aria-label={`Passages par semaine : ${stats.weekly.join(", ")}`}>
-                      {stats.weekly.map((v, i) => (
-                        <div key={i} className={`b ${i === stats.weekly.length - 1 ? "last" : ""}`} tabIndex={0}><em>{v}</em><i style={{ height: `${(v / max) * 100}%` }} /></div>
-                      ))}
-                    </div>
-                    <div className="bars-x">{stats.weeks.map((w) => <span key={w}>{w}</span>)}</div>
-                  </>
-                )}
-              </div>
-              <div className="esp-box">
-                <h2 className="esp-h">Place sur ma carte</h2>
-                <div className="meter">
-                  <div className="esp-meter-num"><b>{used}</b> <span>client{used > 1 ? "s" : ""} {cap ? `sur ${new Intl.NumberFormat("fr-FR").format(cap)}` : "· illimité"}</span></div>
-                  <div className="meter-track"><span className="meter-fill" style={{ width: cap ? `${Math.min(100, (used / cap) * 100)}%` : used ? "18%" : "0%", background: nearFull ? "var(--hibiscus)" : undefined }} /></div>
-                </div>
-                {nearFull && up
-                  ? <p className="esp-warn">Votre carte est presque pleine. Avec {up.name}, jusqu'à {up.clients ? new Intl.NumberFormat("fr-FR").format(up.clients) : "un nombre illimité de"} clients.</p>
-                  : <p className="muted" style={{ fontSize: 14 }}>{cap ? "Encore de la place pour de nouveaux clients." : "Pas de limite : ajoutez autant de clients que vous voulez."}</p>}
-                {nearFull && up && <Link href={`/contact?formule=${up.id}`} className="btn btn-primary btn-sm" style={{ justifySelf: "start" }}>Passer en {up.name}</Link>}
-              </div>
-            </div>
-            <div className="esp-box">
-              <h2 className="esp-h">Derniers passages</h2>
-              {stats.recent.length ? (
-                <ul className="esp-recent">
-                  {stats.recent.map((r) => (
-                    <li key={r.name + r.when}><span className="esp-avatar">{r.name[0]}</span><b>{r.name}</b><span>{r.stamps}</span><em>{r.when}</em></li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="esp-empty"><Icon name="stamp" size={22} /><p>Aucun passage pour l'instant. Le premier tampon apparaîtra ici.</p></div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Mon offre ── */}
-        {tab === "offre" && (
-          <div className="esp-tabpanel esp-two">
-            <div className="esp-box">
-              <h2 className="esp-h">Ma formule</h2>
-              <p className="esp-plan-name">{p.name} <span>{p.monthly} € / mois · sans engagement</span></p>
-              <ul className="list">
-                {highlights[plan].map(([on, txt]) => (
-                  <li key={txt} className={on ? "" : "off"}><span className={`check ${on ? "" : "x"}`}><Icon name={on ? "check" : "x"} size={12} stroke={2.6} /></span>{txt}</li>
-                ))}
-              </ul>
-              <Link href="/tarifs" className="btn btn-ghost btn-sm" style={{ justifySelf: "start" }}>Comparer les formules</Link>
-            </div>
-            {up ? (
-              <div className="esp-box esp-upsell">
-                <span className="chip chip-orange" style={{ justifySelf: "start" }}>Passer en {up.name} · {up.monthly} € / mois</span>
-                <h2 className="esp-h-lg">{up.tagline}</h2>
-                <ul className="list">
-                  {highlights[up.id].filter(([on]) => on).map(([, txt]) => (
-                    <li key={txt}><span className="check"><Icon name="check" size={12} stroke={2.6} /></span>{txt}</li>
-                  ))}
-                </ul>
-                <Link href={`/contact?formule=${up.id}`} className="btn btn-primary" style={{ justifySelf: "start" }}>Passer en {up.name}</Link>
-              </div>
-            ) : (
-              <div className="esp-box">
-                <h2 className="esp-h">Vous avez tout</h2>
-                <p className="muted">La formule Pro inclut toutes les fonctions. Une idée, une question ? On est là.</p>
-              </div>
-            )}
-            <div className="esp-box esp-help">
-              <h2 className="esp-h">Une question ?</h2>
-              <p className="muted">On vous répond du lundi au samedi, de 8 h à 18 h.</p>
-              <div className="row">
-                <a href={site.contact.phoneHref} className="btn btn-dark btn-sm"><Icon name="phone" size={16} /> {site.contact.phone}</a>
-                <Link href="/contact" className="btn btn-ghost btn-sm">Nous écrire</Link>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {toast && <div className="esp-toast" role="status">{toast}</div>}
-    </section>
-  );
-}
-
-export default function EspaceApp() {
-  const [state, setState] = useState({ loading: true });
-
-  async function load() {
-    const s = await merchantSession();
-    if (!s) return setState({ loading: false, session: null });
-    try {
-      const acc = await getMyAccount();
-      if (acc) return setState({ loading: false, session: s, account: acc, email: s.email });
-      if (isDemo) return setState({ loading: false, session: s, account: freshAccount(s.email), email: s.email });
-      setState({ loading: false, session: s, account: null });
-    } catch (e) {
-      setState({ loading: false, session: s, account: null, error: e.message });
-    }
-  }
-  useEffect(() => { load(); }, []);
-
-  if (state.loading) return <section className="esp-login"><div className="esp-login-card" style={{ minHeight: 420 }} /></section>;
-  if (state.example) return <Dashboard account={EXAMPLE} example email="exemple@walty" onOut={async () => { await merchantSignOut(); setState({ loading: false, session: null }); }} />;
-  if (!state.session) return <Login onIn={load} onExample={() => setState({ loading: false, session: null, example: true })} />;
-  if (!state.account) {
-    return (
-      <section className="esp-login">
-        <div className="esp-login-card">
-          <Mascot pose="lost" size={150} title="Walty cherche votre carte" />
-          <h1 className="display-m">Carte introuvable</h1>
-          <p className="muted" style={{ textAlign: "center" }}>{state.error || "Aucune carte active avec cet e-mail. Votre carte est peut-être en cours d'activation."}</p>
-          <Link href="/contact" className="btn btn-primary">Nous écrire</Link>
-          <button type="button" className="btn btn-ghost" onClick={async () => { await merchantSignOut(); setState({ loading: false, session: null }); }}>Se déconnecter</button>
-        </div>
       </section>
-    );
-  }
-  return <Dashboard account={state.account} email={state.email} onOut={async () => { await merchantSignOut(); setState({ loading: false, session: null }); }} />;
+    </div>
+  );
 }
