@@ -11,7 +11,7 @@ export const metadata = {
 
 const palette = [
   { name: "Flamboyant", hex: "#FF5B1F", rgb: "255 · 91 · 31", role: "Couleur signature", why: "L'arbre flamboyant qui s'embrase en été, le soleil qui plonge dans la mer. Énergie, appétit, action : c'est la couleur des boutons et de ce qu'on veut faire cliquer.", big: true, fg: "#fff", bg: "#FF5B1F" },
-  { name: "Crépuscule", hex: "#7B3CFF", rgb: "123 · 60 · 255", role: "Couleur digitale", why: "Le violet du ciel juste après le coucher du soleil. Il apporte le côté premium et technologique, et fait vibrer l'orange par contraste.", big: true, fg: "#fff", bg: "#7B3CFF" },
+  { name: "Crépuscule", hex: "#7B3CFF", rgb: "123 · 60 · 255", role: "Couleur digitale", why: "Le violet du ciel juste après le coucher du soleil. Il apporte le côté haut de gamme et technologique, et fait vibrer l'orange par contraste.", big: true, fg: "#fff", bg: "#7B3CFF" },
   { name: "Hibiscus", hex: "#FF2E7E", rgb: "255 · 46 · 126", role: "Pont", why: "La fleur d'hibiscus. Elle relie l'orange au violet dans le dégradé.", fg: "#fff", bg: "#FF2E7E" },
   { name: "Mangue", hex: "#FFA23D", rgb: "255 · 162 · 61", role: "Lumière", why: "Le haut du dégradé, les reflets, les petits accents chaleureux.", fg: "#0b0713", bg: "#FFA23D" },
   { name: "Lagon", hex: "#2DE2C4", rgb: "45 · 226 · 196", role: "Validation", why: "L'eau du lagon. Réservé à ce qui est réussi : tampon ajouté, paiement reçu, client actif.", fg: "#0b0713", bg: "#2DE2C4" },
@@ -43,7 +43,7 @@ export default function MarquePage() {
           <div className="grid cols-3">
             {[
               { t: "Pourquoi l'orange", d: "C'est la couleur de l'appétit et de l'action, parfaite pour des snacks, des roulottes et des cafés. En Guadeloupe, elle évoque le soleil, le flamboyant et le madras : elle parle à tout le monde, sans cliché." },
-              { t: "Pourquoi le violet", d: "L'orange seul ferait « promo de supermarché ». Le violet du crépuscule lui donne une dimension premium et digitale. Ensemble, ils forment un dégradé qu'on reconnaît de loin, sur une affiche comme sur un écran." },
+              { t: "Pourquoi le violet", d: "L'orange seul ferait « promo de supermarché ». Le violet du crépuscule lui donne une dimension haut de gamme et digitale. Ensemble, ils forment un dégradé qu'on reconnaît de loin, sur une affiche comme sur un écran." },
               { t: "Pourquoi la nuit, en sobre", d: "Un fond de nuit prune, jamais un noir pur, repose les yeux le soir et fait briller les cartes Wallet. On reste sobre : pas de halos, des surfaces mates, et l'orange gardé pour les boutons." },
             ].map((c, i) => (
               <div key={c.t} className="cell feature reveal" data-delay={i + 1}>
@@ -256,7 +256,7 @@ export default function MarquePage() {
           <div className="where-map">
             {[
               ["Accueil · haut", "Debout à côté du téléphone, sur le même sol. Il arme, frappe la carte, et le 4e tampon s'allume au même instant."],
-              ["Tarifs", "Vraiment assis sur le bord de la carte Premium : mains agrippées, jambes qui balancent, ombres sur la carte."],
+              ["Tarifs", "Vraiment assis sur le bord de la carte Tout compris : mains agrippées, jambes qui balancent, ombres sur la carte."],
               ["Demande de démo", "Il salue à côté du formulaire, puis tamponne la demande une fois envoyée."],
               ["Pied de page", "Seule sa carte dépasse du bord, il vous regarde partir."],
               ["Page produit", "Il tamponne une carte en gros plan."],
@@ -301,8 +301,8 @@ export default function MarquePage() {
               {[
                 ["On dit", "« Faites-les revenir. »"],
                 ["On évite", "« Optimisez votre rétention client omnicanale. »"],
-                ["On dit", "« Moins d'1 € par jour. »"],
-                ["On évite", "« Le prix d'un bokit par semaine » (trop long à calculer)."],
+                ["On dit", "« Dès 9 € par mois, sans engagement. »"],
+                ["On évite", "« Moins cher qu'un bokit par semaine » (trop long à calculer)."],
                 ["On dit", "« Zéro impression, zéro transport. »"],
                 ["On évite", "« 100 % écologique » (allégation encadrée par la loi)."],
               ].map(([t, d], i) => (

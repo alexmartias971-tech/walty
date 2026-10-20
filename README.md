@@ -9,7 +9,7 @@ Site Next.js prêt pour GitHub → Vercel. **Version 12 : le vrai espace commer�
 | --- | --- |
 | Accueil | `/` |
 | Le produit | `/produit` |
-| Tarifs (Essentiel 29 € · Premium 49 € · Pro 79 €) | `/tarifs` |
+| Tarifs (Essentiel 9 € · Tout compris 15 €, au mois, sans engagement) | `/tarifs` |
 | **Créer ma carte** : écran « Bientôt disponible » animé (agent IA à venir) avec « Réserver une démo » et une liste d'attente « Me prévenir ». L'ancien assistant en 9 étapes est gardé dans `app/(site)/creer/CreerWizard.jsx` | `/creer` |
 | **Espace commerçant** (lien d'accès + code PIN ; scanner les cartes, clients, chiffres, offres, messages). Lien discret en bas de chaque page | `/espace` |
 | Contact (réserver une démo) | `/contact` |
@@ -17,7 +17,7 @@ Site Next.js prêt pour GitHub → Vercel. **Version 12 : le vrai espace commer�
 | Identité de marque + planche mascotte (page interne : pas de lien sur le site, pas sur Google) | `/marque` |
 | Mentions légales, Confidentialité, CGV, CGU, Cookies | `/mentions-legales`, `/confidentialite`, `/cgv`, `/cgu`, `/cookies` |
 | Vos données de porteur de carte (clients des commerces, accord pour les offres) | `/porteurs` |
-| **Espace admin** (prospects, pipeline, clients, relances, cartes créées en ligne, export CSV) | `/admin` |
+| **Espace admin** (prospects, pipeline, clients, suivi, cartes créées en ligne, export CSV) | `/admin` |
 
 Partout, deux portes d'entrée : **Créer ma carte** (le commerçant fait seul, essai 14 jours) et **Réserver une démo** (vous venez chez lui).
 
@@ -102,7 +102,7 @@ Supprimez l'ancien fichier `app/(site)/tarifs/Plans.jsx` resté dans le dépôt 
 
 ## 6. Modifier le contenu
 
-- Formules, prix, limites de clients, options, durée d'essai : `lib/offer.js` (se répercute sur l'accueil, les tarifs, Créer ma carte, l'espace commerçant, les CGV et l'admin). `trialDays = 0` retire l'essai gratuit partout.
+- Formules, prix, comparatif, durée d'essai : `lib/offer.js` (se répercute sur l'accueil, les tarifs, Créer ma carte, l'espace commerçant, les CGV et l'admin). `trialDays = 0` retire l'essai gratuit partout.
 - Les chiffres d'exemple de l'aperçu (page d'accueil) : `lib/kpis.js`.
 - Les prestataires, l'e-mail, le téléphone : `lib/site.config.js`.
 - Les couleurs : en haut de `app/globals.css` (thème sombre ; la classe `.dark` donne un bloc teinté crépuscule).

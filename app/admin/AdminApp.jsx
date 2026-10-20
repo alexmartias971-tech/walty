@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Logo, { LogoMark } from "@/components/Logo";
 import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
-import { plans, planById } from "@/lib/offer";
+import { plans, planById, planCode } from "@/lib/offer";
 import WalletCard, { cardFromConfig } from "@/components/WalletCard";
 import { programById, programDisplay } from "@/lib/programs";
 import {
@@ -51,7 +51,7 @@ function Login({ onDone }) {
         <div className="center" style={{ display: "grid", gap: 8, justifyItems: "center" }}>
           <Logo size={36} />
           <h1 className="display-s" style={{ marginTop: 8 }}>Espace administrateur</h1>
-          <p className="muted" style={{ fontSize: 14 }}>Prospects, clients, relances et chiffres.</p>
+          <p className="muted" style={{ fontSize: 14 }}>Prospects, clients, suivi et chiffres.</p>
         </div>
         {isDemo ? (
           <>
@@ -235,8 +235,7 @@ function Dashboard({ list, onOpen, go }) {
   const inPipe = list.filter((a) => ["nouveau", "contacte", "demo", "proposition"].includes(a.stage));
   const lost = list.filter((a) => a.stage === "perdu").length;
   const conv = clients.length + lost ? Math.round((clients.length / (clients.length + lost)) * 100) : 0;
-  const potential = list.filter((a) => a.stage === "proposition").reduce((s, a) => s + (planById[a.plan]?.monthly || 29), 0);
-  const founders = clients.filter((a) => a.founder).length;
+  const potential = list.filter((a) => a.stage === "proposition").reduce((s, a) => s + (planById[a.plan]?.monthly || 9), 0);
 
   const t = todayStr();
   const todo = list
@@ -246,14 +245,14 @@ function Dashboard({ list, onOpen, go }) {
 
   const byStage = STAGES.map((s) => ({ ...s, n: list.filter((a) => a.stage === s.id).length }));
   const maxStage = Math.max(1, ...byStage.map((s) => s.n));
-  const byPlan = plans.map((p) => ({ ...p, n: active.filter((a) => a.plan === p.id).length, mrr: active.filter((a) => a.plan === p.id).reduce((s, a) => s + Number(a.mrr || 0), 0) }));
+  const byPlan = plans.map((p) => { const mine = active.filter((a) => planCode(a.plan) === p.id); return { ...p, n: mine.length, mrr: mine.reduce((s, a) => s + Number(a.mrr || 0), 0) }; });
   const maxPlan = Math.max(1, ...byPlan.map((p) => p.mrr));
 
   return (
     <div className="stack" style={{ "--gap": "12px" }}>
       <div className="kpis">
         <div className="kpi glass hot"><small><Icon name="euro" size={15} /> Revenu mensuel récurrent</small><b>{eur(mrr)}</b><span>{eur(mrr * 12)} sur 12 mois</span></div>
-        <div className="kpi glass"><small><Icon name="store" size={15} /> Clients actifs</small><b>{active.length}</b><span>Fondateurs : {founders}/10</span></div>
+        <div className="kpi glass"><small><Icon name="store" size={15} /> Clients actifs</small><b>{active.length}</b><span>{byPlan.map((p) => `${p.name} : ${p.n}`).join(" · ")}</span></div>
         <div className="kpi glass"><small><Icon name="kanban" size={15} /> Prospects en cours</small><b>{inPipe.length}</b><span>Potentiel en proposition : {eur(potential)}/mois</span></div>
         <div className="kpi glass"><small><Icon name="chart" size={15} /> Taux de signature</small><b>{conv} %</b><span>Clients ÷ (clients + perdus)</span></div>
       </div>
@@ -369,7 +368,6 @@ function Pipeline({ list, onOpen, onMove }) {
                     {a.source === "site" && <span className="tag site">Site web</span>}
                     {(a.plan || a.requested_plan) && <span className="tag plan">{planById[a.plan || a.requested_plan]?.name}{!a.plan && " ?"}</span>}
                     {a.card_config && <span className="tag plan">Carte en ligne</span>}
-                    {a.founder && <span className="tag founder">Fondateur</span>}
                   </div>
                   {a.next_action && (
                     <span className="meta" style={{ color: a.next_action_date && a.next_action_date < todayStr() ? "#ffb08a" : undefined }}>
@@ -405,14 +403,13 @@ function Clients({ list, onOpen }) {
         <div className="tbl-wrap">
           <table className="tbl">
             <thead>
-              <tr><th>Commerce</th><th>Formule</th><th>Paiement</th><th style={{ textAlign: "right" }}>Mensuel</th><th>Client depuis</th><th>Statut</th><th>Prochaine action</th></tr>
+              <tr><th>Commerce</th><th>Formule</th><th style={{ textAlign: "right" }}>Mensuel</th><th>Client depuis</th><th>Statut</th><th>Prochaine action</th></tr>
             </thead>
             <tbody>
               {clients.map((a) => (
                 <tr key={a.id} onClick={() => onOpen(a)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen(a)}>
-                  <td><b>{a.business}</b>{a.founder && <span className="tag founder" style={{ marginLeft: 8 }}>Fondateur</span>}<div className="faint" style={{ fontSize: 12 }}>{[a.sector, a.city].filter(Boolean).join(" · ")}</div></td>
+                  <td><b>{a.business}</b><div className="faint" style={{ fontSize: 12 }}>{[a.sector, a.city].filter(Boolean).join(" · ")}</div></td>
                   <td>{planById[a.plan]?.name || "—"}</td>
-                  <td>{a.billing === "annuel" ? "Annuel" : "Mensuel"}</td>
                   <td className="num">{eur(a.mrr)}</td>
                   <td>{a.client_since ? new Date(a.client_since + "T12:00:00").toLocaleDateString("fr-FR") : "—"}</td>
                   <td><span className={`status ${a.client_status || "actif"}`}>{{ actif: "Actif", pause: "En pause", resilie: "Résilié" }[a.client_status || "actif"]}</span></td>
@@ -446,7 +443,7 @@ function Fiche({ acc, onClose, onSave, onDelete }) {
     const v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setA((p) => {
       const n = { ...p, [k]: v };
-      if ((k === "plan" || k === "billing") && n.plan) n.mrr = computeMrr(n.plan, n.billing);
+      if (k === "plan" && n.plan) n.mrr = computeMrr(n.plan);
       return n;
     });
   };
@@ -493,10 +490,10 @@ function Fiche({ acc, onClose, onSave, onDelete }) {
             {a.requested_plan && (
               <div className="row" style={{ marginTop: 12, justifyContent: "space-between" }}>
                 <span>Formule choisie : <b>{planById[a.requested_plan]?.name}</b> ({planById[a.requested_plan]?.monthly} €/mois)</span>
-                {a.plan !== a.requested_plan && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setA((p) => ({ ...p, plan: p.requested_plan, mrr: computeMrr(p.requested_plan, p.billing) }))}>Reprendre cette formule</button>}
+                {planCode(a.plan) !== planCode(a.requested_plan) && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setA((p) => ({ ...p, plan: planCode(p.requested_plan), mrr: computeMrr(p.requested_plan) }))}>Reprendre cette formule</button>}
               </div>
             )}
-            {a.card_config?.program && <p style={{ fontSize: 13, marginTop: 10 }}><b>{programById[a.card_config.program.type]?.name}</b> · {programDisplay(a.card_config.program).summary}</p>}
+            {a.card_config?.program && <p style={{ fontSize: 13, marginTop: 10 }}><b>{programById[a.card_config.program.type]?.name || "Carte à tampons"}</b> · {programDisplay(a.card_config.program).summary}</p>}
             {a.card_config?.brand && (
               <p style={{ fontSize: 13, marginTop: 6, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                 <span>Charte : {{ complete: "complète", logo: "logo seul", none: "aucune" }[a.card_config.brand.charter] || "—"}</span>
@@ -520,7 +517,7 @@ function Fiche({ acc, onClose, onSave, onDelete }) {
             <div style={{ display: "grid", gap: 2, fontSize: 14 }}>
               <span><b>{a.billing_info.legal_name}</b>{a.billing_info.siret ? ` · SIRET ${a.billing_info.siret}` : " · SIRET à demander"}</span>
               <span>{a.billing_info.address}, {a.billing_info.postal_code} {a.billing_info.city}</span>
-              <span>Factures : {a.billing_info.email} · paiement {a.billing_info.billing}</span>
+              <span>Factures : {a.billing_info.email} · paiement au mois</span>
               {a.billing_info.options?.length > 0 && <span>Options : {a.billing_info.options.join(", ")}</span>}
               <span className="faint">{a.billing_info.marketing_optin ? "Accepte les conseils par message" : "Ne veut pas de messages commerciaux"}</span>
             </div>
@@ -552,7 +549,7 @@ function Fiche({ acc, onClose, onSave, onDelete }) {
               <select className="select" value={a.stage || "nouveau"} onChange={set("stage")}>{STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
             </div>
             <div className="field"><label>Formule visée</label>
-              <select className="select" value={a.plan || ""} onChange={set("plan")}><option value="">—</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.monthly} €</option>)}</select>
+              <select className="select" value={planCode(a.plan) || ""} onChange={set("plan")}><option value="">—</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.monthly} €</option>)}</select>
             </div>
           </div>
           <div className="two">
@@ -566,7 +563,7 @@ function Fiche({ acc, onClose, onSave, onDelete }) {
             <legend>Abonnement</legend>
             <div className="two">
               <div className="field"><label>Paiement</label>
-                <select className="select" value={a.billing || "mensuel"} onChange={set("billing")}><option value="mensuel">Mensuel</option><option value="annuel">Annuel</option></select>
+                <input className="input" value="Au mois" readOnly />
               </div>
               <div className="field"><label>Revenu mensuel (€)</label><input className="input" type="number" step="0.01" min="0" value={a.mrr ?? 0} onChange={set("mrr")} /></div>
             </div>
@@ -576,7 +573,6 @@ function Fiche({ acc, onClose, onSave, onDelete }) {
                 <select className="select" value={a.client_status || "actif"} onChange={set("client_status")}><option value="actif">Actif</option><option value="pause">En pause</option><option value="resilie">Résilié</option></select>
               </div>
             </div>
-            <label className="consent"><input type="checkbox" checked={!!a.founder} onChange={set("founder")} /> Offre fondateurs (prix gardé à vie)</label>
           </fieldset>
         )}
 

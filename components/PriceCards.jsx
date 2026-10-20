@@ -5,13 +5,17 @@ import { useEffect, useRef, useState } from "react";
 import Mascot from "./Mascot";
 import Icon from "./Icon";
 import { plans, highlights, trialDays } from "@/lib/offer";
+import "./PriceCards.css";
 
-/** Les 3 formules. Ce qui manque est barré : la différence se voit d'un coup d'œil. */
-export default function PriceCards({ toggle = false }) {
-  const [yearly, setYearly] = useState(false);
-  const [active, setActive] = useState(1);
+/**
+ * Les 2 formules, payées au mois. Ce qui manque est barré : la différence se voit d'un coup d'œil.
+ * `note` : affiche au-dessus des cartes la ligne « au mois, sans engagement, essai gratuit ».
+ */
+export default function PriceCards({ note = false }) {
+  const [active, setActive] = useState(Math.max(0, plans.findIndex((p) => p.featured)));
   const row = useRef(null);
-  // Sur téléphone et tablette, les cartes défilent de côté : on ouvre sur Premium
+  // Sur téléphone et tablette, les cartes défilent de côté : on ouvre sur la formule conseillée
+  // (Walty est assis dessus) et on suit celle qui est au centre
   useEffect(() => {
     const el = row.current;
     if (!el || window.innerWidth >= 960) return;
@@ -35,12 +39,13 @@ export default function PriceCards({ toggle = false }) {
   }
   return (
     <>
-      {toggle && (
+      {note && (
         <div className="row toggle-row" style={{ justifyContent: "center" }}>
-          <div className="billing" role="group" aria-label="Paiement">
-            <button aria-pressed={!yearly} onClick={() => setYearly(false)}>Au mois</button>
-            <button aria-pressed={yearly} onClick={() => setYearly(true)}>À l'année <em>2 mois offerts</em></button>
-          </div>
+          <p className="price-note">
+            <span><Icon name="check" size={14} stroke={2.6} /> Paiement au mois</span>
+            <span><Icon name="check" size={14} stroke={2.6} /> Sans engagement</span>
+            {trialDays > 0 && <span><Icon name="check" size={14} stroke={2.6} /> {trialDays} jours d'essai gratuit</span>}
+          </p>
         </div>
       )}
       <div className="price-dots" aria-label="Formules">
@@ -48,19 +53,19 @@ export default function PriceCards({ toggle = false }) {
           <button key={p.id} type="button" className={i === active ? "on" : ""} onClick={() => go(i)} aria-label={`Voir ${p.name}`} aria-current={i === active ? "true" : undefined}>{p.name}</button>
         ))}
       </div>
-      <div className="price-row" ref={row}>
+      <div className={`price-row price-row--${plans.length}`} ref={row}>
         {plans.map((p) => (
           <article key={p.id} className={`price-card ${p.featured ? "featured" : ""}`}>
             {p.featured && (
               <div className="sitter" aria-hidden="true">
                 <span className="bubble">Celle-là, je la conseille !</span>
-                <Mascot pose="sit" size={180} className="sitter-mascot" title="Walty est assis sur la formule Premium" />
+                <Mascot pose="sit" size={180} className="sitter-mascot" title={`Walty est assis sur la formule ${p.name}`} />
               </div>
             )}
             <span className="price-tag">{p.tagline}</span>
             <h3 className="display-s">{p.name}</h3>
-            <div className="price-num">{yearly ? p.yearly : p.monthly}<span>{yearly ? " € / an" : " € / mois"}</span></div>
-            <p className="price-sub">{yearly ? `soit ${(p.yearly / 12).toFixed(2).replace(".", ",")} € par mois` : p.for}</p>
+            <div className="price-num">{p.monthly}<span> € / mois</span></div>
+            <p className="price-sub">{p.for}</p>
             <ul className="list">
               {highlights[p.id].map(([on, txt]) => (
                 <li key={txt} className={on ? "" : "off"}>

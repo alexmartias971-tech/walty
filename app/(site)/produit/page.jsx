@@ -5,25 +5,32 @@ import WalletCard from "@/components/WalletCard";
 import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import Fork from "@/components/Fork";
-import { PROGRAMS } from "@/lib/programs";
 
 export const metadata = {
   title: "Le produit",
-  description: "Carte de fidélité Apple Wallet et Google Wallet, tampons sécurisés, messages sur le téléphone de vos clients, relances automatiques et chiffres clairs.",
+  description: "Carte de fidélité à tampons dans Apple Wallet et Google Wallet : tampons sécurisés, un produit offert ou une remise au bout. Avec Tout compris : statistiques, notifications, anniversaire, avis Google.",
 };
 
-/* Ce que fait la carte, avec la formule qui le débloque. */
+/* Ce que fait la carte, avec la formule qui le comprend. */
 const features = [
-  { i: "wallet", t: "Dans le téléphone", d: "iPhone et Android. Pas d'appli Walty à télécharger.", plan: "Toutes" },
-  { i: "stamp", t: "Tampons sécurisés", d: "C'est votre équipe qui tamponne, pas le client.", plan: "Toutes" },
-  { i: "chart", t: "Vos chiffres", d: "Clients, passages, cadeaux. Sur votre téléphone.", plan: "Toutes" },
-  { i: "sparkle", t: "Carte avec vos photos", d: "Votre logo, vos couleurs, vos photos.", plan: "Premium" },
-  { i: "bell", t: "Vos offres sur leur téléphone", d: "Comme un SMS, sans payer chaque envoi.", plan: "Premium" },
-  { i: "clock", t: "Relance automatique", d: "Absent depuis 30 jours ? Un message part tout seul.", plan: "Pro" },
-  { i: "cake", t: "Cadeau d'anniversaire", d: "Le jour J, le cadeau arrive sur sa carte.", plan: "Pro" },
-  { i: "heart", t: "Avis Google", d: "Après sa 3e visite, on lui demande un avis.", plan: "Pro" },
+  { i: "wallet", t: "Dans le téléphone", d: "iPhone et Android. Pas d'appli Walty à télécharger.", plan: "both" },
+  { i: "stamp", t: "Tampons sécurisés", d: "C'est votre équipe qui tamponne, pas le client.", plan: "both" },
+  { i: "gift", t: "Un cadeau au bout", d: "Carte pleine : un produit offert ou une remise. Vous choisissez.", plan: "both" },
+  { i: "sparkle", t: "Carte sur mesure", d: "Vos photos, des visuels de saison.", plan: "tc" },
+  { i: "chart", t: "Vos statistiques", d: "Clients qui reviennent, passages, cadeaux, argent rapporté (estimé).", plan: "tc" },
+  { i: "bell", t: "Vos offres sur leur téléphone", d: "Jusqu'à 4 notifications par semaine. Vous écrivez, on envoie.", plan: "tc" },
+  { i: "cake", t: "Offre d'anniversaire", d: "Le jour J, l'offre arrive toute seule sur sa carte.", plan: "tc" },
+  { i: "heart", t: "Avis Google et parrainage", d: "Un lien vers votre fiche Google sur la carte. Et vos clients font venir leurs amis.", plan: "tc" },
 ];
-const chip = { Toutes: "chip", Premium: "chip chip-orange", Pro: "chip chip-violet" };
+const chip = { both: ["chip", "Les 2 formules"], tc: ["chip chip-violet", "Tout compris"] };
+
+/* Exemples de cartes à tampons, selon le commerce. */
+const examples = [
+  { i: "store", t: "Roulotte, snack", d: "Le 10e bokit offert.", k: "Produit offert" },
+  { i: "gift", t: "Coffee shop", d: "8 cafés, 1 matcha glacé offert.", k: "Produit offert" },
+  { i: "percent", t: "Onglerie", d: "-50 % sur la 6e pose.", k: "Remise" },
+  { i: "stamp", t: "Karting, loisirs", d: "Au 5e tampon, 1 session offerte.", k: "Produit offert" },
+];
 
 export default function ProduitPage() {
   return (
@@ -31,7 +38,7 @@ export default function ProduitPage() {
       <PageHero
         label="Le produit"
         title={<>Tout ce que fait <span className="serif">votre carte</span>.</>}
-        lead="Une carte dans le téléphone de vos clients. Un tampon à chaque passage. Vous, vous voyez qui revient."
+        lead="Une carte dans le téléphone de vos clients. Un tampon à chaque passage, un cadeau au bout."
       >
         <div style={{ display: "flex", justifyContent: "center", position: "relative" }}>
           <Phone theme="lagon" notif={{ app: "Coffee Plage", text: "Ton 5e tampon est là ☕ Plus que 3 avant ton matcha offert." }} />
@@ -51,7 +58,7 @@ export default function ProduitPage() {
                 <span className="step-icon"><Icon name={f.i} size={20} /></span>
                 <h3>{f.t}</h3>
                 <p>{f.d}</p>
-                <span className={chip[f.plan]} style={{ justifySelf: "start" }}>{f.plan === "Toutes" ? "Toutes les formules" : f.plan === "Premium" ? "Premium et Pro" : "Pro"}</span>
+                <span className={chip[f.plan][0]} style={{ justifySelf: "start" }}>{chip[f.plan][1]}</span>
               </div>
             ))}
           </div>
@@ -83,26 +90,26 @@ export default function ProduitPage() {
         </div>
       </section>
 
-      {/* Types de carte */}
+      {/* La carte à tampons */}
       <section className="frame">
         <div className="rails section">
           <div className="section-head">
-            <span className="label">8 types de carte</span>
+            <span className="label">La carte à tampons</span>
             <h2 className="display-l reveal">Le cadeau qui va avec <span className="serif">votre commerce</span>.</h2>
+            <p className="lead">Un tampon à chaque passage. Quand la carte est pleine, vous offrez un produit ou une remise. C'est vous qui choisissez.</p>
           </div>
           <div className="grid cols-4">
-            {PROGRAMS.map((m, i) => (
-              <div key={m.id} className="cell feature reveal" data-delay={(i % 4) + 1}>
-                <span className="step-icon"><Icon name={m.icon} size={20} /></span>
-                <h3>{m.name}</h3>
-                <p>{m.line}</p>
-                <span className="chip chip-orange" style={{ justifySelf: "start" }}>{m.example}</span>
-                <span className={m.plan === "essentiel" ? "faint" : ""} style={{ fontSize: 13, fontWeight: 800, color: m.plan === "essentiel" ? undefined : "var(--violet-ink)" }}>{m.plan === "essentiel" ? "Toutes les formules" : "Premium et Pro"}</span>
+            {examples.map((m, i) => (
+              <div key={m.t} className="cell feature reveal" data-delay={(i % 4) + 1}>
+                <span className="step-icon"><Icon name={m.i} size={20} /></span>
+                <h3>{m.t}</h3>
+                <p>{m.d}</p>
+                <span className="chip chip-orange" style={{ justifySelf: "start" }}>{m.k}</span>
               </div>
             ))}
           </div>
           <div className="how-foot">
-            <p>Vous ne savez pas lequel choisir ? On vous conseille selon votre activité.</p>
+            <p>Vous hésitez sur le cadeau ? On vous conseille selon votre activité.</p>
             <Link href="/contact" className="btn btn-primary btn-sm">Réserver une démo</Link>
           </div>
         </div>
@@ -113,7 +120,7 @@ export default function ProduitPage() {
         <div className="rails section">
           <div className="section-head">
             <span className="label">Comparez</span>
-            <h2 className="display-l reveal">Carton, appli, <span className="serif">ou Walty</span> ?</h2>
+            <h2 className="display-l reveal">Carton, appli, <span className="serif">ou Walty</span>{" "}?</h2>
           </div>
           <div className="table-wrap reveal">
             <table className="cmp">
@@ -125,8 +132,8 @@ export default function ProduitPage() {
                   ["Le client installe quelque chose", "Non", "Oui (et souvent il refuse)", "Non"],
                   ["Se perd", "Souvent", "Rarement", "Non, elle reste dans le téléphone"],
                   ["Triche possible", "Oui (stylo)", "Ça dépend", "Très difficile"],
-                  ["Vous savez qui revient", "Non", "Oui", "Oui"],
-                  ["Prévenir vos clients", "Impossible", "Si l'appli est ouverte", "Sur leur écran"],
+                  ["Vous avez la liste de vos clients", "Non", "Oui", "Oui"],
+                  ["Prévenir vos clients", "Impossible", "Si l'appli est ouverte", "Sur leur écran (Tout compris)"],
                   ["Installation", "Vous", "Vous", "On s'en occupe"],
                 ].map((r) => (
                   <tr key={r[0]}>
@@ -154,7 +161,7 @@ export default function ProduitPage() {
             {[
               { i: "shield", t: "Le strict minimum", d: "Prénom et téléphone. L'anniversaire si le client veut." },
               { i: "download", t: "Votre liste", d: "En fichier Excel, quand vous voulez." },
-              { i: "users", t: "Un accès par employé", d: "Vous le coupez quand vous voulez." },
+              { i: "users", t: "Les accès de l'équipe", d: "1 accès avec Essentiel, autant que vous voulez avec Tout compris. Vous les coupez quand vous voulez." },
               { i: "shield", t: "Protégé", d: "Connexion chiffrée, mot de passe pour chaque accès." },
             ].map((c) => (
               <div key={c.t} className="cell feature">

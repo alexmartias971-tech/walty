@@ -13,6 +13,18 @@
  *
  * - login-password / password (connexion du gérant par mot de passe) : POST seulement, depuis walty.fr seulement ;
  *   le mot de passe ne passe que dans le corps de la demande, jamais dans l'adresse, et n'est jamais écrit dans les journaux.
+ * - reset-request / reset-complete (« Mot de passe oublié ? ») : POST depuis walty.fr seulement ;
+ *   l'adresse e-mail, le jeton du lien reçu par e-mail et le nouveau mot de passe ne passent que dans le corps de la demande.
+ *   GET reset-request dit seulement si l'envoi d'e-mails est configuré ({ mail: true/false }).
+ * - export (« Exporter en Excel », gérant seulement) : GET seulement ; le fichier CSV du logiciel de cartes est
+ *   transmis tel quel (type text/csv, nom de fichier vérifié).
+ *
+ * - Rôles (gérant / employé) : la preuve « gérant » est un second cookie signé par le logiciel de cartes
+ *   (« commercant_role », posé par login-gerant = connexion e-mail/identifiant + mot de passe) ; walty.fr le transmet
+ *   sans pouvoir le lire ni le fabriquer. Pour les rubriques du gérant (programme, offres, messages, historique,
+ *   chiffres, ma carte, actions à la main), la passerelle demande d'abord au logiciel de cartes (adresse « role »)
+ *   qui est connecté, et refuse (403) un employé connecté par code PIN. Le changement de mot de passe exige une
+ *   connexion par mot de passe. Les actions à la main sont AUSSI refusées par le logiciel de cartes lui-même.
  *
  * Variable facultative : CARTEDEFID_URL (par défaut https://cartedefid.vercel.app).
  */
@@ -25,10 +37,26 @@ const ROUTES = new Set([
   "card", "program", "history", "customer", "insights",
   // connexion du gérant par e-mail (ou identifiant) + mot de passe, et changement du mot de passe
   "login-password", "password",
+  // rôles gérant / employé, actions à la main (sans QR code) et leurs badges dans l'historique
+  "login-gerant", "role", "manual", "manual-log",
+  // « Mot de passe oublié ? » : demande du lien par e-mail, puis nouveau mot de passe avec ce lien
+  "reset-request", "reset-complete",
+  // « Exporter en Excel » (clients, passages) : fichier CSV, gérant seulement
+  "export",
 ]);
+/** Adresses en lecture seule (GET). */
+const GET_ONLY = new Set(["export"]);
 /** Adresses qui n'acceptent que POST (jamais de mot de passe dans une adresse GET). */
-const POST_ONLY = new Set(["login-password", "password"]);
+const POST_ONLY = new Set(["login-password", "password", "login-gerant", "manual", "reset-complete"]);
 const COOKIE = "commercant_session";
+/** Preuve « gérant » (connexion par mot de passe), signée par le logiciel de cartes, liée au badge de session. */
+const ROLE_COOKIE = "commercant_role";
+const COOKIES = [COOKIE, ROLE_COOKIE];
+/** Rubriques réservées au gérant (refusées à un employé connecté par code PIN). */
+const MANAGER_ONLY = new Set(["program", "offers", "notifications", "history", "insights", "stats", "card", "manual", "export"]);
+/** Changer le mot de passe : seulement une session ouverte par mot de passe (même provisoire). */
+const PASSWORD_ONLY = new Set(["password"]);
+const LOGIN_ROUTES = new Set(["login", "login-password", "login-gerant"]);
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +113,34 @@ async function passwordAvailable() {
   }
 }
 
+/** Les cookies du commerçant à transmettre au logiciel de cartes. */
+function cookieHeader(request) {
+  const out = [];
+  for (const name of COOKIES) {
+    const v = request.cookies.get(name)?.value;
+    if (v && /^[\w.-]{1,300}$/.test(v)) out.push(`${name}=${v}`);
+  }
+  return out.join("; ");
+}
+
+/**
+ * Qui est connecté ? (gérant / employé) — demandé au logiciel de cartes, qui seul peut vérifier la signature.
+ * null = adresse « role » pas encore installée sur le logiciel de cartes (ancien comportement, sans rôles).
+ */
+async function whoIs(cookie) {
+  const res = await fetch(`${BASE}/api/merchant/role`, {
+    headers: { Accept: "application/json", ...(cookie ? { Cookie: cookie } : {}) },
+    cache: "no-store",
+    redirect: "manual",
+    signal: AbortSignal.timeout(10000),
+  });
+  const isJson = (res.headers.get("content-type") || "").includes("application/json");
+  if (!isJson && (res.status === 404 || res.status === 405)) return null;
+  const data = isJson ? await res.json().catch(() => null) : null;
+  if (!data || typeof data !== "object") throw new Error("role");
+  return { status: res.status, ...data };
+}
+
 async function relay(request, ctx) {
   const { chemin = "" } = await ctx.params;
   const route = Array.isArray(chemin) ? chemin.join("/") : String(chemin);
@@ -92,14 +148,38 @@ async function relay(request, ctx) {
   // GET login-password : la connexion par mot de passe est-elle installée sur le logiciel de cartes ? (sans aucune donnée)
   if (route === "login-password" && request.method === "GET") return passwordAvailable();
   if (POST_ONLY.has(route) && request.method !== "POST") return json({ ok: false, error: "Méthode non autorisée." }, 405);
+  if (GET_ONLY.has(route) && request.method !== "GET") return json({ ok: false, error: "Méthode non autorisée." }, 405);
 
   // Les actions (POST, DELETE) ne sont acceptées que depuis walty.fr lui-même
   if (request.method !== "GET" && !sameOrigin(request)) return json({ ok: false, error: "Demande refusée." }, 403);
 
   const url = new URL(request.url);
   const headers = { Accept: "application/json" };
-  const badge = request.cookies.get(COOKIE)?.value;
-  if (badge && /^[\w.-]{1,300}$/.test(badge)) headers.Cookie = `${COOKIE}=${badge}`;
+  const cookie = cookieHeader(request);
+  if (cookie) headers.Cookie = cookie;
+
+  // Rubriques du gérant : un employé (code PIN) est refusé ici, côté serveur
+  if (MANAGER_ONLY.has(route) || PASSWORD_ONLY.has(route)) {
+    let who;
+    try {
+      who = await whoIs(cookie);
+    } catch {
+      return json({ ok: false, error: "Le service est momentanément indisponible. Vérifiez votre connexion et réessayez." }, 502);
+    }
+    if (who) {
+      if (who.status === 401 || !who.ok) return json({ ok: false, error: vous(who.error) || "Session expirée : reconnectez-vous." }, 401);
+      const allowed = PASSWORD_ONLY.has(route) ? who.password === true : who.role === "gerant";
+      if (!allowed) {
+        return json({
+          ok: false,
+          forbidden: true,
+          error: PASSWORD_ONLY.has(route)
+            ? "Le mot de passe se change depuis une connexion par e-mail et mot de passe."
+            : "Réservé au gérant : connectez-vous avec votre e-mail et votre mot de passe.",
+        }, 403);
+      }
+    }
+  }
   let body;
   if (request.method === "POST" || request.method === "DELETE") {
     body = await request.text();
@@ -119,6 +199,20 @@ async function relay(request, ctx) {
     });
   } catch {
     return json({ ok: false, error: "Le service est momentanément indisponible. Vérifiez votre connexion et réessayez." }, 502);
+  }
+
+  // « Exporter en Excel » : le fichier CSV passe tel quel (jamais mis en cache)
+  if (route === "export" && res.ok && (res.headers.get("content-type") || "").startsWith("text/csv")) {
+    const disposition = res.headers.get("content-disposition") || "";
+    return new Response(res.body, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": /^attachment; filename="walty-[a-z]+-\d{4}-\d{2}-\d{2}\.csv"$/.test(disposition) ? disposition : 'attachment; filename="walty-export.csv"',
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
   }
 
   let data = null;
@@ -141,19 +235,24 @@ async function relay(request, ctx) {
   // Mauvais identifiant / mot de passe / code PIN : réponse normale (200, ok: false) pour ne pas remplir la console du navigateur
   // d'erreurs réseau ; la session expirée (401 sur « password ») garde son code.
   let status = res.status;
-  if ((route === "login-password" || route === "login") && !data.ok && [400, 401, 429].includes(status)) status = 200;
+  if (LOGIN_ROUTES.has(route) && !data.ok && [400, 401, 429].includes(status)) status = 200;
   if (route === "password" && !data.ok && [400, 404].includes(status)) status = 200;
+  if ((route === "reset-request" || route === "reset-complete") && !data.ok && status === 400) status = 200;
 
   const out = json(data, status);
   // Le badge de connexion (créé ou effacé par le logiciel de cartes) est posé sur walty.fr
   const cookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
   for (const c of cookies) {
-    if (c.startsWith(`${COOKIE}=`)) out.headers.append("Set-Cookie", c.replace(/;\s*Domain=[^;]*/gi, ""));
+    if (COOKIES.some((n) => c.startsWith(`${n}=`))) out.headers.append("Set-Cookie", c.replace(/;\s*Domain=[^;]*/gi, ""));
   }
-  // « Quitter » : le badge est effacé sur walty.fr dans tous les cas
+  const secure = url.protocol === "https:" ? "; Secure" : "";
+  // « Quitter » : le badge et la preuve « gérant » sont effacés sur walty.fr dans tous les cas
   if (route === "logout") {
-    const secure = url.protocol === "https:" ? "; Secure" : "";
-    out.headers.append("Set-Cookie", `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure}`);
+    for (const n of COOKIES) out.headers.append("Set-Cookie", `${n}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure}`);
+  }
+  // Connexion par code PIN ou par l'ancienne adresse login-password : l'ancienne preuve « gérant » éventuelle est effacée
+  if ((route === "login" || route === "login-password") && data.ok && request.cookies.get(ROLE_COOKIE)) {
+    out.headers.append("Set-Cookie", `${ROLE_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure}`);
   }
   return out;
 }

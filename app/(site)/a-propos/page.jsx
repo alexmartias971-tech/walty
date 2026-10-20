@@ -6,7 +6,7 @@ import Fork from "@/components/Fork";
 
 export const metadata = {
   title: "À propos",
-  description: "Walty est né en Guadeloupe pour les commerces de Guadeloupe : une carte de fidélité dans le téléphone de vos clients, installée sur place si vous le voulez.",
+  description: "Walty est né en Guadeloupe pour les commerces de Guadeloupe : une carte de fidélité dans le téléphone de vos clients, créée avec vous pendant la démo. Dès 9 € par mois.",
 };
 
 export default function AProposPage() {
@@ -26,7 +26,7 @@ export default function AProposPage() {
         <div className="rails section duo">
           <p className="big-quote reveal">« Un commerce qui fidélise, c'est un commerce qui dure. »</p>
           <div className="stack reveal" style={{ "--gap": "16px" }} data-delay="1">
-            <p className="lead" style={{ maxWidth: "none" }}>On vient chez vous. On installe la carte. On reste joignable sur WhatsApp.</p>
+            <p className="lead" style={{ maxWidth: "none" }}>On vient chez vous. On crée votre carte avec vous. On reste joignable sur WhatsApp.</p>
             <p className="muted">Bientôt, vous pourrez aussi créer votre carte en ligne avec notre agent IA.</p>
             <p className="muted"><strong style={{ color: "var(--ink)" }}>Walty</strong>, c'est le petit nom du « wallet », le portefeuille du téléphone où vit la carte. C'est aussi notre mascotte.</p>
           </div>

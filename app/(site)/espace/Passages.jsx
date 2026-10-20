@@ -18,6 +18,7 @@ const ICON = { visit: "stamp", reward: "gift", bonus: "sparkle" };
 /**
  * Liste de passages (historique du jour, fiche client, accueil).
  * Un passage annulable (tampon ou achat de moins de 10 minutes, fait avec cet accès) a son bouton « Annuler ».
+ * Un passage fait par le gérant SANS scanner la carte porte le badge « ajouté à la main » (et « hors limite » + la raison).
  */
 export function EventList({ events, openClient, onUndo, compact = false, showDate = false, showCustomer = true }) {
   const [confirm, setConfirm] = useState(null);
@@ -39,9 +40,16 @@ export function EventList({ events, openClient, onUndo, compact = false, showDat
                 )}
               </div>
               <span className="ec-ev-detail">
-                {[e.detail, compact ? null : e.by].filter(Boolean).join(" · ")}
+                {[e.detail, compact ? null : e.manual?.by || e.by].filter(Boolean).join(" · ")}
                 {e.undone_at && <em> · annulé à {fmtTime(e.undone_at)}</em>}
               </span>
+              {e.manual && (
+                <span className="ec-ev-badges">
+                  <span className="chip chip-violet">Ajouté à la main</span>
+                  {e.manual.over_limit && <span className="chip chip-orange">Hors limite</span>}
+                  {e.manual.over_limit && e.manual.reason && !compact && <span className="ec-ev-reason">Raison : {e.manual.reason}</span>}
+                </span>
+              )}
             </div>
             <div className="ec-ev-side">
               <time dateTime={e.at}>{showDate ? fmtDateTime(e.at) : fmtTime(e.at)}</time>

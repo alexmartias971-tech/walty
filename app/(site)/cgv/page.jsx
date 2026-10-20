@@ -1,66 +1,67 @@
 import Link from "next/link";
 import LegalPage, { V, Email } from "@/components/Legal";
 import { legal, processors } from "@/lib/site.config";
-import { plans, addons, trialDays } from "@/lib/offer";
+import { plans, planById, sav, trialDays } from "@/lib/offer";
 
-export const metadata = { title: "Conditions générales de vente", description: "Conditions générales de vente des services Walty, réservés aux professionnels." };
+export const metadata = { title: "Conditions générales de vente", description: "Conditions générales de vente des services Walty, réservés aux professionnels : formules Essentiel et Tout compris, paiement au mois, sans engagement." };
+
+const essentiel = planById.essentiel;
+const toutCompris = planById["tout-compris"];
 
 export default function CGV() {
   return (
-    <LegalPage index="L3" label="Légal" title="Conditions générales de vente">
+    <LegalPage index="L3" label="Légal" title="Conditions générales de vente" updated="20 octobre 2026">
       <p>Les présentes conditions générales de vente (« CGV ») s'appliquent à toutes les prestations fournies par <strong>Walty</strong>, exploité par <V v={legal.ownerName} />, {legal.legalFormInline}, <V v={legal.address} />, SIRET <V v={legal.siret} /> (« Walty »), à ses clients professionnels (« le Client »). Elles constituent, conformément à l'article L441-1 du Code de commerce, le socle unique de la relation commerciale.</p>
 
       <h2>1. Champ d'application</h2>
       <p>Les services Walty sont <strong>réservés aux professionnels</strong> (commerçants, artisans, indépendants, entreprises, associations) agissant pour les besoins de leur activité. Toute commande implique l'acceptation sans réserve des présentes CGV, qui prévalent sur tout autre document du Client, sauf accord écrit contraire. Les CGV applicables sont celles en vigueur à la date de la commande.</p>
 
       <h2>2. Services et formules</h2>
-      <p>Walty propose la création, la mise en place et l'exploitation de cartes de fidélité digitales compatibles Apple Wallet et Google Wallet (le « Service »). Trois formules sont proposées :</p>
+      <p>Walty propose la création, la mise en place et l'exploitation de cartes de fidélité digitales compatibles Apple Wallet et Google Wallet (le « Service »). La carte est une <strong>carte à tampons</strong> : le porteur reçoit un tampon à chaque passage et, au bout du nombre de tampons fixé par le Client, un produit offert ou une remise, définis par le Client. Deux formules sont proposées, payées au mois :</p>
       <ul>
         {plans.map((p) => (
-          <li key={p.id}><strong>{p.name}</strong> ({p.monthly} € par mois ou {p.yearly} € par an) : {p.clients ? `jusqu'à ${new Intl.NumberFormat("fr-FR").format(p.clients)} porteurs de carte` : "nombre de porteurs de carte illimité"}.</li>
+          <li key={p.id}><strong>{p.name}</strong> : {p.monthly} € par mois.</li>
         ))}
       </ul>
-      <p>Le contenu détaillé de chaque formule (envoi de messages, automatismes, statistiques, accès équipe, accompagnement) et des options est celui décrit sur la page <Link href="/tarifs">Tarifs</Link> et/ou dans le devis à la date de la commande. En particulier :</p>
+      <p>Le contenu de chaque formule est celui décrit sur la page <Link href="/tarifs">Tarifs</Link> à la date de la commande. En particulier :</p>
       <ul>
-        <li><strong>Messages.</strong> La formule Essentiel ne permet pas d'envoyer des messages libres aux porteurs (seuls les messages automatiques de la carte sont envoyés). La formule Premium permet 2 messages par semaine (du lundi au dimanche), non reportables. La formule Pro permet un envoi illimité et programmé, dans le respect d'un usage raisonnable et des règles d'Apple et de Google. Le Client rédige ses messages depuis son espace ; Walty peut refuser ou reporter un message illicite, trompeur ou contraire à ces règles, et les envoie le jour même entre 8 h et 18 h, ou à l'heure programmée.</li>
+        <li><strong>Formule {essentiel.name}.</strong> Carte à tampons au logo et aux couleurs du Client, tampons sécurisés, messages automatiques de la carte (tampon ajouté, récompense disponible), 1 accès équipe pour tamponner, installation à distance offerte, aide par WhatsApp ou e-mail sans délai garanti. Ne comprend pas : statistiques, notifications, offre d'anniversaire, lien d'avis Google, parrainage, import du fichier clients, installation sur place.</li>
+        <li><strong>Formule {toutCompris.name}.</strong> Tout le contenu de la formule {essentiel.name}, avec une carte sur mesure (photos, visuels de saison), des statistiques, des notifications, une offre d'anniversaire automatique, un lien d'avis Google sur la carte, le parrainage, l'import du fichier clients offert, des accès équipe illimités, l'installation sur place et la formation de l'équipe offertes, et le SAV sous {sav.delay} garanti décrit ci-dessous.</li>
+        <li><strong>Notifications.</strong> La formule {essentiel.name} ne permet pas d'envoyer de notifications aux porteurs (seuls les messages automatiques de la carte sont envoyés). La formule {toutCompris.name} permet jusqu'à 4 notifications par semaine (du lundi au dimanche), non reportables. Le Client rédige ses messages depuis son espace ; Walty les envoie à sa demande, en principe le jour même, entre 8 h et 18 h, et peut refuser ou reporter un message illicite, trompeur ou contraire aux règles d'Apple et de Google. Ces règles peuvent limiter le nombre de notifications affichées (par exemple, Google n'en affiche pas plus de 3 par carte en 24 heures) : Walty peut alors étaler les envois.</li>
         <li><strong>Accord des porteurs.</strong> Les messages de service de la carte (tampon ajouté, récompense disponible, changement des conditions du programme) sont envoyés à tous les porteurs. Les messages commerciaux (offres, promotions, nouveautés) ne sont envoyés qu'aux porteurs qui l'ont accepté en cochant, lors de leur inscription, une case non cochée par défaut. Ce filtre est appliqué automatiquement par Walty. Un porteur peut retirer son accord à tout moment ; il ne reçoit alors plus aucune offre, dès la prise en compte de sa demande. Les informations données aux porteurs figurent sur la page <Link href="/porteurs">vos données de porteur de carte</Link>.</li>
-        <li><strong>Limite de porteurs.</strong> Lorsque le nombre de porteurs atteint la limite de la formule, Walty en informe le Client et lui propose la formule supérieure. Les cartes déjà délivrées continuent de fonctionner. À défaut de changement de formule dans les 30 jours, les nouvelles inscriptions peuvent être suspendues.</li>
-        <li><strong>Options.</strong> Les options ({addons.map((x) => { const n = x.name.replace(/ \(.*\)$/, ""); return n.charAt(0).toLowerCase() + n.slice(1); }).join(", ")}) sont facturées en sus, au prix indiqué sur le site ou sur devis. La plaque NFC n'est incluse dans aucune formule.</li>
-        <li><strong>Plus de 3 boutiques</strong> : sur devis.</li>
+        <li><strong>Mise en place.</strong> La carte est installée à distance (formule {essentiel.name}) ou sur place, avec la formation de l'équipe (formule {toutCompris.name}), sans frais. Les porteurs ajoutent la carte en scannant un QR code imprimé sur une feuille posée au comptoir.</li>
+        <li><strong>SAV sous {sav.delay} garanti (formule {toutCompris.name}).</strong> Toute demande d'assistance est prise en charge en moins de {sav.delay}, {sav.hours}. {sav.sunday} La prise en charge s'entend de la réponse de Walty et du début du traitement de la demande. Avec la formule {essentiel.name}, l'aide est apportée par WhatsApp ou e-mail, sans délai garanti.</li>
+        <li><strong>Aucune option payante</strong> n'est proposée : tout ce qui est fourni est compris dans le prix de la formule.</li>
       </ul>
 
       <h2>3. Commande</h2>
       <p>La commande peut être passée de deux façons :</p>
       <ul>
-        <li><strong>Sur devis</strong>, après un rendez-vous : elle est formée par l'acceptation écrite du devis par le Client (signature, e-mail ou message écrit).</li>
+        <li><strong>Après une démo</strong> : elle est formée par l'accord écrit du Client (signature, e-mail ou message écrit) sur la formule et son prix.</li>
         <li><strong>En ligne</strong>, avec le service « Créer ma carte » lorsqu'il est ouvert : le Client y choisit sa carte et sa formule. Cet envoi est une demande ; le contrat est formé lorsque Walty confirme par écrit (e-mail ou WhatsApp) l'activation de la carte, en rappelant la formule et le prix.</li>
       </ul>
-      <p>La commande précise la formule, le mode de paiement (mensuel ou annuel), les options et, le cas échéant, le bénéfice du tarif fondateur.</p>
-      <p><strong>Essai gratuit.</strong> {trialDays > 0 ? `Toute nouvelle carte peut être essayée gratuitement pendant ${trialDays} jours à compter de son activation, sans moyen de paiement. À la fin de l'essai, l'abonnement ne démarre que si le Client le confirme par écrit ; à défaut, la carte est désactivée, sans frais.` : "Aucun essai gratuit n'est proposé actuellement."}</p>
+      <p>La commande précise la formule choisie et son prix mensuel.</p>
+      <p><strong>Essai gratuit.</strong> {trialDays > 0 ? `La carte est créée pendant la démo. Toute nouvelle carte peut être essayée gratuitement pendant ${trialDays} jours à compter de son activation, sans moyen de paiement. À la fin de l'essai, l'abonnement ne démarre que si le Client le confirme par écrit ; à défaut, la carte est désactivée, sans frais.` : "Aucun essai gratuit n'est proposé actuellement."}</p>
 
       <h2>4. Droit de rétractation des petites entreprises</h2>
       <p>Lorsque le contrat est conclu <strong>hors établissement</strong> (par exemple lors d'une visite de Walty dans les locaux du Client), que son objet n'entre pas dans le champ de l'activité principale du Client et que celui-ci emploie <strong>5 salariés au plus</strong>, le Client bénéficie, conformément à l'article L221-3 du Code de la consommation, d'un délai de <strong>14 jours</strong> à compter de la conclusion du contrat pour se rétracter, sans motif ni frais. Il lui suffit d'adresser à Walty une déclaration claire (e-mail ou courrier), ou le formulaire figurant à la fin des présentes CGV. Si le Client a demandé que le Service commence avant la fin de ce délai, il paie seulement la part correspondant au service fourni jusqu'à sa rétractation. Walty rembourse les sommes dues dans les 14 jours suivant la rétractation.</p>
 
       <h2>5. Prix</h2>
-      <p>Les prix sont indiqués en euros. <strong>{legal.vat}</strong> : les montants facturés sont nets. Ils comprennent les prestations décrites dans la formule ; les options sont facturées en sus.</p>
-      <p><strong>Tarif fondateur.</strong> Les dix premiers Clients désignés comme « fondateurs » dans leur devis ou leur confirmation conservent le prix de leur formule à la date de souscription tant que leur abonnement se poursuit sans interruption. Un changement de formule applique le prix fondateur de la nouvelle formule s'il existe, à défaut le prix en vigueur.</p>
+      <p>Les prix sont indiqués en euros. <strong>{legal.vat}</strong> : les montants facturés sont nets. Ils comprennent toutes les prestations décrites dans la formule. Le paiement se fait uniquement au mois.</p>
       <p><strong>Évolution des prix.</strong> Walty peut faire évoluer ses tarifs. Toute hausse est notifiée au Client au moins 30 jours à l'avance ; le Client peut alors résilier sans frais avant son entrée en vigueur. Les périodes déjà payées ne sont pas affectées.</p>
-      <p><strong>Changement de formule.</strong> Le Client peut passer à une formule supérieure à tout moment ; la différence est due au prorata de la période en cours. Le passage à une formule inférieure prend effet à la prochaine échéance.</p>
+      <p><strong>Changement de formule.</strong> Le passage à la formule {toutCompris.name} prend effet immédiatement ; la différence de prix est due au prorata du mois en cours. Le retour à la formule {essentiel.name} prend effet au début du mois suivant.</p>
 
       <h2>6. Facturation et paiement</h2>
-      <p>Les options et l'éventuelle installation sur place sont facturées à la commande. L'abonnement est facturé d'avance, chaque mois ou pour 12 mois selon l'option choisie. Les factures sont payables à réception, et au plus tard sous 15 jours, par virement ou tout autre moyen accepté par Walty. Aucun escompte n'est accordé pour paiement anticipé.</p>
-      <p>Conformément à l'article L441-10 du Code de commerce, tout retard de paiement entraîne de plein droit des pénalités calculées au taux d'intérêt appliqué par la Banque centrale européenne à son opération de refinancement la plus récente, majoré de 10 points, ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 € (article D441-5). Après une mise en demeure restée sans effet pendant 15 jours, Walty peut suspendre le Service jusqu'au paiement complet.</p>
+      <p>L'abonnement est facturé d'avance, chaque mois. Aucun frais d'installation n'est facturé. Les factures sont payables à réception, et au plus tard sous 15 jours, par virement ou tout autre moyen accepté par Walty. Aucun escompte n'est accordé pour paiement anticipé.</p>
+      <p>Conformément à l'article L441-10 du Code de commerce, tout retard de paiement entraîne de plein droit des pénalités calculées au taux d'intérêt appliqué par la Banque centrale européenne à son opération de refinancement la plus récente, majoré de 10 points de pourcentage, ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 € (article D441-5). Après une mise en demeure restée sans effet pendant 15 jours, Walty peut suspendre le Service jusqu'au paiement complet.</p>
 
-      <h2>7. Durée, renouvellement et résiliation</h2>
-      <ul>
-        <li><strong>Paiement mensuel (toutes formules) :</strong> sans engagement. L'abonnement se renouvelle chaque mois et peut être résilié à tout moment par écrit (e-mail ou message) ; la résiliation prend effet à la fin du mois en cours.</li>
-        <li><strong>Paiement annuel :</strong> l'abonnement court pour 12 mois. Walty rappelle au Client l'échéance au moins 30 jours avant ; à défaut de résiliation avant l'échéance, il est reconduit pour 12 mois. La période annuelle payée n'est pas remboursable, sauf manquement de Walty ou rétractation dans les conditions de l'article 4.</li>
-      </ul>
+      <h2>7. Durée et résiliation</h2>
+      <p>L'abonnement est <strong>sans engagement</strong>. Il se renouvelle chaque mois et peut être résilié à tout moment par écrit (e-mail ou message) ; la résiliation prend effet à la fin du mois en cours. Le mois commencé reste dû.</p>
       <p>En cas de manquement grave de l'une des parties, non réparé 15 jours après une mise en demeure écrite, l'autre partie peut résilier le contrat de plein droit.</p>
-      <p><strong>Fin du contrat.</strong> À la fin du contrat, la carte cesse de fonctionner pour les porteurs. Walty remet au Client, sur demande formulée dans les 30 jours, l'export de son fichier clients dans un format courant (CSV), puis supprime les données dans les conditions de l'article 11.</p>
+      <p><strong>Fin du contrat.</strong> À la fin du contrat, la carte cesse de fonctionner pour les porteurs. Le Client garde la liste de ses clients : Walty lui remet, sur demande formulée dans les 30 jours, l'export de son fichier clients dans un format courant (CSV), puis supprime les données dans les conditions de l'article 11.</p>
 
       <h2>8. Obligations de Walty</h2>
-      <p>Walty s'engage à activer une carte créée en ligne dans un délai indicatif de 24 heures ouvrées, et à réaliser une carte sur mesure et sa mise en place dans un délai indicatif de 7 jours ouvrés après réception des éléments du Client (logo, photos, récompense), à former le personnel désigné, et à assurer un support par e-mail ou WhatsApp aux horaires indiqués sur le site. Walty est tenu d'une obligation de moyens.</p>
+      <p>Walty s'engage à créer la carte du Client (pendant la démo, ou, pour une carte sur mesure, dans un délai indicatif de 7 jours ouvrés après réception des éléments du Client : logo, photos, récompense), à activer une carte créée en ligne dans un délai indicatif de 24 heures ouvrées, à la mettre en place selon la formule choisie et à assurer l'assistance prévue à l'article 2. Walty est tenu d'une obligation de moyens, sauf pour le délai de prise en charge du SAV de la formule {toutCompris.name}.</p>
 
       <h2>9. Obligations du Client</h2>
       <ul>
@@ -91,7 +92,7 @@ export default function CGV() {
 
       <h2>12. Propriété intellectuelle</h2>
       <p>Le logiciel, l'outil de gestion, la marque et la mascotte Walty restent la propriété exclusive de Walty. Les visuels de carte créés pour le Client lui sont concédés en usage pour la durée du contrat ; les éléments fournis par le Client (logo, photos) restent sa propriété, et il concède à Walty le droit de les utiliser pour exécuter le Service. Sauf opposition écrite du Client, Walty peut mentionner son nom et son logo comme référence commerciale.</p>
-      <p>Le kit comptoir remis au Client et la plaque NFC qu'il a achetée lui appartiennent ; leur remplacement est facturé au prix des options.</p>
+      <p>La feuille portant le QR code, remise au Client pour son comptoir, lui appartient.</p>
 
       <h2>13. Responsabilité</h2>
       <p>La responsabilité de Walty ne peut être engagée qu'en cas de faute prouvée et pour les seuls dommages directs. Sont exclus les dommages indirects tels que la perte de chiffre d'affaires, de clientèle ou d'image. En tout état de cause, la responsabilité totale de Walty est limitée aux sommes effectivement payées par le Client au cours des 12 mois précédant le fait générateur.</p>

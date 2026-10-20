@@ -1,0 +1,17 @@
+/* Formules Walty (offre du 20 octobre 2026) : 2 cartes de prix, payées au mois. */
+
+/* Ordinateur : 2 cartes côte à côte, centrées */
+@media (min-width: 960px) {
+  .price-row.price-row--2 { grid-template-columns: repeat(2, minmax(0, 460px)); justify-content: center; gap: 24px; }
+}
+
+/* Ligne au-dessus des cartes : au mois, sans engagement, essai gratuit */
+.price-note { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; margin: 0; font-size: 15px; font-weight: 700; color: var(--muted); }
+.price-note span { display: inline-flex; align-items: center; gap: 7px; }
+.price-note svg { color: var(--ok); }
+
+/* Tableau comparatif à 2 formules sur téléphone : le libellé, puis 2 valeurs */
+@media (max-width: 640px) {
+  .cmp.cmp--2 thead tr, .cmp.cmp--2 tbody tr { grid-template-columns: repeat(2, 1fr); }
+  .price-note { font-size: 14px; gap: 6px 14px; }
+}

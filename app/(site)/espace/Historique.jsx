@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import { site } from "@/lib/site.config";
 import { api, euro, fmtDay, gpToday, post, shiftDay } from "./outils";
+import ExportButton from "./Export";
 import { EventList } from "./Passages";
 
 const FILTERS = [
@@ -14,8 +15,8 @@ const FILTERS = [
   { id: "undone", label: "Annulés" },
 ];
 
-/** Historique des passages, jour par jour, avec filtres et annulation (10 minutes). */
-export default function Historique({ guard, say, openClient, mode, onChanged }) {
+/** Historique des passages, jour par jour, avec filtres et annulation (10 minutes). Gérant : « Exporter en Excel ». */
+export default function Historique({ guard, say, openClient, mode, onChanged, badges = false, exportable = false }) {
   const today = gpToday();
   const [day, setDay] = useState(today);
   const [type, setType] = useState("all");
@@ -25,12 +26,14 @@ export default function Historique({ guard, say, openClient, mode, onChanged }) 
 
   const load = useCallback(async () => {
     setError("");
-    const r = await api(`history?day=${day}&type=${type}`);
+    const [r, m] = await Promise.all([api(`history?day=${day}&type=${type}`), badges ? api(`manual-log?day=${day}`) : null]);
     if (!guard(r)) return;
     if (r.unavailable) return setSoon(true);
     if (!r.ok) return setError(r.error || "Impossible de charger l'historique.");
-    setData(r);
-  }, [day, type, guard]);
+    // Badges « ajouté à la main » / « hors limite » (actions du gérant sans QR code)
+    const items = m?.ok ? m.items || {} : {};
+    setData({ ...r, events: r.events.map((e) => (items[e.id] ? { ...e, manual: items[e.id] } : e)) });
+  }, [day, type, guard, badges]);
   useEffect(() => { setData(null); load(); }, [load]);
 
   async function undo(e) {
@@ -88,6 +91,7 @@ export default function Historique({ guard, say, openClient, mode, onChanged }) 
         {data && data.events.length > 0 && <EventList events={data.events} openClient={openClient} onUndo={undo} />}
         {data?.more && <p className="field-hint ec-center-text">Les {data.events.length} passages les plus récents de la journée sont affichés.</p>}
       </section>
+      {exportable && <ExportButton type="passages" label="Exporter tous les passages (Excel)" guard={guard} say={say} />}
       <p className="field-hint">Une erreur ? Un tampon ou un achat s'annule pendant 10 minutes, avec l'accès qui l'a enregistré (bouton « Annuler »). Au-delà, appelez Walty au {site.contact.phone}.</p>
     </div>
   );

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { demoStats, kpiTiles } from "@/lib/kpis";
 
-/** Aperçu du tableau de bord commerçant, sur l'accueil. */
+/** Aperçu des statistiques (formule Tout compris), sur l'accueil. */
 export default function DashPreview() {
-  const tiles = kpiTiles().slice(0, 3);
+  const tiles = kpiTiles().filter((t) => ["loyal", "visits", "rewards"].includes(t.id));
   const max = Math.max(...demoStats.weekly);
   return (
     <div className="dash-preview">

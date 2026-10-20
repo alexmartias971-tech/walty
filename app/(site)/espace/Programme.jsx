@@ -31,7 +31,11 @@ const HOURS = Array.from({ length: 25 }, (_, h) => h);
 const mailWalty = (biz) =>
   `mailto:${site.contact.email}?subject=${encodeURIComponent(`Modification de ma carte de fidélité${biz ? ` – ${biz}` : ""}`)}&body=${encodeURIComponent("Bonjour Walty,\n\nJe voudrais modifier : \n\nMerci !")}`;
 
-/** « Mon programme » : les règles de la carte, à lire et à modifier (ce qui est risqué reste chez Walty). */
+/**
+ * « Mon programme » : les règles de la carte, à lire et à modifier (ce qui est risqué reste chez Walty).
+ * Formule Essentiel : pas d'offre d'anniversaire, de parrainage ni de lien d'avis Google ici (Tout compris).
+ * Carte à tampons (la seule vendue aujourd'hui) : rien sur les points, la cagnotte, les niveaux ni le catalogue.
+ */
 export default function Programme({ me, guard, say, onSaved }) {
   const [data, setData] = useState(null);
   const [form, setForm] = useState(null);
@@ -90,6 +94,7 @@ export default function Programme({ me, guard, say, onSaved }) {
 
   const L = data.locked;
   const mode = L.mode;
+  const essentiel = (data.plan || me.plan) === "essentiel";
   const s = form.settings;
   const ro = !data.canEdit;
   const set = (k) => (e) => { const v = e.target.type === "checkbox" ? e.target.checked : e.target.value; setForm((f) => ({ ...f, settings: { ...f.settings, [k]: v } })); setError(""); };
@@ -214,22 +219,27 @@ export default function Programme({ me, guard, say, onSaved }) {
           <label htmlFor="p-welcome">Offre de bienvenue (à l'inscription)</label>
           <input id="p-welcome" className="input" maxLength={120} value={s.welcome_offer} onChange={set("welcome_offer")} placeholder="Ex. : -10 % sur votre premier achat (vide = aucune)" />
         </div>
-        <div className="field">
-          <label htmlFor="p-birthday">Offre d'anniversaire</label>
-          <input id="p-birthday" className="input" maxLength={120} value={s.birthday_offer} onChange={set("birthday_offer")} placeholder="Ex. : 1 dessert offert (vide = aucune)" />
-          <span className="field-hint">Ajoutée sur la carte des clients qui ont donné leur date de naissance, le mois de leur anniversaire.</span>
-        </div>
+        {!essentiel && (
+          <div className="field">
+            <label htmlFor="p-birthday">Offre d'anniversaire</label>
+            <input id="p-birthday" className="input" maxLength={120} value={s.birthday_offer} onChange={set("birthday_offer")} placeholder="Ex. : 1 dessert offert (vide = aucune)" />
+            <span className="field-hint">Ajoutée sur la carte des clients qui ont donné leur date de naissance, le mois de leur anniversaire.</span>
+          </div>
+        )}
         {mode !== "cashback" && (
           <div className="field">
             <label htmlFor="p-signup">Bonus d'inscription ({mode === "stamps" ? "tampons" : "points"} offerts)</label>
             <input id="p-signup" className="input ec-num" type="number" inputMode="numeric" min={0} max={1000} value={s.signup_bonus} onChange={set("signup_bonus")} />
           </div>
         )}
-        <div className="field">
-          <label htmlFor="p-ref">Bonus de parrainage ({mode === "stamps" ? "tampons" : mode === "points" ? "points" : "€"} pour le parrain)</label>
-          <input id="p-ref" className="input ec-num" type="number" inputMode="numeric" min={0} max={1000} value={s.referral_bonus} onChange={set("referral_bonus")} />
-          <span className="field-hint">0 = pas de parrainage.</span>
-        </div>
+        {!essentiel && (
+          <div className="field">
+            <label htmlFor="p-ref">Bonus de parrainage ({mode === "stamps" ? "tampons" : mode === "points" ? "points" : "€"} pour le parrain)</label>
+            <input id="p-ref" className="input ec-num" type="number" inputMode="numeric" min={0} max={1000} value={s.referral_bonus} onChange={set("referral_bonus")} />
+            <span className="field-hint">0 = pas de parrainage.</span>
+          </div>
+        )}
+        {essentiel && <p className="field-hint">Offre d'anniversaire, parrainage et lien d'avis Google : avec la formule Tout compris (15 €/mois). Appelez Walty au {site.contact.phone}.</p>}
       </fieldset>
 
       <fieldset className="ec-box ec-fs" disabled={ro}>
@@ -286,10 +296,12 @@ export default function Programme({ me, guard, say, onSaved }) {
             <label htmlFor="p-address">Adresse</label>
             <input id="p-address" className="input" maxLength={200} value={form.business.address} onChange={setB("address")} />
           </div>
-          <div className="field">
-            <label htmlFor="p-google">Lien pour laisser un avis Google</label>
-            <input id="p-google" className="input" inputMode="url" value={form.business.google_review_url} onChange={setB("google_review_url")} placeholder="https://g.page/…" />
-          </div>
+          {!essentiel && (
+            <div className="field">
+              <label htmlFor="p-google">Lien pour laisser un avis Google</label>
+              <input id="p-google" className="input" inputMode="url" value={form.business.google_review_url} onChange={setB("google_review_url")} placeholder="https://g.page/…" />
+            </div>
+          )}
           <div className="field">
             <label htmlFor="p-insta">Lien Instagram</label>
             <input id="p-insta" className="input" inputMode="url" value={form.business.instagram_url} onChange={setB("instagram_url")} placeholder="https://instagram.com/…" />
@@ -301,12 +313,12 @@ export default function Programme({ me, guard, say, onSaved }) {
         <h2 className="ec-h"><Icon name="shield" size={18} /> Réglé avec Walty</h2>
         <p className="muted ec-small">Ces réglages touchent toutes les cartes déjà installées : Walty s'en occupe avec vous, pour ne rien casser.</p>
         <ul className="ec-facts">
-          <li><span>Fonctionnement (tampons, points, cagnotte)</span><b>{MODE_NAMES[mode] || mode}</b></li>
+          <li><span>{mode === "stamps" ? "Fonctionnement" : "Fonctionnement (tampons, points, cagnotte)"}</span><b>{MODE_NAMES[mode] || mode}</b></li>
           <li><span>Nom et design de la carte</span><b>{L.name}</b></li>
-          <li><span>Niveaux</span><b>{L.tiers_enabled && L.tiers.length ? L.tiers.map((t) => t.name).join(" → ") : "Non"}</b></li>
+          {(mode !== "stamps" || L.tiers_enabled) && <li><span>Niveaux</span><b>{L.tiers_enabled && L.tiers.length ? L.tiers.map((t) => t.name).join(" → ") : "Non"}</b></li>}
           <li><span>Série de semaines</span><b>{L.streak_enabled ? "Oui" : "Non"}</b></li>
           {L.lap_times_enabled && <li><span>Chrono et classement</span><b>Oui</b></li>}
-          <li><span>Messages par semaine</span><b>{L.max_notifications_per_week}</b></li>
+          {!essentiel && <li><span>Messages par semaine</span><b>{L.max_notifications_per_week}</b></li>}
           <li><span>Carte active ou en pause</span><b>{L.is_active ? "Active" : "En pause"}</b></li>
         </ul>
         <div className="ec-actions">

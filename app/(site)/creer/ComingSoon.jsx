@@ -132,7 +132,7 @@ function Waitlist({ plan }) {
 export default function ComingSoon() {
   const params = useSearchParams();
   const fid = params.get("formule");
-  const plan = planById[fid] && fid !== "enseigne" ? planById[fid] : null;
+  const plan = planById[fid] || null; // les anciens liens (premium, pro) mènent à Tout compris
   const demoHref = plan ? `/contact?formule=${plan.id}` : "/contact";
 
   return (
@@ -142,7 +142,7 @@ export default function ComingSoon() {
         <h1 className="soon-title">Bientôt <span className="grad-text">disponible</span>.</h1>
         <p className="lead">Bientôt, vous créerez votre carte vous-même : vous décrivez votre commerce en une phrase, notre agent IA la crée en 2 minutes.</p>
         <div className="soon-now">
-          <p><b>En attendant, on la crée pour vous.</b> Réservez une démo gratuite : on vient chez vous, on crée votre carte et on l'installe.</p>
+          <p><b>En attendant, on la crée pour vous.</b> Réservez une démo gratuite : on vient chez vous et on crée votre carte pendant le rendez-vous.</p>
           {plan && <p className="faint" style={{ fontSize: 14 }}>Formule choisie : <b style={{ color: "var(--ink)" }}>{plan.name}</b> ({plan.monthly} € / mois)</p>}
           <div className="row">
             <Link href={demoHref} className="btn btn-primary btn-lg">Réserver une démo <span className="arrow"><Icon name="arrow" size={16} /></span></Link>

@@ -8,8 +8,10 @@ import { EventList } from "./Passages";
 /**
  * Accueil de l'espace : les chiffres du jour, le gros bouton « Scanner une carte »,
  * les derniers passages et les raccourcis vers les autres rubriques.
+ * Formule Essentiel : les chiffres simples de la liste des clients (pas de « stats »), pas de messages ni d'offres,
+ * et la carte « Passer au Tout compris » (upgrade).
  */
-export default function Accueil({ me, today, refreshToday, guard, go, goScan, openClient, features }) {
+export default function Accueil({ me, today, refreshToday, guard, go, goScan, openClient, features, essentiel = false, upgrade = null }) {
   const [month, setMonth] = useState(null);
   const [remaining, setRemaining] = useState(null);
 
@@ -21,21 +23,21 @@ export default function Accueil({ me, today, refreshToday, guard, go, goScan, op
     let live = true;
     (async () => {
       // Le mois en cours (adresse « stats »), sinon les chiffres simples de la liste des clients
-      const s = await api("stats");
+      const s = essentiel ? { ok: false, unavailable: true } : await api("stats");
       if (!live || !guard(s)) return;
       if (s.ok) setMonth({ visits: s.stats.visitsThisMonth, newCustomers: s.stats.newThisMonth, rewards: s.stats.rewardsThisMonth, total: s.stats.total, active30: s.stats.active30 });
-      else if (s.unavailable) {
+      else if (s.unavailable || s.upgrade) {
         const c = await api("customers?q=");
         if (!live || !guard(c)) return;
         if (c.ok) setMonth({ visits: c.stats.stampsThisMonth, newCustomers: null, rewards: c.stats.rewardsRedeemed, total: c.stats.total, basic: true });
       }
-      if (me.canNotify) {
+      if (me.canNotify && !essentiel) {
         const n = await api("notifications");
         if (live && n.ok) setRemaining(n.remaining);
       }
     })();
     return () => { live = false; };
-  }, [guard, me.canNotify]);
+  }, [guard, me.canNotify, essentiel]);
 
   const hour = Number(new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, hour: "numeric", hour12: false }).format(new Date()));
   const hello = hour >= 18 || hour < 4 ? "Bonsoir" : "Bonjour";
@@ -90,7 +92,7 @@ export default function Accueil({ me, today, refreshToday, guard, go, goScan, op
         <section className="ec-box">
           <div className="ec-box-head">
             <h2 className="ec-h">En {monthName}</h2>
-            <button className="ec-linkbtn" onClick={() => go("chiffres")}>Voir mes chiffres</button>
+            {!essentiel && <button className="ec-linkbtn" onClick={() => go("chiffres")}>Voir mes chiffres</button>}
           </div>
           <div className="ec-kpis">
             <Tile label="Passages" value={month.visits} />
@@ -103,15 +105,16 @@ export default function Accueil({ me, today, refreshToday, guard, go, goScan, op
 
       <nav className="ec-shortcuts" aria-label="Raccourcis">
         <button onClick={() => go("carte")}><Icon name="qr" size={22} /><b>Mon QR code comptoir</b><span>Affiche à imprimer, lien d'inscription</span></button>
-        {me.canNotify && (
+        {me.canNotify && !essentiel && (
           <button onClick={() => go("notifs")}>
             <Icon name="bell" size={22} /><b>Envoyer un message</b>
             <span>{remaining == null ? "Notification à vos clients" : max ? `${Math.max(0, max - remaining)} / ${max} envoyés cette semaine` : `Il vous en reste ${remaining} cette semaine`}</span>
           </button>
         )}
-        {me.canNotify && !me.basic && <button onClick={() => go("offres")}><Icon name="gift" size={22} /><b>Créer une offre</b><span>Ex. : -20 % ce week-end</span></button>}
+        {me.canNotify && !me.basic && !essentiel && <button onClick={() => go("offres")}><Icon name="gift" size={22} /><b>Créer une offre</b><span>Ex. : -20 % ce week-end</span></button>}
         <button onClick={() => go("programme")}><Icon name="edit" size={22} /><b>Mon programme</b><span>Cadeau, offres de bienvenue, heures boostées</span></button>
       </nav>
+      {upgrade}
     </div>
   );
 }

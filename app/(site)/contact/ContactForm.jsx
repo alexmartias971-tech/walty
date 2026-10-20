@@ -7,13 +7,15 @@ import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
 import { submitLead, SECTORS, COMMUNES } from "@/lib/store";
 import { site } from "@/lib/site.config";
+import { planCode } from "@/lib/offer";
 
-const PLAN_LABELS = { essentiel: "Essentiel (29 €/mois)", premium: "Premium (49 €/mois)", pro: "Pro (79 €/mois)", enseigne: "Pro (79 €/mois)", fondateur: "Tarif fondateur" };
+// Les anciens liens (?formule=premium, pro, enseigne) mènent à Tout compris.
+const PLAN_LABELS = { essentiel: "Essentiel (9 €/mois)", "tout-compris": "Tout compris (15 €/mois)" };
 
 /** Formulaire de demande de démo. `compact` = version courte de la page d'accueil. */
 export default function ContactForm({ compact = false }) {
   const params = useSearchParams();
-  const plan = PLAN_LABELS[params.get("formule")] || "";
+  const plan = PLAN_LABELS[planCode(params.get("formule"))] || "";
   const [state, setState] = useState({ status: "idle", error: "" });
 
   async function onSubmit(e) {
@@ -27,8 +29,7 @@ export default function ContactForm({ compact = false }) {
     }
     setState({ status: "sending", error: "" });
     try {
-      const fid = params.get("formule");
-      const r = await submitLead({ ...data, plan, requested_plan: fid === "enseigne" ? "pro" : fid });
+      const r = await submitLead({ ...data, plan, requested_plan: planCode(params.get("formule")) });
       setState({ status: "sent", error: "", demo: r.demo });
     } catch (err) {
       setState({ status: "idle", error: err.message });

@@ -7,23 +7,23 @@ import Phone from "@/components/Phone";
 import WalletCard, { cardFromConfig, cardColors, stripStyles } from "@/components/WalletCard";
 import Mascot from "@/components/Mascot";
 import Icon from "@/components/Icon";
-import { plans, planById, trialDays } from "@/lib/offer";
+import { plans, planById, planCode, trialDays } from "@/lib/offer";
 import { submitLead, COMMUNES, isDemo } from "@/lib/store";
-import { SECTORS_LIST, sectorById, PROGRAMS, programById, defaultRules, programDisplay, mix, isEmail, isPhone, isSiret, isPostal, normPhone } from "@/lib/programs";
+import { SECTORS_LIST, sectorById, REWARD_KINDS, defaultRules, mix, isEmail, isPhone, isSiret, isPostal, normPhone } from "@/lib/programs";
 import { PLAN_RANK } from "@/lib/kpis";
 
-const DRAFT_KEY = "walty-creer-brouillon";
+const DRAFT_KEY = "walty-creer-brouillon-v2";
 const STEPS = [
   { id: "vous", title: "Vous", icon: "user", hint: "Pour vous joindre et vous envoyer vos accès." },
   { id: "commerce", title: "Votre commerce", icon: "store", hint: "Pour adapter la carte à votre activité." },
   { id: "image", title: "Votre image", icon: "palette", hint: "Logo, couleurs, photo : votre carte vous ressemble." },
-  { id: "type", title: "Type de carte", icon: "wallet", hint: "Comment vos clients gagnent leur cadeau." },
-  { id: "regles", title: "Les règles", icon: "gift", hint: "Ce que vos clients gagnent, et quand." },
+  { id: "regles", title: "Le cadeau", icon: "gift", hint: "Un tampon à chaque passage. Au bout : un produit offert ou une remise." },
   { id: "design", title: "Le design", icon: "image", hint: "Le look final de votre carte." },
-  { id: "formule", title: "Votre formule", icon: "sparkle", hint: `${trialDays} jours gratuits, sans carte bancaire.` },
+  { id: "formule", title: "Votre formule", icon: "sparkle", hint: `Paiement au mois, sans engagement. ${trialDays} jours gratuits, sans carte bancaire.` },
   { id: "facturation", title: "Facturation", icon: "receipt", hint: "Pour établir vos factures à votre nom." },
   { id: "recap", title: "Vérifier et envoyer", icon: "check", hint: "Un dernier coup d'œil avant d'envoyer." },
 ];
+const STEP = Object.fromEntries(STEPS.map((x, i) => [x.id, i]));
 const VOLUMES = [
   { id: "moins-50", label: "Moins de 50" },
   { id: "50-150", label: "50 à 150" },
@@ -61,9 +61,9 @@ const INITIAL = {
   firstName: "", lastName: "", email: "", phone: "", whatsapp: true,
   merchant: "", sector: "", city: "", volume: "", links: "",
   charter: "", logo: null, primary: "#ff5b1f", secondary: "#7b3cff", photo: null, fontNote: "", sendCharter: false, mood: "",
-  program: "", rules: {},
+  rules: {},
   template: "sunset", accent: "", bg: "", stampShape: "rond",
-  plan: "premium", billing: "mensuel", nfc: false, install: false, importFile: false,
+  plan: "tout-compris",
   legalName: "", siret: "", address: "", postal: "", billCity: "", billEmail: "",
   consent: false, news: false,
 };
@@ -154,169 +154,38 @@ function ColorField({ id, label, value, onChange }) {
   );
 }
 
-/* ───────── Éditeurs de règles, un par type de carte ───────── */
-function RulesEditor({ type, rules, set, sector }) {
-  const r = { ...defaultRules(type, sector), ...rules };
+/* ───────── Règles de la carte à tampons ───────── */
+function RulesEditor({ rules, set, sector }) {
+  const r = { ...defaultRules("tampons", sector), ...rules };
   const up = (patch) => set({ ...r, ...patch });
-  const upRow = (key, i, patch) => up({ [key]: r[key].map((row, j) => (j === i ? { ...row, ...patch } : row)) });
-  const addRow = (key, row) => up({ [key]: [...r[key], row] });
-  const delRow = (key, i) => up({ [key]: r[key].filter((_, j) => j !== i) });
-  const num = (v) => Math.max(0, Number(String(v).replace(",", ".")) || 0);
-  const gift = sectorById[sector]?.gift;
-
-  if (type === "tampons") return (
+  const kind = REWARD_KINDS.find((k) => k.id === r.rewardKind) || REWARD_KINDS[0];
+  const gift = sectorById[sector];
+  const suggestions = [gift?.kind === kind.id ? gift.gift : null, ...kind.suggestions].filter(Boolean);
+  return (
     <>
       <Seg name="total" legend="Combien de tampons pour un cadeau ?" value={r.total} options={[5, 6, 8, 10, 12]} onChange={(v) => up({ total: v })} />
-      <Field id="reward" label="Le cadeau">
+      <Seg name="rewardKind" legend="Au bout des tampons, vous offrez" value={kind.id} options={REWARD_KINDS} onChange={(v) => up({ rewardKind: v, reward: v === gift?.kind ? gift.gift : REWARD_KINDS.find((k) => k.id === v).suggestions[0] })} />
+      <Field id="reward" label={kind.id === "remise" ? "La remise" : "Le produit offert"}>
         <input id="reward" className="input" value={r.reward} maxLength={40} onChange={(e) => up({ reward: e.target.value })} />
-        <div className="wiz-suggest">{[gift, "1 boisson offerte", "-20 % sur le prochain achat"].filter(Boolean).map((g) => <button type="button" key={g} onClick={() => up({ reward: g })}>{g}</button>)}</div>
-      </Field>
-      <Seg name="earn" legend="Quand le client gagne-t-il un tampon ?" value={r.earn} options={[{ id: "passage", label: "À chaque passage" }, { id: "montant", label: "Dès un montant d'achat" }]} onChange={(v) => up({ earn: v })} />
-      {r.earn === "montant" && (
-        <Field id="minAmount" label="Montant minimum (€)">
-          <input id="minAmount" className="input input-sm" inputMode="decimal" value={r.minAmount} onChange={(e) => up({ minAmount: num(e.target.value) })} />
-        </Field>
-      )}
-      <label className="consent"><input type="checkbox" checked={!!r.welcome} onChange={(e) => up({ welcome: e.target.checked })} /><span>Offrir 1 tampon dès l'inscription (ça donne envie de revenir)</span></label>
-    </>
-  );
-  if (type === "points") return (
-    <>
-      <Seg name="perEuro" legend="Combien de points par euro dépensé ?" value={r.perEuro} options={[1, 2, 5, 10]} onChange={(v) => up({ perEuro: v })} render={(v) => `${v} pt${v > 1 ? "s" : ""}`} />
-      <fieldset className="field wiz-fieldset">
-        <legend>Les cadeaux</legend>
-        <div className="wiz-rows">
-          {r.tiers.map((t, i) => (
-            <div className="wiz-row" key={i}>
-              <input className="input input-sm" inputMode="numeric" aria-label="Points" value={t.points} onChange={(e) => upRow("tiers", i, { points: num(e.target.value) })} />
-              <span className="faint">points =</span>
-              <input className="input input-sm grow" aria-label="Cadeau" value={t.reward} maxLength={40} onChange={(e) => upRow("tiers", i, { reward: e.target.value })} />
-              {r.tiers.length > 1 && <button type="button" className="icon-btn" aria-label="Retirer ce cadeau" onClick={() => delRow("tiers", i)}><Icon name="x" size={16} /></button>}
-            </div>
-          ))}
-        </div>
-        {r.tiers.length < 4 && <button type="button" className="link-btn" onClick={() => addRow("tiers", { points: (r.tiers.at(-1)?.points || 100) * 2, reward: "" })}>+ Ajouter un cadeau</button>}
-      </fieldset>
-    </>
-  );
-  if (type === "remise") return (
-    <fieldset className="field wiz-fieldset">
-      <legend>Les paliers de remise</legend>
-      <div className="wiz-rows">
-        {r.tiers.map((t, i) => (
-          <div className="wiz-row" key={i}>
-            <span className="faint">Dès</span>
-            <input className="input input-sm" inputMode="numeric" aria-label="Nombre de visites" value={t.visits} onChange={(e) => upRow("tiers", i, { visits: num(e.target.value) })} />
-            <span className="faint">visites :</span>
-            <input className="input input-sm" inputMode="numeric" aria-label="Remise en %" value={t.pct} onChange={(e) => upRow("tiers", i, { pct: Math.min(80, num(e.target.value)) })} />
-            <span className="faint">%</span>
-            {r.tiers.length > 1 && <button type="button" className="icon-btn" aria-label="Retirer ce palier" onClick={() => delRow("tiers", i)}><Icon name="x" size={16} /></button>}
-          </div>
-        ))}
-      </div>
-      {r.tiers.length < 4 && <button type="button" className="link-btn" onClick={() => addRow("tiers", { visits: (r.tiers.at(-1)?.visits || 5) + 10, pct: (r.tiers.at(-1)?.pct || 5) + 5 })}>+ Ajouter un palier</button>}
-    </fieldset>
-  );
-  if (type === "coupon") return (
-    <>
-      <Field id="offer" label="L'offre">
-        <input id="offer" className="input" value={r.offer} maxLength={44} onChange={(e) => up({ offer: e.target.value })} />
-        <div className="wiz-suggest">{["-20 % sur votre premier achat", `${gift || "1 produit offert"} dès la 1re visite`, "-10 € dès 30 € d'achat"].map((g) => <button type="button" key={g} onClick={() => up({ offer: g })}>{g}</button>)}</div>
-      </Field>
-      <Seg name="days" legend="Valable combien de temps ?" value={r.days} options={[7, 15, 30, 60, 90]} onChange={(v) => up({ days: v })} render={(v) => `${v} jours`} />
-      <Field id="condition" label="Condition" optional>
-        <input id="condition" className="input" value={r.condition} maxLength={50} onChange={(e) => up({ condition: e.target.value })} />
+        <div className="wiz-suggest">{suggestions.map((g) => <button type="button" key={g} onClick={() => up({ reward: g })}>{g}</button>)}</div>
       </Field>
     </>
   );
-  if (type === "cashback") return (
-    <>
-      <Seg name="pct" legend="Quelle part de chaque achat va dans la cagnotte ?" value={r.pct} options={[2, 3, 5, 8, 10]} onChange={(v) => up({ pct: v })} render={(v) => `${v} %`} />
-      <Seg name="minUse" legend="Cagnotte utilisable à partir de" value={r.minUse} options={[5, 10, 20, 50]} onChange={(v) => up({ minUse: v })} render={(v) => `${v} €`} />
-      <p className="field-hint">Exemple : un client qui dépense 100 € gagne {eur(Math.round(r.pct))} dans sa cagnotte.</p>
-    </>
-  );
-  if (type === "niveaux") return (
-    <fieldset className="field wiz-fieldset">
-      <legend>Les niveaux</legend>
-      <div className="wiz-rows">
-        {r.levels.map((l, i) => (
-          <div className="wiz-row wiz-row-3" key={i}>
-            <input className="input input-sm" aria-label="Nom du niveau" value={l.name} maxLength={16} onChange={(e) => upRow("levels", i, { name: e.target.value })} />
-            {i === 0 ? <span className="faint wiz-row-fixed">dès l'inscription</span> : (
-              <span className="row" style={{ "--gap": "6px", flexWrap: "nowrap" }}>
-                <span className="faint">dès</span>
-                <input className="input input-sm" inputMode="numeric" aria-label="Visites" value={l.visits} onChange={(e) => upRow("levels", i, { visits: num(e.target.value) })} />
-                <span className="faint">visites</span>
-              </span>
-            )}
-            <input className="input input-sm grow" aria-label="Avantage" value={l.perk} maxLength={40} onChange={(e) => upRow("levels", i, { perk: e.target.value })} />
-            {i > 0 && r.levels.length > 2 && <button type="button" className="icon-btn" aria-label="Retirer ce niveau" onClick={() => delRow("levels", i)}><Icon name="x" size={16} /></button>}
-          </div>
-        ))}
-      </div>
-      {r.levels.length < 4 && <button type="button" className="link-btn" onClick={() => addRow("levels", { name: "Platine", visits: (r.levels.at(-1)?.visits || 10) + 15, perk: "" })}>+ Ajouter un niveau</button>}
-    </fieldset>
-  );
-  if (type === "multipass") return (
-    <>
-      <Field id="item" label="Ce qui est dans le carnet">
-        <input id="item" className="input" value={r.item} maxLength={30} onChange={(e) => up({ item: e.target.value })} />
-      </Field>
-      <Seg name="sessions" legend="Nombre de séances payées" value={r.sessions} options={[5, 10, 20]} onChange={(v) => up({ sessions: v })} />
-      <Seg name="bonus" legend="En cadeau dans le carnet" value={r.bonus} options={[0, 1, 2]} onChange={(v) => up({ bonus: v })} render={(v) => (v === 0 ? "Aucune" : `+${v}`)} />
-      <Field id="price" label="Prix du carnet (€)">
-        <input id="price" className="input input-sm" inputMode="decimal" value={r.price} onChange={(e) => up({ price: num(e.target.value) })} />
-      </Field>
-    </>
-  );
-  if (type === "cadeau") return (
-    <>
-      <fieldset className="field wiz-fieldset">
-        <legend>Les montants proposés</legend>
-        <div className="wiz-seg">
-          {[10, 20, 30, 50, 75, 100, 150, 200].map((a) => (
-            <label key={a}>
-              <input type="checkbox" checked={r.amounts.includes(a)} onChange={(e) => up({ amounts: e.target.checked ? [...r.amounts, a].sort((x, y) => x - y) : r.amounts.filter((x) => x !== a) })} />
-              <span>{a} €</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <Seg name="months" legend="Valable" value={r.months} options={[6, 12, 24]} onChange={(v) => up({ months: v })} render={(v) => `${v} mois`} />
-    </>
-  );
-  return null;
 }
 
-function rulesError(type, r) {
-  if (type === "tampons" && !String(r.reward || "").trim()) return "Écrivez le cadeau offert.";
-  if (type === "points" && !r.tiers?.some((t) => t.points > 0 && String(t.reward).trim())) return "Ajoutez au moins un cadeau avec un nombre de points.";
-  if (type === "remise" && !r.tiers?.some((t) => t.visits > 0 && t.pct > 0)) return "Ajoutez au moins un palier.";
-  if (type === "coupon" && !String(r.offer || "").trim()) return "Écrivez l'offre.";
-  if (type === "niveaux" && (r.levels || []).filter((l) => String(l.name).trim()).length < 2) return "Il faut au moins 2 niveaux avec un nom.";
-  if (type === "multipass" && !(r.price > 0)) return "Indiquez le prix du carnet.";
-  if (type === "cadeau" && !r.amounts?.length) return "Choisissez au moins un montant.";
+function rulesError(r) {
+  if (!String(r.reward || "").trim()) return "Écrivez le cadeau offert au bout des tampons.";
   return "";
 }
 
-function notifFor(card, d, type) {
-  switch (type) {
-    case "points": return `+12 points ! ${d.sub} 🎁`;
-    case "remise": return `Bravo, votre remise passe à ${d.big} 🎉`;
-    case "coupon": return `Votre offre vous attend : ${d.big}`;
-    case "cashback": return "+0,60 € dans votre cagnotte 💰";
-    case "niveaux": return `Bravo, vous passez ${d.big} ! ${d.field[1]}`;
-    case "multipass": return `Séance validée. ${d.big} ${d.unit}.`;
-    case "cadeau": return `Vous avez reçu une carte cadeau de ${d.big} 🎁`;
-    default: return `+1 tampon ! Plus que ${card.total - card.filled - 1} avant : ${card.reward.toLowerCase()} 🎉`;
-  }
+function notifFor(card) {
+  return `+1 tampon ! Plus que ${card.total - card.filled - 1} avant : ${card.reward.toLowerCase()} 🎉`;
 }
 
 /* ═════════════ L'assistant ═════════════ */
 export default function CreerWizard() {
   const params = useSearchParams();
-  const fromUrl = ["essentiel", "premium", "pro"].includes(params.get("formule")) ? params.get("formule") : null;
+  const fromUrl = planCode(params.get("formule"));
   const [s, setS] = useState(() => ({ ...INITIAL, plan: fromUrl || INITIAL.plan }));
   const [step, setStep] = useState(0);
   const [reached, setReached] = useState(0);
@@ -334,7 +203,7 @@ export default function CreerWizard() {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        if (d?.s && (d.s.firstName || d.s.email || d.s.merchant)) { setS({ ...INITIAL, ...d.s, plan: fromUrl || d.s.plan || INITIAL.plan }); setStep(Math.min(d.step || 0, STEPS.length - 1)); setReached(d.reached || 0); setRestored(true); }
+        if (d?.s && (d.s.firstName || d.s.email || d.s.merchant)) { setS({ ...INITIAL, ...d.s, plan: fromUrl || planCode(d.s.plan) || INITIAL.plan }); setStep(Math.min(d.step || 0, STEPS.length - 1)); setReached(d.reached || 0); setRestored(true); }
       }
     } catch {}
     loaded.current = true;
@@ -352,14 +221,13 @@ export default function CreerWizard() {
   const brandAccent = s.charter && s.charter !== "none" ? s.primary : MOODS.find((m) => m.id === s.mood)?.accent;
   const accent = s.accent || brandAccent || sector?.accent || "#ff5b1f";
   const bg = s.bg || mix(accent, "#0d0a14", 0.86);
-  const programType = s.program || "tampons";
-  const rules = { ...defaultRules(programType, s.sector), ...s.rules };
-  const config = { merchant: s.merchant, sector: s.sector, logo: s.logo, photo: s.photo, accent, bg, template: s.template, stampShape: s.stampShape, program: { type: programType, rules } };
+  const rules = { ...defaultRules("tampons", s.sector), ...s.rules };
+  const config = { merchant: s.merchant, sector: s.sector, logo: s.logo, photo: s.photo, accent, bg, template: s.template, stampShape: s.stampShape, program: { type: "tampons", rules } };
   const card = cardFromConfig(config);
   const display = card.display;
-  const prog = programById[programType];
-  const minPlan = prog?.plan || "essentiel";
-  const recommended = s.volume === "plus-400" ? "pro" : "premium";
+  // La carte sur mesure (fond avec votre photo) est comprise dans Tout compris
+  const minPlan = s.template === "photo" ? "tout-compris" : "essentiel";
+  const recommended = "tout-compris";
 
   function goto(i) {
     setStep(i);
@@ -369,22 +237,22 @@ export default function CreerWizard() {
 
   function validate(i) {
     const e = {};
-    if (i === 0) {
+    const id = STEPS[i]?.id;
+    if (id === "vous") {
       if (!s.firstName.trim()) e.firstName = "Indiquez votre prénom.";
       if (!s.lastName.trim()) e.lastName = "Indiquez votre nom.";
       if (!isEmail(s.email)) e.email = "Cette adresse e-mail n'est pas valide (ex. : nom@commerce.fr).";
       if (!isPhone(s.phone)) e.phone = "Ce numéro n'est pas valide (ex. : 0690 12 34 56).";
     }
-    if (i === 1) {
+    if (id === "commerce") {
       if (!s.merchant.trim()) e.merchant = "Indiquez le nom de votre commerce.";
       if (!s.sector) e.sector = "Choisissez votre activité.";
       if (!s.volume) e.volume = "Choisissez une réponse (même « Je ne sais pas »).";
     }
-    if (i === 2 && !s.charter) e.charter = "Choisissez une réponse.";
-    if (i === 3 && !s.program) e.program = "Choisissez un type de carte.";
-    if (i === 4) { const m = rulesError(programType, rules); if (m) e.rules = m; }
-    if (i === 6 && PLAN_RANK[s.plan] < PLAN_RANK[minPlan]) e.plan = `Le type « ${prog.name} » demande la formule ${planById[minPlan].name} ou plus.`;
-    if (i === 7) {
+    if (id === "image" && !s.charter) e.charter = "Choisissez une réponse.";
+    if (id === "regles") { const m = rulesError(rules); if (m) e.rules = m; }
+    if (id === "formule" && PLAN_RANK[s.plan] < PLAN_RANK[minPlan]) e.plan = `Le fond avec votre photo est compris dans la formule ${planById[minPlan].name}. Choisissez-la, ou un autre fond à l'étape « Le design ».`;
+    if (id === "facturation") {
       if (!s.legalName.trim()) e.legalName = "Indiquez le nom qui doit figurer sur la facture.";
       if (s.siret.trim() && !isSiret(s.siret)) e.siret = "Ce SIRET n'est pas valide : vérifiez les 14 chiffres.";
       if (!s.address.trim()) e.address = "Indiquez l'adresse.";
@@ -392,7 +260,7 @@ export default function CreerWizard() {
       if (!s.billCity.trim()) e.billCity = "Indiquez la commune.";
       if (!isEmail(s.billEmail || s.email)) e.billEmail = "Cette adresse e-mail n'est pas valide.";
     }
-    if (i === 8 && !s.consent) e.consent = "Cochez la case pour accepter les conditions de vente.";
+    if (id === "recap" && !s.consent) e.consent = "Cochez la case pour accepter les conditions de vente.";
     return e;
   }
 
@@ -405,10 +273,10 @@ export default function CreerWizard() {
       return;
     }
     // préremplissages utiles
-    if (step === 1 && !s.legalName) set({ legalName: s.merchant });
-    if (step === 1 && !s.billCity && s.city && s.city !== "Hors Guadeloupe") set({ billCity: s.city });
-    if (step === 0 && !s.billEmail) set({ billEmail: s.email });
-    if (step === 3 && PLAN_RANK[s.plan] < PLAN_RANK[minPlan]) set({ plan: minPlan });
+    if (step === STEP.commerce && !s.legalName) set({ legalName: s.merchant });
+    if (step === STEP.commerce && !s.billCity && s.city && s.city !== "Hors Guadeloupe") set({ billCity: s.city });
+    if (step === STEP.vous && !s.billEmail) set({ billEmail: s.email });
+    if (step === STEP.design && PLAN_RANK[s.plan] < PLAN_RANK[minPlan]) set({ plan: minPlan });
     const n = Math.min(STEPS.length - 1, step + 1);
     setReached((r) => Math.max(r, n));
     goto(n);
@@ -416,9 +284,6 @@ export default function CreerWizard() {
 
   function chooseSector(id) {
     set({ sector: id });
-  }
-  function chooseProgram(id) {
-    set({ program: id, rules: id === s.program ? s.rules : defaultRules(id, s.sector) });
   }
   async function pick(e, key, opts) {
     const f = e.target.files?.[0];
@@ -432,20 +297,14 @@ export default function CreerWizard() {
     setS({ ...INITIAL, plan: fromUrl || INITIAL.plan }); setStep(0); setReached(0); setErrors({}); setRestored(false);
   }
 
-  const selectedPlan = planById[s.plan];
-  const installOn = s.plan !== "essentiel" || s.install;
-  const optionLines = [
-    installOn && (s.plan === "essentiel" ? ["Installation sur place", "90 €"] : ["Installation sur place", "offerte"]),
-    s.importFile && (s.plan === "pro" ? ["Import de votre fichier client", "inclus"] : ["Import de votre fichier client", "49 €"]),
-    s.nfc && ["Plaque NFC avis Google", "sur devis"],
-  ].filter(Boolean);
+  const selectedPlan = planById[s.plan] || planById[INITIAL.plan];
 
   async function submit(ev) {
     ev.preventDefault();
-    const e = validate(8);
+    const e = validate(STEP.recap);
     setErrors(e);
     if (Object.keys(e).length) return;
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < STEP.recap; i++) {
       const ei = validate(i);
       if (Object.keys(ei).length) { setErrors(ei); goto(i); return; }
     }
@@ -454,12 +313,11 @@ export default function CreerWizard() {
     const cardConfig = { ...config, merchant: card.merchant, brand, volume: s.volume };
     const billingInfo = {
       legal_name: s.legalName.trim(), siret: s.siret.replace(/\s/g, "") || null, address: s.address.trim(), postal_code: s.postal.trim(), city: s.billCity.trim(), email: (s.billEmail || s.email).trim(),
-      billing: s.billing, options: optionLines.map((o) => `${o[0]} (${o[1]})`), marketing_optin: s.news,
+      billing: "mensuel", marketing_optin: s.news,
     };
     const message = [
-      `Carte créée en ligne · ${prog.name} · formule ${selectedPlan.name} (${s.billing})`,
+      `Carte créée en ligne · carte à tampons · formule ${selectedPlan.name} (${selectedPlan.monthly} € par mois)`,
       `Règles : ${display.summary}`,
-      optionLines.length ? `Options : ${billingInfo.options.join(", ")}` : "",
       s.sendCharter ? "Le client va envoyer sa charte graphique." : "",
       s.links ? `Liens : ${s.links}` : "",
     ].filter(Boolean).join("\n");
@@ -492,7 +350,7 @@ export default function CreerWizard() {
         <ol className="wiz-next">
           <li><b>Sous 24 h</b><span>On vérifie votre carte et on l'active.</span></li>
           <li><b>Vos accès</b><span>Vous recevez votre QR code et vos accès {s.whatsapp ? "par WhatsApp" : "par e-mail"}.</span></li>
-          <li><b>Au comptoir</b><span>Vous posez l'affiche : vos clients scannent, c'est parti.</span></li>
+          <li><b>Au comptoir</b><span>Vous posez la feuille avec le QR code : vos clients scannent, c'est parti.</span></li>
         </ol>
         <div className="row" style={{ justifyContent: "center" }}>
           <Link href="/espace" className="btn btn-primary btn-lg">Voir mon espace (aperçu)</Link>
@@ -540,7 +398,7 @@ export default function CreerWizard() {
 
         <form className="wiz-form" onSubmit={last ? submit : next} noValidate>
           {/* 1. Vous */}
-          {step === 0 && (
+          {cur.id === "vous" && (
             <>
               <div className="form-row">
                 <Field id="firstName" label="Prénom" error={err("firstName")}><input className="input" autoComplete="given-name" maxLength={60} {...inputProps("firstName")} /></Field>
@@ -557,7 +415,7 @@ export default function CreerWizard() {
           )}
 
           {/* 2. Commerce */}
-          {step === 1 && (
+          {cur.id === "commerce" && (
             <>
               <Field id="merchant" label="Nom de votre commerce" error={err("merchant")} hint="Tel qu'il apparaîtra sur la carte.">
                 <input className="input" maxLength={40} placeholder="Ex. : Le Bokit du Lagon" autoComplete="organization" {...inputProps("merchant")} />
@@ -595,7 +453,7 @@ export default function CreerWizard() {
           )}
 
           {/* 3. Image */}
-          {step === 2 && (
+          {cur.id === "image" && (
             <>
               <fieldset className={`field wiz-fieldset ${err("charter") ? "has-error" : ""}`}>
                 <legend>Avez-vous une charte graphique ?</legend>
@@ -647,51 +505,25 @@ export default function CreerWizard() {
 
               {s.charter && (
                 <div className="wiz-panel">
-                  <Upload wide label="Une photo de votre commerce ou de vos produits" value={s.photo} onPick={(e) => pick(e, "photo", { maxW: 900, maxH: 600, keepAlpha: false })} onClear={() => set({ photo: null, template: s.template === "photo" ? "sunset" : s.template })} hint="Facultatif. Elle peut servir de fond à votre carte (formules Premium et Pro)." />
+                  <Upload wide label="Une photo de votre commerce ou de vos produits" value={s.photo} onPick={(e) => pick(e, "photo", { maxW: 900, maxH: 600, keepAlpha: false })} onClear={() => set({ photo: null, template: s.template === "photo" ? "sunset" : s.template })} hint="Facultatif. Elle peut servir de fond à votre carte (formule Tout compris)." />
                   {err("photo") && <p className="field-error">{err("photo")}</p>}
                 </div>
               )}
             </>
           )}
 
-          {/* 4. Type de carte */}
-          {step === 3 && (
-            <fieldset className={`field wiz-fieldset ${err("program") ? "has-error" : ""}`}>
-              <legend className="sr-only">Type de carte</legend>
-              <div className="wiz-types">
-                {PROGRAMS.map((p) => {
-                  const rec = sector?.programs?.includes(p.id);
-                  return (
-                    <label key={p.id} className={`wiz-type ${s.program === p.id ? "on" : ""}`}>
-                      <input type="radio" name="program" checked={s.program === p.id} onChange={() => chooseProgram(p.id)} className="sr-only" />
-                      <span className="wiz-type-top">
-                        <span className="step-icon"><Icon name={p.icon} size={20} /></span>
-                        <b>{p.name}</b>
-                        {rec && <span className="chip chip-orange">Conseillé pour vous</span>}
-                      </span>
-                      <span className="wiz-type-line">{p.line}</span>
-                      <span className="wiz-type-ex">Ex. : {p.example}</span>
-                      <span className={`wiz-type-plan ${p.plan === "essentiel" ? "" : "pre"}`}>{p.plan === "essentiel" ? "Toutes les formules" : "Premium et Pro"}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              {err("program") && <p className="field-error">{err("program")}</p>}
-            </fieldset>
-          )}
-
-          {/* 5. Règles */}
-          {step === 4 && (
+          {/* 4. Le cadeau */}
+          {cur.id === "regles" && (
             <>
-              <p className="wiz-type-current"><span className="step-icon"><Icon name={prog.icon} size={18} /></span> Carte {prog.name.toLowerCase()} <button type="button" className="link-btn" onClick={() => goto(3)}>Changer</button></p>
-              <RulesEditor type={programType} rules={s.rules} set={(r) => set({ rules: r })} sector={s.sector} />
+              <p className="wiz-type-current"><span className="step-icon"><Icon name="stamp" size={18} /></span> Carte à tampons</p>
+              <RulesEditor rules={s.rules} set={(r) => set({ rules: r })} sector={s.sector} />
               {err("rules") && <p className="field-error wiz-error">{err("rules")}</p>}
               <div className="wiz-says"><small>Votre carte dira</small><b>{display.summary}</b></div>
             </>
           )}
 
-          {/* 6. Design */}
-          {step === 5 && (
+          {/* 5. Design */}
+          {cur.id === "design" && (
             <>
               <fieldset className="field wiz-fieldset">
                 <legend>Le fond du bandeau</legend>
@@ -736,65 +568,50 @@ export default function CreerWizard() {
                   ))}
                 </div>
               </fieldset>
-              {programType === "tampons" && (
-                <fieldset className="field wiz-fieldset">
-                  <legend>Forme des tampons</legend>
-                  <div className="wiz-seg">
-                    {SHAPES.filter((x) => x.id !== "logo" || s.logo).map((x) => (
-                      <label key={x.id}><input type="radio" name="shape" checked={s.stampShape === x.id} onChange={() => set({ stampShape: x.id })} /><span>{x.label}</span></label>
-                    ))}
-                  </div>
-                </fieldset>
-              )}
-              <p className="field-hint">Notre graphiste vérifie et peaufine chaque carte avant de l'activer.</p>
+              <fieldset className="field wiz-fieldset">
+                <legend>Forme des tampons</legend>
+                <div className="wiz-seg">
+                  {SHAPES.filter((x) => x.id !== "logo" || s.logo).map((x) => (
+                    <label key={x.id}><input type="radio" name="shape" checked={s.stampShape === x.id} onChange={() => set({ stampShape: x.id })} /><span>{x.label}</span></label>
+                  ))}
+                </div>
+              </fieldset>
+              {s.template === "photo" && <p className="field-hint">Le fond avec votre photo est compris dans la formule Tout compris.</p>}
+              <p className="field-hint">On vérifie et on peaufine chaque carte avant de l'activer.</p>
             </>
           )}
 
-          {/* 7. Formule */}
-          {step === 6 && (
+          {/* 6. Formule */}
+          {cur.id === "formule" && (
             <>
-              <div className="billing" role="group" aria-label="Paiement" style={{ justifySelf: "start" }}>
-                <button type="button" aria-pressed={s.billing === "mensuel"} onClick={() => set({ billing: "mensuel" })}>Au mois</button>
-                <button type="button" aria-pressed={s.billing === "annuel"} onClick={() => set({ billing: "annuel" })}>À l'année <em>2 mois offerts</em></button>
-              </div>
               <div className="wiz-plans" role="radiogroup" aria-label="Formule">
                 {plans.map((p) => {
                   const locked = PLAN_RANK[p.id] < PLAN_RANK[minPlan];
                   return (
                     <label key={p.id} className={`wiz-plan ${s.plan === p.id ? "on" : ""} ${locked ? "locked" : ""}`}>
-                      <input type="radio" name="plan" checked={s.plan === p.id} disabled={locked} onChange={() => set({ plan: p.id, install: p.id !== "essentiel" ? true : s.install })} className="sr-only" />
+                      <input type="radio" name="plan" checked={s.plan === p.id} disabled={locked} onChange={() => set({ plan: p.id })} className="sr-only" />
                       <span className="wiz-plan-top">
                         <b>{p.name}</b>
-                        {p.id === recommended && !locked && <span className="chip chip-orange">Conseillée pour vous</span>}
-                        <em>{s.billing === "annuel" ? `${p.yearly} € / an` : `${p.monthly} € / mois`}</em>
+                        {p.id === recommended && !locked && <span className="chip chip-orange">Conseillée</span>}
+                        <em>{p.monthly} € / mois</em>
                       </span>
-                      <span className="wiz-plan-tag">{p.tagline} · {p.clients ? `jusqu'à ${new Intl.NumberFormat("fr-FR").format(p.clients)} clients` : "clients illimités"}</span>
-                      <span className="wiz-plan-sub">{locked ? `Pas compatible avec une carte « ${prog.name} ».` : p.pitch}</span>
+                      <span className="wiz-plan-tag">{p.for}</span>
+                      <span className="wiz-plan-sub">{locked ? "Pas compatible avec le fond « Votre photo »." : `${p.pitch} ${p.setup}.`}</span>
                     </label>
                   );
                 })}
               </div>
               {err("plan") && <p className="field-error">{err("plan")}</p>}
-              {s.plan === "essentiel" && ["50-150", "150-400", "plus-400"].includes(s.volume) && (
-                <p className="notice">Avec {VOLUMES.find((v) => v.id === s.volume)?.label.toLowerCase()} clients par semaine, vous dépasserez vite les 200 clients d'Essentiel. Premium en accepte 1 000.</p>
-              )}
-              <fieldset className="field wiz-fieldset">
-                <legend>Options</legend>
-                <div className="wiz-opts">
-                  <label className="consent"><input type="checkbox" checked={installOn} disabled={s.plan !== "essentiel"} onChange={(e) => set({ install: e.target.checked })} /><span><b>Installation chez vous</b> · {s.plan === "essentiel" ? "90 €" : "offerte avec " + selectedPlan.name}</span></label>
-                  <label className="consent"><input type="checkbox" checked={s.importFile} onChange={(e) => set({ importFile: e.target.checked })} /><span><b>Import de votre fichier client</b> · {s.plan === "pro" ? "inclus avec Pro" : "49 €"}</span></label>
-                  <label className="consent"><input type="checkbox" checked={s.nfc} onChange={(e) => set({ nfc: e.target.checked })} /><span><b>Plaque NFC avis Google</b> · vos clients laissent un avis en approchant leur téléphone · sur devis</span></label>
-                </div>
-              </fieldset>
+              <p className="field-hint">Passer au Tout compris, c'est immédiat. Revenir à l'Essentiel se fait au mois suivant. Pas d'options payantes.</p>
               <div className="wiz-total">
                 <div><small>Aujourd'hui</small><b>0 €</b><span>{trialDays} jours gratuits, sans carte bancaire</span></div>
-                <div><small>Ensuite</small><b>{s.billing === "annuel" ? `${selectedPlan.yearly} € / an` : `${selectedPlan.monthly} € / mois`}</b><span>Sans engagement</span></div>
+                <div><small>Ensuite</small><b>{selectedPlan.monthly} € / mois</b><span>Sans engagement</span></div>
               </div>
             </>
           )}
 
-          {/* 8. Facturation */}
-          {step === 7 && (
+          {/* 7. Facturation */}
+          {cur.id === "facturation" && (
             <>
               <Field id="legalName" label="Nom sur la facture" error={err("legalName")} hint="Raison sociale, ou votre nom si vous êtes auto-entrepreneur.">
                 <input className="input" maxLength={120} autoComplete="organization" {...inputProps("legalName")} />
@@ -821,18 +638,18 @@ export default function CreerWizard() {
             </>
           )}
 
-          {/* 9. Récapitulatif */}
-          {step === 8 && (
+          {/* 8. Récapitulatif */}
+          {cur.id === "recap" && (
             <>
               <div className="wiz-recap">
                 {[
-                  { i: 0, t: "Vous", v: [`${s.firstName} ${s.lastName}`, s.email, `${s.phone}${s.whatsapp ? " (WhatsApp)" : ""}`] },
-                  { i: 1, t: "Votre commerce", v: [s.merchant, sector?.label, s.city, s.volume === "inconnu" ? "Clients par semaine : je ne sais pas" : `${VOLUMES.find((x) => x.id === s.volume)?.label} clients par semaine`] },
-                  { i: 2, t: "Votre image", v: [CHARTERS.find((c) => c.id === s.charter)?.title, s.logo ? "Logo ajouté" : "Pas de logo", s.photo ? "Photo ajoutée" : null, s.sendCharter ? "Charte envoyée après" : null] },
-                  { i: 4, t: "Votre carte", v: [prog.name, display.summary] },
-                  { i: 5, t: "Le design", v: [stripStyles[s.template]?.label, <span key="c" className="row" style={{ "--gap": "8px" }}><span className="swatch-dot" style={{ background: accent }} /> Couleur principale <span className="swatch-dot" style={{ background: bg }} /> Fond</span>, programType === "tampons" ? `Tampons : ${SHAPES.find((x) => x.id === s.stampShape)?.label.toLowerCase()}` : null] },
-                  { i: 6, t: "Votre formule", v: [`${selectedPlan.name} · ${s.billing === "annuel" ? `${selectedPlan.yearly} € / an` : `${selectedPlan.monthly} € / mois`}`, ...optionLines.map((o) => `${o[0]} : ${o[1]}`)] },
-                  { i: 7, t: "Facturation", v: [s.legalName, s.siret ? `SIRET ${s.siret}` : "SIRET à fournir plus tard", `${s.address}, ${s.postal} ${s.billCity}`, s.billEmail || s.email] },
+                  { i: STEP.vous, t: "Vous", v: [`${s.firstName} ${s.lastName}`, s.email, `${s.phone}${s.whatsapp ? " (WhatsApp)" : ""}`] },
+                  { i: STEP.commerce, t: "Votre commerce", v: [s.merchant, sector?.label, s.city, s.volume === "inconnu" ? "Clients par semaine : je ne sais pas" : `${VOLUMES.find((x) => x.id === s.volume)?.label} clients par semaine`] },
+                  { i: STEP.image, t: "Votre image", v: [CHARTERS.find((c) => c.id === s.charter)?.title, s.logo ? "Logo ajouté" : "Pas de logo", s.photo ? "Photo ajoutée" : null, s.sendCharter ? "Charte envoyée après" : null] },
+                  { i: STEP.regles, t: "Votre carte", v: ["Carte à tampons", display.summary] },
+                  { i: STEP.design, t: "Le design", v: [stripStyles[s.template]?.label, <span key="c" className="row" style={{ "--gap": "8px" }}><span className="swatch-dot" style={{ background: accent }} /> Couleur principale <span className="swatch-dot" style={{ background: bg }} /> Fond</span>, `Tampons : ${SHAPES.find((x) => x.id === s.stampShape)?.label.toLowerCase()}`] },
+                  { i: STEP.formule, t: "Votre formule", v: [`${selectedPlan.name} · ${selectedPlan.monthly} € / mois, sans engagement`, selectedPlan.setup] },
+                  { i: STEP.facturation, t: "Facturation", v: [s.legalName, s.siret ? `SIRET ${s.siret}` : "SIRET à fournir plus tard", `${s.address}, ${s.postal} ${s.billCity}`, s.billEmail || s.email] },
                 ].map((b) => (
                   <div className="wiz-recap-block" key={b.t}>
                     <div className="wiz-recap-head"><b>{b.t}</b><button type="button" className="link-btn" onClick={() => goto(b.i)}><Icon name="edit" size={14} /> Modifier</button></div>
@@ -842,7 +659,7 @@ export default function CreerWizard() {
               </div>
               <div className="wiz-total">
                 <div><small>Aujourd'hui</small><b>0 €</b><span>{trialDays} jours gratuits</span></div>
-                <div><small>À la fin de l'essai</small><b>{s.billing === "annuel" ? `${selectedPlan.yearly} € / an` : `${selectedPlan.monthly} € / mois`}</b><span>seulement si vous continuez</span></div>
+                <div><small>À la fin de l'essai</small><b>{selectedPlan.monthly} € / mois</b><span>seulement si vous continuez</span></div>
               </div>
               <label className={`consent ${err("consent") ? "has-error" : ""}`}>
                 <input type="checkbox" checked={s.consent} onChange={(e) => set({ consent: e.target.checked })} />
@@ -865,13 +682,13 @@ export default function CreerWizard() {
             </button>
           </div>
         </form>
-        <p className="faint" style={{ fontSize: 14, marginTop: 18 }}>Besoin d'aide ? <Link href="/contact" className="text-link" style={{ fontSize: 14 }}>On vient vous l'installer</Link></p>
+        <p className="faint" style={{ fontSize: 14, marginTop: 18 }}>Besoin d'aide ? <Link href="/contact" className="text-link" style={{ fontSize: 14 }}>Réservez une démo : on crée votre carte avec vous</Link></p>
       </div>
 
       {/* Aperçu */}
       <aside className="wiz-preview" aria-label="Aperçu de votre carte">
         <p className="wiz-preview-label">Aperçu en direct</p>
-        <Phone card={card} notif={{ app: card.merchant, text: notifFor(card, display, programType) }} animateStamp={programType === "tampons"} />
+        <Phone card={card} notif={{ app: card.merchant, text: notifFor(card) }} animateStamp />
       </aside>
     </div>
   );

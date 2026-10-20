@@ -40,7 +40,7 @@ create table if not exists public.accounts (
   email text check (char_length(email) <= 160),
   preferred_channel text check (char_length(preferred_channel) <= 20),
   message text check (char_length(message) <= 2100),
-  plan text check (plan in ('essentiel','premium','pro')),
+  plan text check (plan in ('essentiel','tout-compris')),
   billing text check (billing in ('mensuel','annuel')),
   mrr numeric(10,2) not null default 0,
   client_since date,
@@ -49,7 +49,7 @@ create table if not exists public.accounts (
   next_action text check (char_length(next_action) <= 200),
   next_action_date date,
   notes jsonb not null default '[]'::jsonb,
-  requested_plan text check (requested_plan in ('essentiel','premium','pro')),
+  requested_plan text check (requested_plan in ('essentiel','tout-compris')),
   card_config jsonb,
   billing_info jsonb,
   consent_at timestamptz
@@ -59,9 +59,14 @@ create table if not exists public.accounts (
 alter table public.accounts add column if not exists requested_plan text;
 alter table public.accounts add column if not exists card_config jsonb;
 alter table public.accounts add column if not exists billing_info jsonb;
-update public.accounts set plan = 'pro' where plan = 'enseigne';
+-- Offre du 20 octobre 2026 : Essentiel (9 €) et Tout compris (15 €), payées au mois.
+-- Les anciens codes (premium, pro, enseigne) deviennent « tout-compris ». Sans danger si déjà fait.
 alter table public.accounts drop constraint if exists accounts_plan_check;
-alter table public.accounts add constraint accounts_plan_check check (plan in ('essentiel','premium','pro'));
+alter table public.accounts drop constraint if exists accounts_requested_plan_check;
+update public.accounts set plan = 'tout-compris' where plan in ('premium','pro','enseigne');
+update public.accounts set requested_plan = 'tout-compris' where requested_plan in ('premium','pro','enseigne');
+alter table public.accounts add constraint accounts_plan_check check (plan in ('essentiel','tout-compris'));
+alter table public.accounts add constraint accounts_requested_plan_check check (requested_plan in ('essentiel','tout-compris'));
 
 create index if not exists accounts_stage_idx on public.accounts (stage);
 create index if not exists accounts_next_action_idx on public.accounts (next_action_date);
@@ -165,7 +170,7 @@ drop policy if exists "admin notifications" on public.push_requests;
 create policy "admin notifications" on public.push_requests
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
--- Limites par formule : Essentiel = pas de notification, Premium = 2 par semaine sans programmation, Pro = illimité.
+-- Limites par formule : Essentiel = pas de notification, Tout compris = 4 par semaine au plus.
 create or replace function public.check_push_limit()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
@@ -179,17 +184,12 @@ begin
    order by a.client_since desc nulls last
    limit 1;
   if p is null or p = 'essentiel' then
-    raise exception 'Les notifications sont incluses à partir de la formule Premium.';
+    raise exception 'Les notifications sont comprises dans la formule Tout compris.';
   end if;
-  if p = 'premium' then
-    if new.send_at is not null then
-      raise exception 'La programmation des notifications est incluse avec la formule Pro.';
-    end if;
-    select count(*) into n from public.push_requests
-     where account_email = new.account_email and status <> 'annule' and created_at >= date_trunc('week', now());
-    if n >= 2 then
-      raise exception 'Vous avez déjà envoyé vos 2 notifications de la semaine.';
-    end if;
+  select count(*) into n from public.push_requests
+   where account_email = new.account_email and status <> 'annule' and created_at >= date_trunc('week', now());
+  if n >= 4 then
+    raise exception 'Vous avez déjà envoyé vos 4 notifications de la semaine.';
   end if;
   return new;
 end $$;

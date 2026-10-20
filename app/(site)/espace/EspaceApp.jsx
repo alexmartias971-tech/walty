@@ -7,9 +7,27 @@
  *   à changer à la première connexion) ;
  * - « connexion rapide » (employé en caisse) : le lien d'accès remis par Walty + code PIN, comme avant
  *   (un lien walty.fr/espace?acces=… ouvre directement le code PIN).
+ * - « Mot de passe oublié ? » : le gérant tape son adresse e-mail et reçoit un lien walty.fr/espace#reinit=…
+ *   (valable 1 heure, une seule fois) ; la page efface aussitôt ce lien de la barre d'adresse et lui fait choisir
+ *   un nouveau mot de passe, puis l'ouvre directement dans son espace.
  * Puis : Accueil · Scanner · Clients (et fiche client) · Historique · Ma carte (QR du comptoir) · Mon programme
  * · Chiffres · Offres · Messages · Changer mon mot de passe.
  * Toutes les données passent par /api/espace/… (passerelle vers le logiciel de cartes).
+ *
+ * Rôles (adresse « role » du logiciel de cartes) :
+ * - gérant (connexion e-mail/identifiant + mot de passe, adresse login-gerant) : tout l'espace, et dans « Scanner »,
+ *   la liste des clients pour les actions SANS QR code (tampon à la main, tampon hors limite du jour avec une raison),
+ *   toujours avec une confirmation ; elles apparaissent dans l'historique avec un badge ;
+ * - employé (lien + code PIN) : Scanner (QR code seulement) et Clients en lecture seule.
+ *   La passerelle et le logiciel de cartes refusent aussi côté serveur ce qui est réservé au gérant.
+ * - sans l'adresse « role » (logiciel de cartes pas encore à jour) : l'espace d'avant, sans actions à la main.
+ *
+ * Scanner : « fiche éclair » après un scan (bandeau vert / orange / rouge calculé par le logiciel de cartes,
+ * client depuis…, tampons, UN gros bouton), tampon automatique au scan (réglage de l'appareil, choisi par le gérant,
+ * avec « Annuler » 5 secondes), aide en 3 gestes à la première ouverture.
+ * Formules (me.plan) : « essentiel » = sans Chiffres, Offres ni Messages (carte « Passer au Tout compris ») ;
+ * « tout-compris » (ou pas de formule) = tout. Le logiciel de cartes refuse aussi côté serveur.
+ * Gérant : « Exporter en Excel » dans Clients et Historique.
  *
  * Versions plus simples, automatiques, si le logiciel de cartes n'a pas encore certaines adresses :
  * - sans login-password / password : seulement le lien + code PIN (comme avant) ;
@@ -27,7 +45,8 @@ import ClientFiche from "./ClientFiche";
 import Historique from "./Historique";
 import MaCarte from "./MaCarte";
 import Programme from "./Programme";
-import { api, euro, fmtAgo, fmtDate, fmtDateTime, initials, post, TZ } from "./outils";
+import ExportButton from "./Export";
+import { api, euro, fmtAgo, fmtDate, fmtDateTime, fmtLongDate, fmtTime, gpToday, initials, post, TZ } from "./outils";
 
 const LS = "walty-espace-acces";
 /** Comment cet appareil s'est connecté la dernière fois : « password » (gérant) ou « pin » (caisse). */
@@ -66,12 +85,18 @@ const readSerial = (text) => {
   return m ? m[0].toLowerCase() : null;
 };
 
+/** Jeton du lien « Choisir un nouveau mot de passe » reçu par e-mail : walty.fr/espace#reinit=… (43 caractères). */
+const readReset = (text) => {
+  const m = /(?:^|[#?&])reinit=([A-Za-z0-9_-]{43})(?![A-Za-z0-9_-])/.exec(text || "");
+  return m ? m[1] : null;
+};
+
 const EXPIRED = "Votre session a expiré (12 heures) : retapez votre code PIN.";
 const EXPIRED_PW = "Votre session a expiré (12 heures) : reconnectez-vous.";
 
 /* ═════════════════════════════ Entrée ═════════════════════════════ */
 export default function EspaceApp() {
-  const [phase, setPhase] = useState("loading"); // loading | login | access | pin | change | app | error
+  const [phase, setPhase] = useState("loading"); // loading | login | access | pin | change | reset | app | error
   const [token, setToken] = useState(null);
   const [business, setBusiness] = useState(null);
   const [me, setMe] = useState(null);
@@ -83,6 +108,10 @@ export default function EspaceApp() {
   const [via, setVia] = useState("pin");
   // Mot de passe provisoire tapé à la connexion (gardé en mémoire seulement, pour le changer tout de suite)
   const tempPw = useRef("");
+  // Jeton du lien « Mot de passe oublié » (gardé en mémoire seulement, jamais dans l'adresse ni sur l'appareil)
+  const resetTok = useRef("");
+  // Écran de connexion ouvert directement sur « Mot de passe oublié ? » (lien plus valable)
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   /** Une seule vérification : la connexion par mot de passe est-elle installée sur le logiciel de cartes ? */
   const probe = useCallback(() => {
@@ -130,6 +159,8 @@ export default function EspaceApp() {
         label: "",
         canNotify: n.status !== 403,
         program: null,
+        role: "legacy",
+        via: mode,
       });
     }
     if (c.status === 401) {
@@ -151,7 +182,13 @@ export default function EspaceApp() {
       setNotice(r.error || "Le service ne répond pas.");
       return setPhase("error");
     }
-    if (r.loggedIn) return enter(r);
+    if (r.loggedIn) {
+      // Gérant ou employé ? (vérifié par le logiciel de cartes ; la passerelle et le logiciel le revérifient à chaque action)
+      const w = await api("role");
+      if (w.status === 401) return gate(tk, mode);
+      const role = w.ok ? (w.role === "gerant" ? "gerant" : "employe") : w.unavailable ? "legacy" : "employe";
+      return enter({ ...r, role, password: w.ok ? !!w.password : mode === "password", via: mode });
+    }
     if (withToken) setBusiness(r.business || null);
     return gate(tk, mode);
   }, [enter, gate, invalidLink, loadBasic]);
@@ -160,7 +197,10 @@ export default function EspaceApp() {
     // Le lien d'accès peut arriver dans l'adresse : walty.fr/espace?acces=… ou #acces=…
     // On le garde sur cet appareil (jamais le code PIN), puis on l'efface de l'adresse : il ouvre le code PIN.
     const { search, hash, pathname } = window.location;
-    const fromUrl = readToken(`${search} ${hash}`);
+    // Lien « Choisir un nouveau mot de passe » (e-mail) : on garde le jeton en mémoire et on l'efface aussitôt de l'adresse
+    const reset = readReset(`${search} ${hash}`);
+    if (reset) window.history.replaceState(null, "", pathname);
+    const fromUrl = reset ? null : readToken(`${search} ${hash}`);
     if (fromUrl) {
       lsSet(fromUrl);
       window.history.replaceState(null, "", pathname);
@@ -169,9 +209,22 @@ export default function EspaceApp() {
     const mode = fromUrl ? "pin" : lsMode.get() === "password" ? "password" : "pin";
     setToken(tk);
     setVia(mode);
-    load(tk, mode);
-    // Lien d'accès ouvert alors que la page était déjà affichée (seul le « #acces=… » change)
+    if (reset) {
+      resetTok.current = reset;
+      setPhase("reset");
+    } else {
+      load(tk, mode);
+    }
+    // Lien d'accès (ou lien « nouveau mot de passe ») ouvert alors que la page était déjà affichée (seul le « # » change)
     const onHash = () => {
+      const r = readReset(window.location.hash);
+      if (r) {
+        window.history.replaceState(null, "", window.location.pathname);
+        resetTok.current = r;
+        setNotice("");
+        setPhase("reset");
+        return;
+      }
       const t = readToken(window.location.hash);
       if (!t) return;
       lsSet(t);
@@ -245,6 +298,35 @@ export default function EspaceApp() {
     setNotice("");
     load(token, "pin");
   }
+  /** Nouveau mot de passe choisi avec le lien reçu par e-mail. */
+  function resetDone(r) {
+    resetTok.current = "";
+    ssMust.set(null);
+    tempPw.current = "";
+    if (r.login) lsLogin.set(r.login);
+    if (r.loggedIn) {
+      lsMode.set("password");
+      setVia("password");
+      setNotice("");
+      return load(token, "password");
+    }
+    setNotice("Votre mot de passe est changé. Connectez-vous avec votre nouveau mot de passe.");
+    setForgotOpen(false);
+    setPhase("login");
+  }
+  /** Lien plus valable : retour à la connexion, « Mot de passe oublié ? » déjà ouvert. */
+  function resetAgain() {
+    resetTok.current = "";
+    setNotice("");
+    setForgotOpen(true);
+    setPhase("login");
+  }
+  function resetCancel() {
+    resetTok.current = "";
+    setNotice("");
+    setForgotOpen(false);
+    load(token, via);
+  }
   /** Depuis l'écran de connexion : passer au lien + code PIN. */
   function quick() {
     setNotice("");
@@ -272,7 +354,8 @@ export default function EspaceApp() {
           </div>
         </div>
       )}
-      {phase === "login" && <LoginScreen notice={notice} onIn={passwordIn} onQuick={quick} />}
+      {phase === "login" && <LoginScreen notice={notice} onIn={passwordIn} onQuick={quick} startForgot={forgotOpen} />}
+      {phase === "reset" && <ResetScreen resetToken={resetTok.current} onDone={resetDone} onAgain={resetAgain} onCancel={resetCancel} />}
       {phase === "access" && <AccessScreen notice={notice} onLink={openLink} onPassword={pwOk ? toPassword : null} />}
       {phase === "pin" && (
         <PinScreen
@@ -339,12 +422,12 @@ function PasswordField({ id, label, value, onChange, autoComplete = "current-pas
 }
 
 /* ═════════════════════════ Connexion : e-mail (ou identifiant) + mot de passe ═════════════════════════ */
-function LoginScreen({ notice, onIn, onQuick }) {
+function LoginScreen({ notice, onIn, onQuick, startForgot = false }) {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [forgot, setForgot] = useState(false);
+  const [forgot, setForgot] = useState(startForgot);
   const pwRef = useRef(null);
   // L'identifiant de la dernière connexion sur cet appareil (jamais le mot de passe)
   useEffect(() => { const l = lsLogin.get(); if (l) setLogin(l); }, []);
@@ -355,7 +438,9 @@ function LoginScreen({ notice, onIn, onQuick }) {
     if (!l || !password || busy) return;
     setBusy(true);
     setError("");
-    const r = await post("login-password", { login: l, password });
+    // login-gerant : la session porte la preuve « gérant » ; repli sur login-password si pas encore installée
+    let r = await post("login-gerant", { login: l, password });
+    if (r.unavailable) r = await post("login-password", { login: l, password });
     setBusy(false);
     if (!r.ok) {
       setPassword("");
@@ -398,15 +483,160 @@ function LoginScreen({ notice, onIn, onQuick }) {
           <button className="btn btn-primary btn-lg ec-full" disabled={busy || !login.trim() || !password}>{busy ? "Connexion…" : "Se connecter"}</button>
         </form>
         <button type="button" className="ec-linkbtn" aria-expanded={forgot} onClick={() => setForgot((f) => !f)}>Mot de passe oublié ?</button>
-        {forgot && (
-          <p className="ec-info" role="status">
-            Appelez Walty au <a href={site.contact.phoneHref}>{site.contact.phone}</a> ou écrivez à <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a> : on vous en donne un nouveau.
-          </p>
-        )}
+        {forgot && <ForgotForm initialEmail={login.includes("@") ? login.trim().toLowerCase() : ""} />}
         <button type="button" className="ec-linkbtn ec-quick" onClick={onQuick}>Connexion rapide (employé en caisse) : lien + code PIN</button>
         <p className="faint ec-help">
           Pas encore client ? <Link href="/contact" className="text-link">Réserver une démo</Link>
         </p>
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════ Mot de passe oublié : lien par e-mail ═════════════════════════ */
+const SENT = "Si un compte existe avec cette adresse, vous allez recevoir un e-mail.";
+function ForgotForm({ initialEmail = "" }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [phoneOnly, setPhoneOnly] = useState(false);
+  // L'envoi d'e-mails est-il configuré sur le logiciel de cartes ? Sinon on ne promet pas d'e-mail.
+  const [mail, setMail] = useState(null);
+  useEffect(() => {
+    let live = true;
+    api("reset-request").then((r) => {
+      if (!live) return;
+      if (r.unavailable || (r.ok && r.mail === false)) setPhoneOnly(true);
+      setMail(r.ok ? r.mail !== false : true);
+    });
+    return () => { live = false; };
+  }, []);
+
+  async function submit(e) {
+    e.preventDefault();
+    const v = email.trim().toLowerCase();
+    if (busy) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return setError("Tapez l'adresse e-mail de votre compte (par exemple nom@exemple.fr).");
+    setBusy(true);
+    setError("");
+    const r = await post("reset-request", { email: v });
+    setBusy(false);
+    if (r.unavailable || (r.ok && r.mail === false)) return setPhoneOnly(true);
+    if (!r.ok) return setError(r.error || "Erreur, réessayez dans un instant.");
+    setSent(true);
+  }
+
+  if (phoneOnly) {
+    return (
+      <p className="ec-info ec-forgot" role="status">
+        Appelez Walty au <a href={site.contact.phoneHref}>{site.contact.phone}</a> ou écrivez à <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a> : on vous donne un nouveau mot de passe.
+      </p>
+    );
+  }
+  if (sent) {
+    return (
+      <div className="ec-info ec-forgot" role="status">
+        <p><b>{SENT}</b></p>
+        <p className="muted">Ouvrez-le et cliquez sur « Choisir un nouveau mot de passe » (le lien est valable 1 heure). Pensez à regarder dans les courriers indésirables.</p>
+        <button type="button" className="ec-linkbtn" onClick={() => setSent(false)}>Je n'ai rien reçu : renvoyer</button>
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={submit} className="ec-form ec-forgot" noValidate>
+      <p className="muted">Recevez par e-mail un lien pour choisir un nouveau mot de passe.</p>
+      <div className="field">
+        <label htmlFor="ec-forgot-email">Votre adresse e-mail</label>
+        <input
+          id="ec-forgot-email"
+          className="input"
+          type="email"
+          inputMode="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setError(""); }}
+          autoComplete="email"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          maxLength={120}
+          autoFocus
+        />
+      </div>
+      {error && <p className="ec-alert" role="alert">{error}</p>}
+      <button className="btn btn-primary ec-full" disabled={busy || mail === null || !email.trim()}>{busy ? "Envoi…" : "Recevoir le lien"}</button>
+      <p className="faint ec-help">Votre identifiant n'est pas une adresse e-mail ? Appelez Walty au <a href={site.contact.phoneHref}>{site.contact.phone}</a>.</p>
+    </form>
+  );
+}
+
+/* ═════════════════════════ Lien reçu par e-mail : nouveau mot de passe ═════════════════════════ */
+function ResetScreen({ resetToken, onDone, onAgain, onCancel }) {
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [error, setError] = useState("");
+  const [invalid, setInvalid] = useState(!resetToken);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(null);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (busy) return;
+    if (next.length < 8) return setError("Le nouveau mot de passe doit faire au moins 8 caractères.");
+    if (next !== again) return setError("Les deux mots de passe ne sont pas identiques.");
+    setBusy(true);
+    setError("");
+    const r = await post("reset-complete", { token: resetToken, password: next });
+    setBusy(false);
+    if (!r.ok) {
+      if (r.unavailable) return setError("Cette fonction arrive bientôt. Appelez Walty pour recevoir un nouveau mot de passe.");
+      if (r.invalid) return setInvalid(true);
+      return setError(r.error || "Mot de passe non modifié. Réessayez.");
+    }
+    setNext("");
+    setAgain("");
+    setDone(r);
+  }
+
+  if (done) {
+    return (
+      <div className="ec-center">
+        <div className="ec-gate">
+          <Mascot pose="wave" size={110} title="Walty est content" />
+          <h1 className="ec-title">Mot de passe changé</h1>
+          <p className="ec-ok" role="status"><Icon name="check" size={18} /> Votre nouveau mot de passe est enregistré.</p>
+          <button className="btn btn-primary btn-lg ec-full" autoFocus onClick={() => onDone(done)}>{done.loggedIn ? "Entrer dans mon espace" : "Me connecter"}</button>
+        </div>
+      </div>
+    );
+  }
+  if (invalid) {
+    return (
+      <div className="ec-center">
+        <div className="ec-gate">
+          <Mascot pose="lost" size={110} title="Walty ne trouve pas ce lien" />
+          <h1 className="ec-title">Ce lien n'est plus valable</h1>
+          <p className="muted">Un lien sert une seule fois, pendant 1 heure, et seul le dernier demandé fonctionne. Demandez-en un nouveau : c'est immédiat.</p>
+          <button className="btn btn-primary btn-lg ec-full" autoFocus onClick={onAgain}>Demander un nouveau lien</button>
+          <button type="button" className="ec-linkbtn" onClick={onCancel}>Retour à la connexion</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="ec-center">
+      <div className="ec-gate">
+        <Mascot pose="wave" size={110} title="Walty vous accueille" />
+        <p className="ec-kicker">Mot de passe oublié</p>
+        <h1 className="ec-title">Choisissez un nouveau mot de passe</h1>
+        <form onSubmit={submit} className="ec-form" noValidate>
+          <input type="text" name="username" autoComplete="username" value={lsLogin.get() || ""} readOnly hidden />
+          <PasswordField id="ec-reset-new" label="Nouveau mot de passe" value={next} onChange={(v) => { setNext(v); setError(""); }} autoComplete="new-password" autoFocus hint="8 caractères au moins. Une petite phrase est facile à retenir." minLength={8} />
+          <PasswordField id="ec-reset-again" label="Retapez le nouveau mot de passe" value={again} onChange={(v) => { setAgain(v); setError(""); }} autoComplete="new-password" minLength={8} />
+          {error && <p className="ec-alert" role="alert">{error}</p>}
+          <button className="btn btn-primary btn-lg ec-full" disabled={busy || !next || !again}>{busy ? "Enregistrement…" : "Enregistrer mon mot de passe"}</button>
+        </form>
+        <button type="button" className="ec-linkbtn" onClick={onCancel}>Annuler</button>
       </div>
     </div>
   );
@@ -488,7 +718,6 @@ function MotDePasse({ guard, say }) {
             onDone={() => { setState("done"); say("Mot de passe changé."); }}
             onExpired={() => guard({ status: 401 })}
           />
-          <p className="faint ec-help">Pas de mot de passe ? Walty peut vous créer un compte : <a href={site.contact.phoneHref}>0690 51 36 46</a>.</p>
         </>
       )}
     </div>
@@ -600,15 +829,26 @@ const SECTIONS = [
   { id: "historique", label: "Historique", icon: "clock", main: true, v13: true },
   { id: "carte", label: "Ma carte", icon: "wallet" },
   { id: "programme", label: "Mon programme", icon: "edit" },
-  { id: "chiffres", label: "Chiffres", icon: "chart" },
-  { id: "offres", label: "Offres", icon: "gift", full: true },
-  { id: "notifs", label: "Messages", icon: "bell", needs: "canNotify" },
+  { id: "chiffres", label: "Chiffres", icon: "chart", tout: true },
+  { id: "offres", label: "Offres", icon: "gift", full: true, tout: true },
+  { id: "notifs", label: "Messages", icon: "bell", needs: "canNotify", tout: true },
 ];
+/* tout: true = rubrique de la formule Tout compris (masquée pour la formule Essentiel). */
 /** Rubrique du menu sans onglet : « Changer mon mot de passe » (compte du gérant). */
 const PASSWORD = { id: "motdepasse", label: "Changer mon mot de passe", icon: "shield" };
+/** Ce qu'un employé (code PIN) voit : le scanner (QR code seulement) et les clients en lecture seule. */
+const EMPLOYEE_SECTIONS = new Set(["scan", "clients"]);
 
 function Dashboard({ me, onLogout, onExpired }) {
-  const [tab, setTab] = useState("accueil");
+  const employee = me.role === "employe";
+  const manager = me.role === "gerant";
+  // Formule Essentiel : ni Chiffres, ni Offres, ni Messages (le logiciel de cartes les refuse aussi)
+  const essentiel = me.plan === "essentiel";
+  // « Changer mon mot de passe » : seulement pour une connexion par mot de passe (jamais pour un code PIN)
+  const showPassword = me.role === "legacy" ? me.via === "password" : !!me.password;
+  // Ancienne session ouverte par mot de passe avant la mise à jour : pas encore la preuve « gérant »
+  const staleManager = employee && me.via === "password";
+  const [tab, setTab] = useState(employee ? "scan" : "accueil");
   const [toast, setToast] = useState("");
   const [more, setMore] = useState(false);
   const [clientId, setClientId] = useState(null);
@@ -617,12 +857,14 @@ function Dashboard({ me, onLogout, onExpired }) {
   // v13 : null = on ne sait pas encore, false = adresses card / program / history… pas encore installées
   const [v13, setV13] = useState(null);
 
-  const sections = SECTIONS.filter((t) => (!t.needs || me[t.needs]) && !(t.full && me.basic) && !(t.v13 && v13 === false));
+  const sections = SECTIONS.filter((t) => (!t.needs || me[t.needs]) && !(t.full && me.basic) && !(t.v13 && v13 === false) && !(t.tout && essentiel) && (!employee || EMPLOYEE_SECTIONS.has(t.id)));
+  const upgrade = essentiel && !employee;
   // Barre du bas (téléphone) : 4 rubriques + « Plus »
   const main = sections.filter((t) => t.main);
   if (main.length < 4) main.push(...sections.filter((t) => !t.main).slice(0, 4 - main.length));
   const rest = sections.filter((t) => !main.includes(t));
-  const current = tab === PASSWORD.id ? PASSWORD : sections.find((t) => t.id === tab) || sections[0];
+  const current = tab === PASSWORD.id && showPassword ? PASSWORD : sections.find((t) => t.id === tab) || sections[0];
+  const hasMore = rest.length > 0 || showPassword;
   const bizName = me.business?.name || "Votre espace";
 
   const say = useCallback((t) => setToast(t), []);
@@ -639,11 +881,12 @@ function Dashboard({ me, onLogout, onExpired }) {
 
   // La journée en cours (accueil) : sert aussi à savoir si les adresses de la v13 sont installées
   const refreshToday = useCallback(async () => {
+    if (employee) return; // l'historique est réservé au gérant
     const r = await api("history?limit=8");
     if (!guard(r)) return;
     if (r.unavailable) { setV13(false); setToday(null); return; }
     if (r.ok) { setV13(true); setToday(r); }
-  }, [guard]);
+  }, [guard, employee]);
   // (appelée par l'accueil, la première rubrique affichée)
 
   const go = useCallback((id) => {
@@ -690,21 +933,28 @@ function Dashboard({ me, onLogout, onExpired }) {
         {/* Ordinateur et tablette : menu à gauche */}
         <nav className="ec-side" aria-label="Rubriques de l'espace">
           {sections.map((t) => navButton(t))}
-          {navButton(PASSWORD, "ec-side-pw")}
+          {showPassword && navButton(PASSWORD, "ec-side-pw")}
+          {upgrade && <UpgradeCard me={me} />}
           <a className="ec-side-help" href={site.contact.phoneHref}><Icon name="phone" size={18} /> <span>Aide : {site.contact.phone}</span></a>
         </nav>
 
         <main className="ec-main">
+          {staleManager && (
+            <div className="ec-info ec-role-note" role="status">
+              <span>Pour retrouver les outils du gérant (programme, offres, tampon sans carte…), reconnectez-vous avec votre e-mail et votre mot de passe.</span>
+              <button className="btn btn-dark btn-sm" onClick={onLogout}>Se reconnecter</button>
+            </div>
+          )}
           {current.id !== "accueil" && <h1 className="ec-page-title">{current.label}</h1>}
-          {current.id === "accueil" && <Accueil me={me} today={today} refreshToday={refreshToday} guard={guard} go={go} goScan={goScan} openClient={openClient} features={{ v13 }} />}
-          {current.id === "scan" && <Scanner guard={guard} autoStart={scanAuto} onAutoStarted={() => setScanAuto(false)} onDone={refreshToday} />}
-          {current.id === "clients" && <Clients guard={guard} say={say} program={me.program} clientId={clientId} openClient={openClient} />}
-          {current.id === "historique" && <Historique guard={guard} say={say} openClient={openClient} mode={me.program?.mode} onChanged={refreshToday} />}
+          {current.id === "accueil" && <Accueil me={me} today={today} refreshToday={refreshToday} guard={guard} go={go} goScan={goScan} openClient={openClient} features={{ v13 }} essentiel={essentiel} upgrade={upgrade ? <UpgradeCard me={me} wide /> : null} />}
+          {current.id === "scan" && <Scanner guard={guard} manager={manager} employee={employee} autoStart={scanAuto} onAutoStarted={() => setScanAuto(false)} onDone={refreshToday} />}
+          {current.id === "clients" && <Clients guard={guard} say={say} program={me.program} clientId={clientId} openClient={openClient} readOnly={employee} badges={me.role !== "legacy"} exportable={manager} />}
+          {current.id === "historique" && <Historique guard={guard} say={say} openClient={openClient} mode={me.program?.mode} onChanged={refreshToday} badges={me.role !== "legacy"} exportable={manager} />}
           {current.id === "carte" && <MaCarte me={me} guard={guard} say={say} />}
           {current.id === "programme" && <Programme me={me} guard={guard} say={say} />}
           {current.id === "chiffres" && <Chiffres guard={guard} program={me.program} />}
           {current.id === "offres" && <Offres guard={guard} say={say} canSend={me.canNotify} />}
-          {current.id === PASSWORD.id && <MotDePasse guard={guard} say={say} />}
+          {current.id === PASSWORD.id && showPassword && <MotDePasse guard={guard} say={say} />}
           {current.id === "notifs" && me.canNotify && <Notifications guard={guard} say={say} max={me.maxNotificationsPerWeek} business={{ name: me.business?.name || "Votre commerce", logo_url: me.business?.logo_url || null }} />}
         </main>
       </div>
@@ -713,10 +963,12 @@ function Dashboard({ me, onLogout, onExpired }) {
       <nav className="ec-tabs" aria-label="Rubriques principales">
         {main.map((t) => navButton(t))}
         {/* « Plus » : les autres rubriques et « Changer mon mot de passe » */}
-        <button className={`${rest.includes(current) || current === PASSWORD ? "on" : ""} ec-more-btn`} aria-expanded={more} aria-haspopup="true" onClick={() => setMore((m) => !m)}>
-          <Icon name="grid" size={20} />
-          <span>{rest.includes(current) ? current.label : current === PASSWORD ? "Compte" : "Plus"}</span>
-        </button>
+        {hasMore && (
+          <button className={`${rest.includes(current) || current === PASSWORD ? "on" : ""} ec-more-btn`} aria-expanded={more} aria-haspopup="true" onClick={() => setMore((m) => !m)}>
+            <Icon name="grid" size={20} />
+            <span>{rest.includes(current) ? current.label : current === PASSWORD ? "Compte" : "Plus"}</span>
+          </button>
+        )}
       </nav>
       {more && (
         <div className="ec-sheet-back" onClick={() => setMore(false)}>
@@ -727,10 +979,13 @@ function Dashboard({ me, onLogout, onExpired }) {
                 <span>{t.label}</span>
               </button>
             ))}
-            <button className={`ec-sheet-wide ${current.id === PASSWORD.id ? "on" : ""}`} onClick={() => go(PASSWORD.id)}>
-              <Icon name={PASSWORD.icon} size={22} />
-              <span>{PASSWORD.label}</span>
-            </button>
+            {showPassword && (
+              <button className={`ec-sheet-wide ${current.id === PASSWORD.id ? "on" : ""}`} onClick={() => go(PASSWORD.id)}>
+                <Icon name={PASSWORD.icon} size={22} />
+                <span>{PASSWORD.label}</span>
+              </button>
+            )}
+            {upgrade && <div className="ec-sheet-wide ec-sheet-card"><UpgradeCard me={me} wide /></div>}
           </div>
         </div>
       )}
@@ -739,19 +994,150 @@ function Dashboard({ me, onLogout, onExpired }) {
   );
 }
 
+/* ═════════════════════ Formule Essentiel : « Passer au Tout compris » ═════════════════════ */
+function UpgradeCard({ me, wide = false }) {
+  return (
+    <aside className={`ec-upgrade ${wide ? "is-wide" : ""}`} aria-label="Formule Tout compris">
+      <b>Formule Essentiel</b>
+      <span>Chiffres détaillés, messages et offres : avec la formule Tout compris (15 €/mois).</span>
+      {me.teamAccesses > 1 && <span className="ec-upgrade-warn">La formule Essentiel prévoit 1 accès d'équipe : vous en avez {me.teamAccesses} actifs.</span>}
+      <a href={site.contact.phoneHref}><Icon name="phone" size={16} /> Passer au Tout compris : appelez Walty</a>
+    </aside>
+  );
+}
+
 /* ═════════════════════════════ Scanner ═════════════════════════════ */
-function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
+/** Réglage de CET appareil (choisi par le gérant) : le tampon s'ajoute tout seul juste après un scan réussi. */
+const LS_AUTO = "walty-espace-tampon-auto";
+/** L'aide « 1. Scannez 2. Regardez la couleur 3. Touchez le gros bouton » a déjà été vue sur cet appareil. */
+const LS_HELP = "walty-espace-aide-scanner";
+const lsAuto = store(LS_AUTO);
+const lsHelp = store(LS_HELP);
+const AUTO_UNDO_S = 5;
+
+/** « 10 h 12 » (heure de Guadeloupe), sans retour à la ligne au milieu */
+const hhmm = (iso) => fmtTime(iso).replace(":", " h ");
+/** « à l'instant », « il y a 12 min », « il y a 2 h » */
+function agoShort(iso) {
+  const min = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60000));
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  return `il y a ${Math.floor(min / 60)} h`;
+}
+const plural = (n, word) => `${n} ${word}${n > 1 ? "s" : ""}`;
+
+/** Fiche éclair : la couleur et la phrase à lire en 1 seconde (calculées par le logiciel de cartes). */
+function flashOf(v) {
+  if (!v) return null;
+  if (v.state === "limit") {
+    return {
+      tone: "red",
+      title: "Limite du jour atteinte",
+      sub: `${plural(v.today_count, "passage")} aujourd'hui (${v.max_per_day} maximum par jour)${v.today_last_at ? ` · dernier à ${hhmm(v.today_last_at)}` : ""}`,
+    };
+  }
+  if (v.state === "today") {
+    const left = v.max_per_day - v.today_count;
+    return {
+      tone: "orange",
+      title: `Déjà passé aujourd'hui à ${hhmm(v.today_last_at)} (${agoShort(v.today_last_at)})`,
+      sub: `${v.today_count} fois aujourd'hui${left > 0 ? ` · encore ${left} possible${left > 1 ? "s" : ""}` : ""}`,
+    };
+  }
+  if (v.state === "first") return { tone: "green", title: "Première visite", sub: "Nouveau client : bienvenue !" };
+  return {
+    tone: "green",
+    title: v.days_since <= 1 ? "Dernière visite hier" : `Dernière visite il y a ${v.days_since} jours`,
+    sub: `Le ${fmtLongDate(v.last_visit_at)}`,
+  };
+}
+/** « Client depuis mars · 14 visites · dernier cadeau le 3 oct. » */
+function sinceLine(v) {
+  if (!v) return "";
+  const since = v.customer_since ? new Date(v.customer_since) : null;
+  let first = "";
+  if (since) {
+    const sameDay = gpToday() === new Date(since.getTime() - 4 * 3600e3).toISOString().slice(0, 10);
+    const sameYear = new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, year: "numeric" }).format(since) === new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, year: "numeric" }).format(new Date());
+    first = sameDay ? "Inscrit aujourd'hui" : `Client depuis ${new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, month: "long", ...(sameYear ? {} : { year: "numeric" }) }).format(since)}`;
+  }
+  return [first, plural(v.visits_total, "visite"), v.last_reward_at ? `dernier cadeau le ${fmtDate(v.last_reward_at)}` : ""].filter(Boolean).join(" · ");
+}
+
+function Flash({ tone, title, sub, icon }) {
+  return (
+    <div className={`ec-flash ec-flash-${tone}`} role="status" aria-live="polite">
+      <span className="ec-flash-dot" aria-hidden="true">{icon ? <Icon name={icon} size={22} stroke={2.4} /> : null}</span>
+      <div>
+        <b>{title}</b>
+        {sub && <span>{sub}</span>}
+      </div>
+    </div>
+  );
+}
+
+/** Aide de la première ouverture du scanner (une fois par appareil). */
+function ScanHelp({ onClose }) {
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="ec-help-back" onClick={onClose}>
+      <div className="ec-help-card" role="dialog" aria-modal="true" aria-labelledby="ec-help-title" onClick={(e) => e.stopPropagation()}>
+        <p className="ec-kicker">Le scanner en 30 secondes</p>
+        <h2 id="ec-help-title" className="ec-h">3 gestes, c'est tout</h2>
+        <ol className="ec-help-steps">
+          <li><b>1</b><div><strong>Scannez</strong><span>Visez le QR code de la carte du client (Apple Wallet ou Google Wallet).</span></div></li>
+          <li>
+            <b>2</b>
+            <div>
+              <strong>Regardez la couleur</strong>
+              <span className="ec-help-tones">
+                <em className="t-green">Vert : tout va bien</em>
+                <em className="t-orange">Orange : déjà venu aujourd'hui</em>
+                <em className="t-red">Rouge : limite du jour atteinte</em>
+              </span>
+            </div>
+          </li>
+          <li><b>3</b><div><strong>Touchez le gros bouton</strong><span>«&nbsp;Ajouter 1 tampon&nbsp;», ou «&nbsp;Valider le cadeau&nbsp;» quand il est prêt. Une erreur&nbsp;? «&nbsp;Annuler ce passage&nbsp;».</span></div></li>
+        </ol>
+        <button className="btn btn-primary btn-lg ec-full" autoFocus onClick={onClose}>C'est parti</button>
+      </div>
+    </div>
+  );
+}
+
+function Scanner({ guard, manager = false, employee = false, autoStart, onAutoStarted, onDone }) {
   const scannerRef = useRef(null);
   const [scanning, setScanning] = useState(false);
   const [serial, setSerial] = useState(null);
+  // Client choisi dans la liste (gérant, sans QR code) : { id, name }
+  const [manual, setManual] = useState(null);
+  const [overOn, setOverOn] = useState(false);
+  const [reason, setReason] = useState("");
   const [card, setCard] = useState(null);
   const [message, setMessage] = useState(null);
   const [canUndo, setCanUndo] = useState(false);
+  // Dernière action réussie sur cette carte (« stamp », « redeem »…) : le gros bouton devient « Client suivant »
+  const [acted, setActed] = useState(null);
   const [busy, setBusy] = useState(false);
   const [amount, setAmount] = useState("");
   const [useAmount, setUseAmount] = useState("");
   const [lap, setLap] = useState("");
   const [confirm, setConfirm] = useState(null);
+  // Tampon automatique au scan (réglage de l'appareil) et son « Annuler » de 5 secondes
+  const [auto, setAuto] = useState(false);
+  const [undoLeft, setUndoLeft] = useState(0);
+  // Aide de la première fois : null = on regarde, true = affichée, false = déjà vue
+  const [help, setHelp] = useState(null);
+
+  useEffect(() => {
+    setAuto(lsAuto.get() === "1");
+    setHelp(lsHelp.get() ? false : true);
+  }, []);
+  const closeHelp = useCallback(() => { lsHelp.set("vu"); setHelp(false); }, []);
 
   const stopCamera = useCallback(async () => {
     const s = scannerRef.current;
@@ -759,46 +1145,124 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
     setScanning(false);
   }, []);
   useEffect(() => () => { stopCamera(); }, [stopCamera]);
-  // « Scanner une carte » touché sur l'accueil : la caméra s'ouvre tout de suite
+  // « Scanner une carte » touché sur l'accueil : la caméra s'ouvre tout de suite (après l'aide de la première fois)
   const autoRef = useRef(false);
   useEffect(() => {
-    if (!autoStart || autoRef.current) return;
+    if (!autoStart || autoRef.current || help !== false) return;
     autoRef.current = true;
     onAutoStarted?.();
     startCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart]);
+  }, [autoStart, help]);
+  // Compte à rebours du « Annuler » du tampon automatique
+  useEffect(() => {
+    if (undoLeft <= 0) return;
+    const id = setTimeout(() => setUndoLeft((n) => n - 1), 1000);
+    return () => clearTimeout(id);
+  }, [undoLeft]);
+
+  function success(r, action) {
+    try { navigator.vibrate?.(40); } catch {}
+    setMessage({ ok: true, text: r.done || "C'est enregistré ✓" });
+    setActed(action === "undo" ? null : action);
+    setCanUndo(action === "stamp" || action === "purchase");
+    if (action === "undo") setUndoLeft(0);
+    onDone?.();
+    setAmount("");
+    setUseAmount("");
+  }
 
   async function send(action, extra = {}, value) {
+    if (manual && !value) return sendManual(action, extra);
     const target = value || serial;
-    if (!target) return;
+    if (!target) return null;
     setBusy(true);
     setConfirm(null);
     const r = await post("scan", { serial: target, action, ...extra });
     setBusy(false);
-    if (!guard(r)) return;
+    if (!guard(r)) return null;
     if (!r.ok) {
+      // Refus (limite du jour…) : la fiche éclair se met à jour avec ce que dit le serveur
+      if (r.visit) setCard((c) => (c ? { ...c, visit: r.visit } : c));
       setMessage({ ok: false, text: r.error || "Action impossible." });
       if (action === "lookup") setSerial(null);
-      return;
+      return null;
     }
     setSerial(target);
     setCard(r);
-    if (action === "lookup") { setMessage(null); return; }
-    try { navigator.vibrate?.(40); } catch {}
-    setMessage({ ok: true, text: r.done || "C'est enregistré ✓" });
-    setCanUndo(action === "stamp" || action === "purchase");
-    onDone?.();
-    setAmount("");
-    setUseAmount("");
+    if (action === "lookup") { setMessage(null); setActed(null); return r; }
+    success(r, action);
+    return r;
+  }
+
+  /** Action SANS QR code (gérant) ou tampon hors limite : adresse « manual », refusée côté serveur pour un employé. */
+  async function sendManual(action, extra = {}, who = manual) {
+    if (!who) return;
+    setBusy(true);
+    setConfirm(null);
+    const r = await post("manual", { customer_id: who.id, action, ...extra });
+    setBusy(false);
+    if (!guard(r)) return;
+    if (!r.ok) {
+      if (r.limit_reached || r.visit) setCard((c) => (c ? { ...c, limit_reached: !!r.limit_reached || c.limit_reached, visit: r.visit || c.visit } : c));
+      setMessage({ ok: false, text: r.error || "Action impossible." });
+      if (action === "lookup") setManual(null);
+      return;
+    }
+    if (action === "lookup" || manual) setManual(who);
+    setCard(r);
+    if (action === "lookup") { setMessage(null); setActed(null); return; }
+    setOverOn(false);
+    setReason("");
+    success(r, action);
+  }
+  /** Client choisi dans la liste : on affiche sa carte (sans rien enregistrer). */
+  function pick(c) {
+    const who = { id: c.id, name: `${c.first_name} ${c.last_name || ""}`.trim(), first: c.first_name };
+    setMessage(null);
+    setCanUndo(false);
+    setActed(null);
+    setUndoLeft(0);
+    setConfirm(null);
+    setOverOn(false);
+    setReason("");
+    setSerial(null);
+    sendManual("lookup", {}, who);
+    try { window.scrollTo({ top: 0 }); } catch {}
+  }
+  function closeCard() {
+    setManual(null);
+    setCard(null);
+    setMessage(null);
+    setCanUndo(false);
+    setActed(null);
+    setUndoLeft(0);
+    setConfirm(null);
+    setOverOn(false);
+    setReason("");
+  }
+  /** Gérant sans QR code : chaque action demande une confirmation qui le dit clairement. */
+  const ask = (label, run) => setConfirm({ label: manual ? `${label.replace(/\s*\?$/, "")} — sans scanner la carte de ${manual.first}. Confirmer ?` : label, run });
+
+  /** Carte scannée : fiche éclair, puis tampon automatique si l'appareil le demande et que c'est permis. */
+  async function scanned(found) {
+    const r = await send("lookup", {}, found);
+    if (!r || !auto || r.mode !== "stamps" || r.reward_ready || !r.visit?.can_stamp) return;
+    const s = await send("stamp", {}, found);
+    if (s) setUndoLeft(AUTO_UNDO_S);
   }
 
   async function startCamera() {
     setMessage(null);
     setCard(null);
     setSerial(null);
+    setManual(null);
     setCanUndo(false);
+    setActed(null);
+    setUndoLeft(0);
     setConfirm(null);
+    setOverOn(false);
+    setReason("");
     await stopCamera();
     setScanning(true);
     let handled = false;
@@ -816,7 +1280,7 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
           try { navigator.vibrate?.(30); } catch {}
           const found = readSerial(text);
           if (!found) return setMessage({ ok: false, text: "Ce QR code n'est pas une carte de fidélité Walty. Visez le QR code de la carte du client (dans Apple Wallet ou Google Wallet)." });
-          await send("lookup", {}, found);
+          await scanned(found);
         },
         () => {},
       );
@@ -833,6 +1297,8 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
       });
     }
   }
+  /** Client suivant : la caméra (QR code) ou, sans QR code, la liste des clients. */
+  const next = () => (manual ? closeCard() : startCamera());
 
   const amountNum = Number(amount.replace(",", ".")) || 0;
   const preview =
@@ -840,8 +1306,19 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
     : card?.mode === "cashback" ? `+${euro(Math.round(amountNum * card.cashback_percent) / 100)} sur la cagnotte`
     : "";
 
+  // Fiche éclair (le logiciel de cartes la calcule ; sans elle, l'affichage d'avant)
+  const v = card?.visit || null;
+  const limit = v ? v.limit_reached : !!card?.limit_reached;
+  const canStamp = v ? v.can_stamp : !!card && !card.reward_ready && !limit;
+  const flash = card ? (acted && message?.ok ? { tone: "done", title: message.text, icon: "check" } : flashOf(v)) : null;
+  const who = manual || (card?.customer_id ? { id: card.customer_id, first: card.first_name } : null);
+  const stamp = () => (manual ? ask("Vous ajoutez un tampon", () => sendManual("stamp")) : send("stamp"));
+  const redeem = () => (manual ? ask("Vous validez le cadeau remis", () => sendManual("redeem")) : send("redeem"));
+  const overForm = card?.mode === "stamps" && limit && manager && who && !card.reward_ready;
+
   return (
     <div className="ec-panel">
+      {help && <ScanHelp onClose={closeHelp} />}
       <div id="ec-lecteur" className={`ec-reader ${scanning ? "" : "is-hidden"}`} />
 
       {!scanning && !card && (
@@ -855,11 +1332,22 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
       {busy && <p className="ec-wait" aria-live="polite">Un instant…</p>}
 
       {card && (
-        <section className="ec-card" aria-label="Carte du client">
+        <section className={`ec-card ${manual ? "is-manual" : ""} ${flash ? `tone-${flash.tone}` : ""}`} aria-label="Carte du client">
+          {manual && (
+            <p className="ec-manual-flag"><Icon name="shield" size={16} /> Sans QR code (gérant) · chaque action est notée dans l'historique{typeof card.manual_left === "number" ? ` · encore ${card.manual_left} aujourd'hui` : ""}</p>
+          )}
+          {flash && <Flash {...flash} />}
+          {undoLeft > 0 && canUndo && !manual && (
+            <button disabled={busy} onClick={() => send("undo")} className="btn btn-dark btn-lg ec-full ec-auto-undo">
+              Annuler ce tampon <span>({undoLeft} s)</span>
+            </button>
+          )}
+
           <div className="ec-card-head">
             <span className="ec-avatar">{initials(`${card.first_name} ${card.last_name || ""}`)}</span>
             <div>
               <h2>{card.first_name} {card.last_name || ""}</h2>
+              {v && <p className="ec-since">{sinceLine(v)}</p>}
               {card.tier && <p className="ec-tier"><Icon name="crown" size={14} /> Niveau {card.tier.name}{card.tier.perk ? ` · ${card.tier.perk}` : ""}</p>}
             </div>
           </div>
@@ -876,22 +1364,56 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
           {card.streak && <p className="ec-small">🔥 Série : {card.streak.count} semaine{card.streak.count > 1 ? "s" : ""}{card.streak.thisWeek ? " (déjà venu cette semaine)" : ""}</p>}
           {card.lap_enabled && <p className="ec-small">⏱️ Record : {card.best_lap || "aucun pour l'instant"}{card.rank ? ` · P${card.rank.pos} / ${card.rank.total}` : ""}</p>}
 
-          {/* Tampons */}
-          {card.mode === "stamps" && (card.reward_ready ? (
-            <>
-              <p className="ec-ok"><Icon name="gift" size={18} /> Cadeau débloqué : <b>{card.reward}</b></p>
-              <button disabled={busy} onClick={() => send("redeem")} className="btn btn-primary btn-lg ec-full">J'ai remis le cadeau : valider</button>
-            </>
-          ) : (
-            <button disabled={busy} onClick={() => send("stamp")} className="btn btn-primary btn-lg ec-full ec-stamp-btn"><Icon name="plus" size={20} /> Ajouter 1 tampon</button>
-          ))}
+          {/* Tampons : UN gros bouton, selon l'état de la carte */}
+          {card.mode === "stamps" && (
+            <div className="ec-main-action">
+              {card.reward_ready ? (
+                <>
+                  <button disabled={busy} onClick={redeem} className="btn btn-primary btn-lg ec-full ec-stamp-btn ec-gift-btn"><Icon name="gift" size={22} /> Valider le cadeau : {card.reward}</button>
+                  {canStamp && <button disabled={busy} onClick={stamp} className="btn btn-ghost ec-full">Ajouter quand même 1 tampon</button>}
+                </>
+              ) : acted ? (
+                <>
+                  <button onClick={next} className="btn btn-primary btn-lg ec-full ec-stamp-btn"><Icon name={manual ? "users" : "qr"} size={22} /> Client suivant</button>
+                  {canStamp && <button disabled={busy} onClick={stamp} className="btn btn-ghost ec-full"><Icon name="plus" size={18} /> {acted === "stamp" ? "Ajouter encore 1 tampon" : "Ajouter 1 tampon"}</button>}
+                </>
+              ) : canStamp ? (
+                <button disabled={busy} onClick={stamp} className="btn btn-primary btn-lg ec-full ec-stamp-btn"><Icon name="plus" size={22} /> Ajouter 1 tampon</button>
+              ) : (
+                <>
+                  <button disabled className="btn btn-primary btn-lg ec-full ec-stamp-btn">{limit ? "Limite du jour atteinte" : v && !v.program_active ? "Carte en pause" : "Tampon impossible"}</button>
+                  {limit && !manager && <p className="field-hint ec-center-text">Seul le gérant peut dépasser la limite du jour (connexion par e-mail et mot de passe).</p>}
+                </>
+              )}
+              {overForm && (
+                <div className="ec-over">
+                  <label className="ec-over-check">
+                    <input type="checkbox" checked={overOn} onChange={(e) => setOverOn(e.target.checked)} />
+                    <span>Dépasser la limite du jour pour ce client (exceptionnel, gérant)</span>
+                  </label>
+                  {overOn && (
+                    <form className="field" onSubmit={(e) => {
+                      e.preventDefault();
+                      const why = reason.trim();
+                      if (why.length < 3) return setMessage({ ok: false, text: "Indiquez la raison (3 caractères au moins)." });
+                      setConfirm({ label: `Vous ajoutez un tampon HORS LIMITE pour ${who.first}${manual ? " sans scanner sa carte" : ""} (raison : « ${why} »). Confirmer ?`, run: () => sendManual("stamp", { over_limit: true, reason: why }, who) });
+                    }}>
+                      <label htmlFor="ec-raison">Raison (obligatoire, notée dans l'historique)</label>
+                      <input id="ec-raison" className="input" value={reason} maxLength={200} placeholder="Ex. : 2 achats séparés, oubli d'hier" onChange={(e) => setReason(e.target.value)} />
+                      <button type="submit" disabled={busy || reason.trim().length < 3} className="btn btn-primary ec-full"><Icon name="plus" size={18} /> Ajouter un tampon hors limite</button>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Points et cagnotte : montant de l'achat */}
           {card.mode !== "stamps" && (
             <form className="field" onSubmit={(e) => {
               e.preventDefault();
               if (amountNum <= 0) return;
-              setConfirm({ label: `Enregistrer un achat de ${euro(amountNum)} (${preview}) ?`, run: () => send("purchase", { amount: amountNum }) });
+              ask(`Enregistrer un achat de ${euro(amountNum)} (${preview}) ?`, () => send("purchase", { amount: amountNum }));
             }}>
               <label htmlFor="ec-achat">Montant de l'achat (€)</label>
               <div className="ec-inline">
@@ -906,7 +1428,7 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
             <div className="ec-list-actions">
               <p className="ec-label">Échanger des points</p>
               {card.catalog.map((r) => (
-                <button key={r.id} disabled={busy || !r.affordable} className="ec-row-btn" onClick={() => setConfirm({ label: `Échanger ${r.cost} points contre « ${r.name} » ?`, run: () => send("reward", { reward_id: r.id }) })}>
+                <button key={r.id} disabled={busy || !r.affordable} className="ec-row-btn" onClick={() => ask(`Échanger ${r.cost} points contre « ${r.name} » ?`, () => send("reward", { reward_id: r.id }))}>
                   <span>{r.name}</span><b>{r.cost} pts</b>
                 </button>
               ))}
@@ -918,7 +1440,7 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
               e.preventDefault();
               const n = Number(useAmount.replace(",", ".")) || 0;
               if (n <= 0) return;
-              setConfirm({ label: `Déduire ${euro(n)} de la cagnotte (${euro(card.cashback)} disponibles) ?`, run: () => send("cashback", { amount: n }) });
+              ask(`Déduire ${euro(n)} de la cagnotte (${euro(card.cashback)} disponibles) ?`, () => send("cashback", { amount: n }));
             }}>
               <label htmlFor="ec-cagnotte">Utiliser la cagnotte (max {euro(card.cashback)})</label>
               <div className="ec-inline">
@@ -928,7 +1450,7 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
             </form>
           )}
 
-          {card.lap_enabled && (
+          {card.lap_enabled && !manual && (
             <form className="field" onSubmit={(e) => {
               e.preventDefault();
               const ms = parseLap(lap);
@@ -948,7 +1470,7 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
             <div className="ec-list-actions">
               <p className="ec-label">Offres sur sa carte</p>
               {card.coupons.map((c) => (
-                <button key={c.id} disabled={busy} className="ec-row-btn" onClick={() => setConfirm({ label: `Valider l'offre « ${c.title} » ?`, run: () => send("coupon", { coupon_id: c.id }) })}>
+                <button key={c.id} disabled={busy} className="ec-row-btn" onClick={() => ask(`Valider l'offre « ${c.title} » ?`, () => send("coupon", { coupon_id: c.id }))}>
                   <span><Icon name="ticket" size={16} /> {c.title}{c.expires_at ? <em> · jusqu'au {fmtDate(c.expires_at)}</em> : null}</span><b>Utiliser</b>
                 </button>
               ))}
@@ -969,20 +1491,92 @@ function Scanner({ guard, autoStart, onAutoStarted, onDone }) {
         </section>
       )}
 
-      {message && <p className={message.ok ? "ec-ok ec-msg" : "ec-alert ec-msg"} role="status">{message.text}</p>}
+      {message && !(message.ok && flash?.tone === "done") && <p className={message.ok ? "ec-ok ec-msg" : "ec-alert ec-msg"} role="status">{message.text}</p>}
       {canUndo && <button disabled={busy} onClick={() => send("undo")} className="ec-linkbtn ec-undo">Annuler ce passage (erreur de saisie)</button>}
-      {card && !scanning && (
-        <button onClick={startCamera} className="btn btn-dark btn-lg ec-full"><Icon name="qr" size={20} /> Client suivant</button>
+      {card && !scanning && !(card.mode === "stamps" && acted && !card.reward_ready) && (
+        <button onClick={next} className="btn btn-dark btn-lg ec-full"><Icon name={manual ? "users" : "qr"} size={20} /> Client suivant</button>
       )}
+      {card && manual && !scanning && <button onClick={closeCard} className="ec-linkbtn ec-center-text">Revenir à la liste des clients</button>}
       {!card && !scanning && (
         <p className="field-hint ec-center-text">Le client ouvre sa carte dans Apple Wallet ou Google Wallet : visez son QR code. Les règles (limite de passages par jour, soldes suffisants…) sont vérifiées automatiquement.</p>
       )}
+      {!card && !scanning && manager && (
+        <label className="ec-switch">
+          <input type="checkbox" checked={auto} onChange={(e) => { const on = e.target.checked; lsAuto.set(on ? "1" : null); setAuto(on); }} />
+          <span>
+            <b>Tampon automatique au scan</b>
+            <em>Sur cet appareil : le tampon s'ajoute dès le scan (si c'est permis), avec un gros « Annuler » pendant {AUTO_UNDO_S} secondes.</em>
+          </span>
+        </label>
+      )}
+      {!card && !scanning && !manager && auto && <p className="field-hint ec-center-text">Tampon automatique au scan : activé sur cet appareil par le gérant.</p>}
+      {!card && !scanning && manager && <ManualFinder guard={guard} onPick={pick} busy={busy} />}
+      {!card && !scanning && employee && (
+        <p className="faint ec-help ec-center-text">Pas de QR code ? Seul le gérant peut ajouter un tampon à la main (connexion par e-mail et mot de passe).</p>
+      )}
+      {!card && !scanning && help === false && <button type="button" className="ec-linkbtn ec-center-text" onClick={() => setHelp(true)}>Revoir l'aide du scanner</button>}
     </div>
   );
 }
 
+/* ═════════════════ Scanner : « Pas de QR code ? Trouver le client » (gérant) ═════════════════ */
+function ManualFinder({ guard, onPick, busy }) {
+  const [q, setQ] = useState("");
+  const [rows, setRows] = useState(null);
+  const [error, setError] = useState("");
+  const load = useCallback(async (search) => {
+    const r = await api(`customers?q=${encodeURIComponent(search)}`);
+    if (!guard(r)) return;
+    if (!r.ok) return setError(r.error || "Impossible de charger vos clients.");
+    setError("");
+    setRows(r.customers);
+  }, [guard]);
+  useEffect(() => { load(""); }, [load]);
+  // Recherche au fil de la frappe (petite pause pour ne pas charger à chaque lettre)
+  useEffect(() => {
+    const id = setTimeout(() => { if (rows !== null) load(q.trim()); }, 350);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  return (
+    <section className="ec-box ec-finder" aria-labelledby="ec-finder-title">
+      <div>
+        <h3 id="ec-finder-title">Pas de QR code ? Trouver le client</h3>
+        <p className="muted ec-small">Réservé au gérant : pour ajouter un tampon à la main ou dépasser la limite du jour. Chaque action est confirmée et notée dans l'historique (30 par jour au maximum).</p>
+      </div>
+      <form className="ec-search" role="search" onSubmit={(e) => { e.preventDefault(); load(q.trim()); }}>
+        <Icon name="search" size={18} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} className="input" placeholder="Nom, téléphone ou e-mail" aria-label="Rechercher un client (nom, téléphone ou e-mail)" />
+      </form>
+      {error && <p className="ec-alert">{error}</p>}
+      {rows === null && !error && <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" />}
+      {rows && rows.length === 0 && <p className="muted ec-small">{q ? "Aucun client ne correspond." : "Pas encore de client."}</p>}
+      {rows && rows.length > 0 && (
+        <ul className="ec-clients ec-finder-list">
+          {rows.map((c) => (
+            <li key={c.id}>
+              <button className="ec-client-open" disabled={busy} onClick={() => onPick(c)} aria-label={`Choisir ${c.first_name} ${c.last_name || ""}`.trim()} />
+              <span className="ec-avatar sm">{initials(`${c.first_name} ${c.last_name || ""}`)}</span>
+              <div className="ec-client-main">
+                <b>{c.first_name} {c.last_name || ""}</b>
+                <span>{c.phone || c.email || ""}</span>
+              </div>
+              <div className="ec-client-side">
+                <b>{c.balance}</b>
+                <span>{fmtAgo(c.last_visit_at)}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {rows && rows.length >= 100 && <p className="field-hint ec-center-text">Les 100 clients venus le plus récemment : tapez un nom pour trouver les autres.</p>}
+    </section>
+  );
+}
+
 /* ═════════════════════════════ Clients ═════════════════════════════ */
-function Clients({ guard, say, clientId, openClient }) {
+function Clients({ guard, say, clientId, openClient, readOnly = false, badges = false, exportable = false }) {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState(null);
   const [stats, setStats] = useState(null);
@@ -998,7 +1592,7 @@ function Clients({ guard, say, clientId, openClient }) {
   useEffect(() => { load(""); }, [load]);
 
   if (clientId) {
-    return <ClientFiche id={clientId} row={rows?.find((r) => r.id === clientId) || null} guard={guard} say={say} onBack={() => openClient(null)} />;
+    return <ClientFiche id={clientId} row={rows?.find((r) => r.id === clientId) || null} guard={guard} say={say} onBack={() => openClient(null)} readOnly={readOnly} badges={badges} />;
   }
   return (
     <div className="ec-panel">
@@ -1038,6 +1632,7 @@ function Clients({ guard, say, clientId, openClient }) {
         </ul>
       )}
       {rows && rows.length >= 100 && <p className="field-hint ec-center-text">Les 100 clients venus le plus récemment. Utilisez la recherche pour trouver les autres.</p>}
+      {exportable && <ExportButton type="clients" label="Exporter tous mes clients (Excel)" guard={guard} say={say} />}
     </div>
   );
 }

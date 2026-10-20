@@ -16,12 +16,13 @@ export function Email() {
   return <a href={`mailto:${e}`}>{e}</a>;
 }
 
-export default function LegalPage({ index, label, title, children }) {
+/** `updated` : date de mise à jour propre à la page (sinon, celle de site.config). */
+export default function LegalPage({ index, label, title, updated, children }) {
   return (
     <>
       <PageHero index={index} label={label} title={title} orbs={false} />
       <article className="legal">
-        <p className="faint" style={{ fontSize: 14 }}>Dernière mise à jour : {legal.lastUpdate}</p>
+        <p className="faint" style={{ fontSize: 14 }}>Dernière mise à jour : {updated || legal.lastUpdate}</p>
         {children}
       </article>
     </>

@@ -7,7 +7,7 @@ import PriceCards from "@/components/PriceCards";
 import DashPreview from "@/components/DashPreview";
 import Fork from "@/components/Fork";
 import WalletBadges from "@/components/WalletBadges";
-import { founderOffer, trialDays } from "@/lib/offer";
+import { trialDays, vatNotice } from "@/lib/offer";
 
 export default function Home() {
   return (
@@ -36,6 +36,7 @@ export default function Home() {
                 <Link href="/creer" className="btn btn-soon btn-lg">Créer ma carte <span className="soon-tag">Bientôt disponible</span></Link>
               </div>
               <ul className="reassure reveal" data-delay="4">
+                <li><Icon name="check" size={17} stroke={2.4} /> Dès 9 € par mois</li>
                 <li><Icon name="check" size={17} stroke={2.4} /> Sans appli à télécharger</li>
                 {trialDays > 0 && <li><Icon name="check" size={17} stroke={2.4} /> {trialDays} jours gratuits</li>}
                 <li><Icon name="check" size={17} stroke={2.4} /> Sans engagement</li>
@@ -90,7 +91,7 @@ export default function Home() {
             </li>
           </ol>
           <div className="how-foot">
-            <p>Pas le temps ou pas à l'aise avec le téléphone ? On vient tout installer chez vous.</p>
+            <p>Pas le temps ou pas à l'aise avec le téléphone ? On installe tout pour vous : à distance avec Essentiel, chez vous avec Tout compris.</p>
             <Link href="/contact" className="btn btn-dark btn-sm">Réserver une démo</Link>
           </div>
         </div>
@@ -122,7 +123,7 @@ export default function Home() {
               <span className="ba-tag orange">AVEC WALTY</span>
               <div className="ba-visual" aria-hidden="true"><WalletCard theme="hibiscus" /></div>
               <ul className="list">
-                {["Toujours dans le téléphone", "Tamponnée par votre équipe", "Vous voyez vos chiffres"].map((t) => (
+                {["Toujours dans le téléphone", "Tamponnée par votre équipe", "Vous avez la liste de vos clients"].map((t) => (
                   <li key={t} style={{ color: "var(--ink)", fontWeight: 600 }}><span className="check"><Icon name="check" size={12} stroke={2.6} /></span>{t}</li>
                 ))}
               </ul>
@@ -151,9 +152,9 @@ export default function Home() {
             </div>
           </div>
           <div className="stack" style={{ "--gap": "20px" }}>
-            <span className="chip chip-violet" style={{ justifySelf: "start" }}>Formules Premium et Pro</span>
-            <h2 className="display-l reveal">Prévenez vos clients <span className="serif">en 1 clic</span>.</h2>
-            <p className="lead reveal">Une offre, une nouveauté, un créneau libre : votre message s'affiche sur leur téléphone, comme un SMS.</p>
+            <span className="chip chip-violet" style={{ justifySelf: "start" }}>Formule Tout compris</span>
+            <h2 className="display-l reveal">Prévenez vos clients <span className="serif">sur leur téléphone</span>.</h2>
+            <p className="lead reveal">Une offre, une nouveauté, un créneau libre : vous écrivez le message, on l'envoie. Il s'affiche sur leur téléphone, comme un SMS. Jusqu'à 4 par semaine.</p>
             <Link href="/tarifs" className="text-link" style={{ color: "var(--ink)" }}>Voir ce qui est inclus</Link>
           </div>
         </div>
@@ -163,9 +164,9 @@ export default function Home() {
       <section className="frame alt dash-band">
         <div className="rails section duo flip">
           <div className="stack" style={{ "--gap": "20px" }}>
-            <span className="label">Votre espace commerçant</span>
+            <span className="chip chip-violet" style={{ justifySelf: "start" }}>Formule Tout compris</span>
             <h2 className="display-l reveal">Vos chiffres, <span className="serif">en clair</span>.</h2>
-            <p className="lead reveal">Combien de clients ont votre carte, combien reviennent, qui relancer. Sur votre téléphone, à tout moment.</p>
+            <p className="lead reveal">Combien de clients reviennent, combien de passages, combien de cadeaux offerts, et ce que la carte vous rapporte. Sur votre téléphone, à tout moment.</p>
           </div>
           <div className="reveal" data-delay="1"><DashPreview /></div>
         </div>
@@ -176,12 +177,12 @@ export default function Home() {
         <div className="rails section">
           <div className="section-head price-head">
             <span className="label">Tarifs</span>
-            <h2 className="display-l">Moins d'1 € <span className="serif">par jour</span>.</h2>
-            <p className="lead">Essentiel : 29 € par mois. Un client de plus par semaine suffit à la rembourser.</p>
+            <h2 className="display-l">Dès 9 € <span className="serif">par mois</span>.</h2>
+            <p className="lead">Sans engagement, {trialDays || 14} jours d'essai gratuit.</p>
           </div>
           <PriceCards />
           <div className="price-foot">
-            <p>{founderOffer}</p>
+            <p>{vatNotice} Paiement au mois. Offre réservée aux professionnels.</p>
             <Link href="/tarifs" className="text-link">Tout comparer</Link>
           </div>
         </div>
@@ -194,7 +195,8 @@ export default function Home() {
           <div className="faq">
             {[
               { q: "Mes clients doivent-ils télécharger une appli ?", a: "Non. La carte va dans le portefeuille du téléphone : Apple Wallet sur iPhone, Google Wallet sur Android (déjà installé sur la plupart des téléphones)." },
-              { q: "Je ne suis pas à l'aise avec la technique.", a: "Pas de souci : réservez une démo, on vient chez vous et on installe tout. Vous n'avez qu'à tamponner." },
+              { q: "Je ne suis pas à l'aise avec la technique.", a: "Pas de souci : réservez une démo. On crée votre carte avec vous pendant le rendez-vous, puis on l'installe pour vous. Vous n'avez qu'à tamponner." },
+              { q: "Combien ça coûte ?", a: "Essentiel : 9 € par mois. Tout compris : 15 € par mois, avec toutes les options et un SAV sous 48 h garanti. Sans engagement, et les 14 premiers jours sont gratuits." },
               { q: "Un client peut-il tricher ?", a: "C'est votre équipe qui tamponne la carte, avec son propre accès. Le client ne peut pas s'ajouter de tampon lui-même." },
               { q: "Et si j'arrête ?", a: "Aucun engagement. Vous arrêtez à la fin du mois, et vous gardez la liste de vos clients." },
             ].map((f) => (

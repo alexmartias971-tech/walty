@@ -21,6 +21,26 @@ export async function api(path, init = {}) {
 }
 export const post = (path, body) => api(path, { method: "POST", body: JSON.stringify(body || {}) });
 
+/** « Exporter en Excel » : télécharge le fichier CSV préparé par le logiciel de cartes (clients ou passages). */
+export async function downloadExport(type) {
+  try {
+    const res = await fetch(`/api/espace/export?type=${encodeURIComponent(type)}`, { cache: "no-store", credentials: "same-origin" });
+    if (res.ok && (res.headers.get("content-type") || "").includes("text/csv")) {
+      const blob = await res.blob();
+      const m = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") || "");
+      const name = m ? m[1] : `walty-${type}.csv`;
+      const url = URL.createObjectURL(blob);
+      download(url, name);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      return { ok: true, name };
+    }
+    const data = await res.json().catch(() => ({}));
+    return { ok: false, status: res.status, unavailable: !!data.unavailable || res.status === 501, error: data.error };
+  } catch {
+    return { ok: false, status: 0, error: "Pas de connexion internet. Vérifiez le réseau et réessayez." };
+  }
+}
+
 export const euro = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(n) || 0);
 export const fmtDateTime = (iso) =>
   iso ? new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : "—";

@@ -407,3 +407,82 @@ select.input { appearance: auto; }
 .ec-pw-page .muted { margin: 0; }
 .ec-sheet .ec-sheet-wide { grid-column: 1 / -1; }
 .ec-side .ec-side-pw { margin-top: 6px; box-shadow: inset 0 1px 0 var(--line); border-radius: 0 0 14px 14px; }
+
+/* ─── Scanner : actions sans QR code (gérant) et badges de l'historique ─── */
+.ec-finder { gap: 14px; }
+.ec-finder h3 { margin: 0 0 4px; }
+.ec-finder .ec-search { padding-right: 14px; }
+.ec-finder-list { max-height: min(60vh, 560px); overflow-y: auto; overscroll-behavior: contain; }
+.ec-finder-list .ec-client-open:disabled { cursor: progress; }
+.ec-card.is-manual { border-color: rgba(123, 60, 255, .55); }
+.ec-manual-flag { margin: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 12px; border-radius: 12px; background: rgba(123, 60, 255, .16); color: var(--violet-ink); font-size: 13.5px; font-weight: 800; }
+.ec-over { display: grid; gap: 12px; padding: 14px; border-radius: 18px; border: 1px dashed var(--line-strong); background: var(--tint); }
+.ec-over .field { display: grid; gap: 8px; margin: 0; }
+.ec-over-check { display: flex; align-items: flex-start; gap: 10px; font-weight: 700; cursor: pointer; line-height: 1.35; }
+.ec-over-check input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--flamboyant); }
+.ec-ev-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.ec-ev-badges .chip { padding: 3px 10px; font-size: 12px; }
+.ec-ev-reason { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.ec-role-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 16px; }
+
+/* Mot de passe oublié : demande du lien par e-mail */
+.ec-forgot { width: 100%; text-align: left; }
+.ec-forgot p { margin: 0; }
+div.ec-forgot { display: grid; gap: 8px; }
+.ec-forgot .ec-linkbtn { justify-self: start; }
+
+/* ─── Scanner : fiche éclair (vert / orange / rouge), lisible en 1 seconde ─── */
+.ec-flash { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; border: 1.5px solid; text-align: left; }
+.ec-flash b { display: block; font: 650 17px/1.3 var(--f-display); letter-spacing: -0.02em; }
+.ec-flash span:not(.ec-flash-dot) { display: block; margin-top: 3px; font-size: 14.5px; font-weight: 700; opacity: .9; }
+.ec-flash-dot { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: #0e0914; }
+.ec-flash-green, .ec-flash-done { background: rgba(45, 226, 196, .14); border-color: rgba(45, 226, 196, .6); color: #b6f7ea; }
+.ec-flash-green .ec-flash-dot, .ec-flash-done .ec-flash-dot { background: #2de2c4; box-shadow: 0 0 18px rgba(45, 226, 196, .55); }
+.ec-flash-orange { background: rgba(255, 162, 61, .15); border-color: rgba(255, 162, 61, .7); color: #ffd6a6; }
+.ec-flash-orange .ec-flash-dot { background: #ffa23d; box-shadow: 0 0 18px rgba(255, 162, 61, .55); }
+.ec-flash-red { background: rgba(255, 46, 126, .16); border-color: rgba(255, 46, 126, .7); color: #ffc1d6; }
+.ec-flash-red .ec-flash-dot { background: #ff2e7e; box-shadow: 0 0 18px rgba(255, 46, 126, .55); }
+.ec-card.tone-green, .ec-card.tone-done { border-color: rgba(45, 226, 196, .45); }
+.ec-card.tone-orange { border-color: rgba(255, 162, 61, .55); }
+.ec-card.tone-red { border-color: rgba(255, 46, 126, .55); }
+.ec-since { margin: 3px 0 0; color: var(--muted); font-size: 14px; font-weight: 700; }
+.ec-main-action { display: grid; gap: 10px; }
+.ec-gift-btn { height: auto; min-height: 64px; padding-top: 10px; padding-bottom: 10px; line-height: 1.25; white-space: normal; }
+.ec-auto-undo { font-size: 19px; border: 1.5px solid rgba(255, 46, 126, .6); }
+.ec-auto-undo span { opacity: .75; font-weight: 700; margin-left: 4px; }
+
+/* Aide de la première ouverture du scanner */
+.ec-help-back { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(8, 5, 12, .72); animation: ec-fade .2s var(--ease); }
+.ec-help-card { width: min(440px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; display: grid; gap: 14px; padding: 22px 18px; border-radius: 26px; background: var(--surface); border: 1px solid var(--line-strong); box-shadow: 0 30px 80px -30px rgba(0,0,0,.9); }
+.ec-help-card .ec-h { margin: 0; }
+.ec-help-card .ec-kicker { margin: 0; }
+.ec-help-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.ec-help-steps li { display: flex; gap: 12px; align-items: flex-start; }
+.ec-help-steps li > b { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--cta); color: #fff; font: 700 17px/1 var(--f-display); }
+.ec-help-steps strong { display: block; font-size: 17px; }
+.ec-help-steps span { display: block; color: var(--muted); font-size: 14.5px; margin-top: 2px; }
+.ec-help-tones { display: grid !important; gap: 6px; margin-top: 6px !important; }
+.ec-help-tones em { font-style: normal; font-weight: 800; font-size: 14px; padding: 6px 10px; border-radius: 10px; border: 1.5px solid; }
+.ec-help-tones .t-green { color: #b6f7ea; border-color: rgba(45, 226, 196, .6); background: rgba(45, 226, 196, .12); }
+.ec-help-tones .t-orange { color: #ffd6a6; border-color: rgba(255, 162, 61, .7); background: rgba(255, 162, 61, .12); }
+.ec-help-tones .t-red { color: #ffc1d6; border-color: rgba(255, 46, 126, .7); background: rgba(255, 46, 126, .12); }
+
+/* Réglage de l'appareil : tampon automatique au scan (gérant) */
+.ec-switch { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 18px; border: 1px solid var(--line-strong); background: var(--tint); cursor: pointer; }
+.ec-switch input { flex: none; width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--flamboyant); }
+.ec-switch b { display: block; font-size: 15.5px; }
+.ec-switch em { display: block; font-style: normal; color: var(--muted); font-size: 13.5px; font-weight: 600; margin-top: 2px; }
+
+/* Formule Essentiel : « Passer au Tout compris » */
+.ec-upgrade { display: grid; gap: 6px; margin-top: 8px; padding: 12px 14px; border-radius: 16px; border: 1px dashed rgba(185, 160, 255, .45); background: rgba(123, 60, 255, .08); font-size: 13.5px; }
+.ec-upgrade b { font-size: 14px; color: var(--violet-ink); }
+.ec-upgrade span { color: var(--muted); font-weight: 600; line-height: 1.4; }
+.ec-upgrade .ec-upgrade-warn { color: #ffd6a6; }
+.ec-upgrade a { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.ec-upgrade.is-wide { margin-top: 0; }
+@media (min-width: 960px) { .ec-home > .ec-upgrade { display: none; } } /* ordinateur : déjà dans le menu de gauche */
+.ec-sheet .ec-sheet-card { display: block; }
+
+/* Exporter en Excel (gérant) */
+.ec-export { display: grid; gap: 8px; justify-items: start; padding-top: 4px; }
+.ec-export .field-hint { margin: 0; }

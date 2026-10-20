@@ -6,19 +6,23 @@ import { api, euro, fmtAgo, fmtDate, fmtLongDate, initials, post } from "./outil
 import { EventList } from "./Passages";
 
 /** Fiche d'un client : état de sa carte, ses chiffres, ses offres et son historique. */
-export default function ClientFiche({ id, row, guard, say, onBack }) {
+export default function ClientFiche({ id, row, guard, say, onBack, readOnly = false, badges = false }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [soon, setSoon] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await api(`customer?id=${encodeURIComponent(id)}`);
+    const [r, m] = await Promise.all([
+      api(`customer?id=${encodeURIComponent(id)}`),
+      badges ? api(`manual-log?customer=${encodeURIComponent(id)}`) : null,
+    ]);
     if (!guard(r)) return;
     if (r.unavailable) return setSoon(true);
     if (!r.ok) return setError(r.error || "Impossible de charger ce client.");
     setError("");
-    setData(r);
-  }, [id, guard]);
+    const items = m?.ok ? m.items || {} : {};
+    setData({ ...r, history: (r.history || []).map((e) => (items[e.id] ? { ...e, manual: items[e.id] } : e)) });
+  }, [id, guard, badges]);
   useEffect(() => { setData(null); setSoon(false); load(); }, [load]);
 
   async function undo(e) {
@@ -123,7 +127,7 @@ export default function ClientFiche({ id, row, guard, say, onBack }) {
       {data && (
         <section className="ec-box">
           <h3>Son historique</h3>
-          {data.history.length === 0 ? <p className="muted ec-small">Pas encore de passage.</p> : <EventList events={data.history} onUndo={undo} showDate showCustomer={false} />}
+          {data.history.length === 0 ? <p className="muted ec-small">Pas encore de passage.</p> : <EventList events={data.history} onUndo={readOnly ? null : undo} showDate showCustomer={false} />}
         </section>
       )}
       {c && <p className="field-hint">Ce client souhaite que ses données soient supprimées ou exportées (RGPD) ? Transmettez sa demande à Walty, qui s'en occupe.</p>}
