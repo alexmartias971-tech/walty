@@ -371,7 +371,9 @@ export default function EspaceApp() {
       {phase === "change" && (
         <ChangePasswordScreen
           initialOld={tempPw.current}
-          onDone={() => { ssMust.set(null); tempPw.current = ""; setPhase("app"); }}
+          // Mot de passe provisoire changé : on redemande qui est connecté (le rôle était « employé » tant que le
+          // provisoire n'était pas changé), sinon le gérant arrivait dans la vue employé jusqu'au rechargement.
+          onDone={() => { ssMust.set(null); tempPw.current = ""; load(token, "password"); }}
           onLogout={logout}
           onExpired={expired}
         />
