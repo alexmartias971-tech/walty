@@ -486,3 +486,42 @@ div.ec-forgot { display: grid; gap: 8px; }
 /* Exporter en Excel (gérant) */
 .ec-export { display: grid; gap: 8px; justify-items: start; padding-top: 4px; }
 .ec-export .field-hint { margin: 0; }
+
+/* Squelettes de chargement (la forme de la page tout de suite, au lieu d'un écran vide) */
+.ec-skel { display: block; border-radius: 8px; background: linear-gradient(90deg, var(--tint) 0%, var(--tint-2) 45%, var(--tint) 90%); background-size: 220% 100%; animation: ec-shimmer 1.25s ease-in-out infinite; }
+.ec-skel-line { height: 12px; max-width: 100%; }
+.ec-skel-dot { flex: none; width: 36px; height: 36px; border-radius: 12px; }
+.ec-kpi .ec-skel + .ec-skel { margin-top: 8px; }
+.ec-skel-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.ec-skel-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ec-skel-row:last-child { border-bottom: 0; }
+.ec-skel-col { flex: 1; display: grid; gap: 7px; min-width: 0; }
+@keyframes ec-shimmer { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+@media (prefers-reduced-motion: reduce) { .ec-skel { animation: none; } }
+/* mise à jour discrète en arrière-plan (données déjà affichées) */
+.ec-refreshing { opacity: .72; transition: opacity .2s; }
+
+/* Retirer un tampon (gérant) */
+.ec-remove { display: grid; gap: 10px; padding: 14px; border-radius: 18px; border: 2px solid rgba(255, 46, 126, .45); background: rgba(255, 46, 126, .07); }
+.ec-remove p { margin: 0; font-weight: 800; }
+.ec-remove .field { display: grid; gap: 6px; margin: 0; }
+.ec-remove .ec-inline .btn { flex: 1; justify-content: center; }
+.ec-remove-btn { justify-self: center; display: inline-flex; align-items: center; gap: 6px; }
+.ec-ev-icon.removed { background: rgba(255, 46, 126, .14); color: #ff8fb8; }
+
+/* Messages : limite de la semaine atteinte, « Envoyer quand même » (gérant) */
+.ec-limit { display: grid; gap: 10px; padding: 14px 16px; border-radius: 16px; background: rgba(255, 91, 31, .1); border: 1px solid rgba(255, 91, 31, .4); }
+.ec-limit b { font-size: 15.5px; }
+.ec-limit p { margin: 0; color: var(--muted); font-size: 14px; font-weight: 600; }
+.ec-limit .btn { justify-self: start; }
+.ec-warning { display: grid; gap: 12px; padding: 16px; border-radius: 18px; border: 2px solid rgba(255, 196, 0, .55); background: rgba(255, 196, 0, .08); }
+.ec-warning p { margin: 0; font-weight: 700; line-height: 1.45; }
+.ec-warning p strong { color: #ffd66b; }
+.ec-warning .ec-over-check { font-weight: 800; }
+.ec-warning .ec-inline .btn { flex: 1; justify-content: center; }
+.ec-overflag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(255, 196, 0, .14); color: #ffd66b; font-size: 13px; font-weight: 800; justify-self: start; }
+
+/* Mon programme : nouveau nombre de tampons (avertissement AVANT d'enregistrer) */
+.ec-impact { display: grid; gap: 6px; margin-top: 6px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(255, 196, 0, .45); background: rgba(255, 196, 0, .08); font-size: 14.5px; font-weight: 700; line-height: 1.45; }
+.ec-impact p { margin: 0; }
+.ec-impact strong { color: #ffd66b; }

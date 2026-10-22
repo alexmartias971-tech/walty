@@ -5,25 +5,29 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "@/components/Icon";
 import { site } from "@/lib/site.config";
-import { api, copyText, download, fileSlug, initials, programLine } from "./outils";
+import { copyText, download, fileSlug, initials, peek, programLine, swr } from "./outils";
+import Squelette from "./Squelette";
 
 const STEPS = ["Scannez ce QR code avec l'appareil photo", "Indiquez votre prénom", "Ajoutez la carte à votre téléphone"];
 
 /** « Ma carte » : l'aperçu de la carte des clients, le QR code du comptoir (PNG, affiche A5 / A6) et le lien d'inscription. */
 export default function MaCarte({ me, guard, say }) {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(() => peek("card"));
   const [error, setError] = useState("");
   const [soon, setSoon] = useState(false);
   const [format, setFormat] = useState("A5");
   const [printing, setPrinting] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // pré-chargée après la connexion : affichée tout de suite, puis remise à jour
   const load = useCallback(async () => {
-    const r = await api("card");
-    if (!guard(r)) return;
-    if (r.unavailable) return setSoon(true);
-    if (!r.ok) return setError(r.error || "Impossible de charger votre carte.");
-    setData(r);
+    await swr("card", (r) => {
+      if (!guard(r)) return;
+      if (r.unavailable) return setSoon(true);
+      if (!r.ok) return setError(r.error || "Impossible de charger votre carte.");
+      setError("");
+      setData(r);
+    });
   }, [guard]);
   useEffect(() => { load(); }, [load]);
 
@@ -58,7 +62,7 @@ export default function MaCarte({ me, guard, say }) {
     );
   }
   if (error) return <div className="ec-panel"><p className="ec-alert">{error}</p></div>;
-  if (!data) return <div className="ec-panel"><div className="ec-spinner ec-spinner-sm" aria-label="Chargement" /></div>;
+  if (!data) return <Squelette kpis={0} rows={2} boxes={2} />;
 
   const name = data.business.name;
   const card = data.card;

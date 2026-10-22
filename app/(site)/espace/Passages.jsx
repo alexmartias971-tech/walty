@@ -12,13 +12,15 @@ const TONE = {
   cashback_used: "reward",
   coupon_used: "reward",
   correction: "bonus",
+  stamp_removed: "removed",
 };
-const ICON = { visit: "stamp", reward: "gift", bonus: "sparkle" };
+const ICON = { visit: "stamp", reward: "gift", bonus: "sparkle", removed: "x" };
 
 /**
  * Liste de passages (historique du jour, fiche client, accueil).
  * Un passage annulable (tampon ou achat de moins de 10 minutes, fait avec cet accès) a son bouton « Annuler ».
  * Un passage fait par le gérant SANS scanner la carte porte le badge « ajouté à la main » (et « hors limite » + la raison).
+ * Un tampon retiré par le gérant (« Tampon retiré », −1) montre la raison et qui l'a retiré.
  */
 export function EventList({ events, openClient, onUndo, compact = false, showDate = false, showCustomer = true }) {
   const [confirm, setConfirm] = useState(null);
@@ -43,7 +45,12 @@ export function EventList({ events, openClient, onUndo, compact = false, showDat
                 {[e.detail, compact ? null : e.manual?.by || e.by].filter(Boolean).join(" · ")}
                 {e.undone_at && <em> · annulé à {fmtTime(e.undone_at)}</em>}
               </span>
-              {e.manual && (
+              {e.manual && e.manual.action === "remove_stamp" && (
+                <span className="ec-ev-badges">
+                  <span className="chip chip-orange">Retiré par le gérant</span>
+                </span>
+              )}
+              {e.manual && e.manual.action !== "remove_stamp" && (
                 <span className="ec-ev-badges">
                   <span className="chip chip-violet">Ajouté à la main</span>
                   {e.manual.over_limit && <span className="chip chip-orange">Hors limite</span>}

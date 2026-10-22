@@ -21,10 +21,14 @@
  *
  * - Rôles (gérant / employé) : la preuve « gérant » est un second cookie signé par le logiciel de cartes
  *   (« commercant_role », posé par login-gerant = connexion e-mail/identifiant + mot de passe) ; walty.fr le transmet
- *   sans pouvoir le lire ni le fabriquer. Pour les rubriques du gérant (programme, offres, messages, historique,
- *   chiffres, ma carte, actions à la main), la passerelle demande d'abord au logiciel de cartes (adresse « role »)
- *   qui est connecté, et refuse (403) un employé connecté par code PIN. Le changement de mot de passe exige une
- *   connexion par mot de passe. Les actions à la main sont AUSSI refusées par le logiciel de cartes lui-même.
+ *   sans pouvoir le lire ni le fabriquer. Les rubriques du gérant (programme, offres, messages, historique, chiffres,
+ *   ma carte, actions à la main, export) et le changement de mot de passe sont refusés (403) à un employé
+ *   PAR LE LOGICIEL DE CARTES LUI-MÊME (il vérifie le rôle à chaque demande, voir requireManager dans
+ *   src/lib/merchant-space.ts de cartedefid). La passerelle ne redemande donc plus « role » avant de relayer :
+ *   une traversée de l'Atlantique de moins par page (avant : 2 allers-retours walty → cartedefid, maintenant 1).
+ *
+ * Rapidité : les fonctions de walty.fr tournent à Paris (vercel.json : "regions": ["cdg1"], comme cartedefid,
+ * à côté de la base de données en Irlande) ; la passerelle et le logiciel de cartes sont alors dans la même ville.
  *
  * Variable facultative : CARTEDEFID_URL (par défaut https://cartedefid.vercel.app).
  */
@@ -52,13 +56,10 @@ const COOKIE = "commercant_session";
 /** Preuve « gérant » (connexion par mot de passe), signée par le logiciel de cartes, liée au badge de session. */
 const ROLE_COOKIE = "commercant_role";
 const COOKIES = [COOKIE, ROLE_COOKIE];
-/** Rubriques réservées au gérant (refusées à un employé connecté par code PIN). */
-const MANAGER_ONLY = new Set(["program", "offers", "notifications", "history", "insights", "stats", "card", "manual", "export"]);
-/** Changer le mot de passe : seulement une session ouverte par mot de passe (même provisoire). */
-const PASSWORD_ONLY = new Set(["password"]);
 const LOGIN_ROUTES = new Set(["login", "login-password", "login-gerant"]);
 
 export const dynamic = "force-dynamic";
+// Région : Paris (cdg1), réglée pour tout le site dans vercel.json (à côté du logiciel de cartes).
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -123,24 +124,6 @@ function cookieHeader(request) {
   return out.join("; ");
 }
 
-/**
- * Qui est connecté ? (gérant / employé) — demandé au logiciel de cartes, qui seul peut vérifier la signature.
- * null = adresse « role » pas encore installée sur le logiciel de cartes (ancien comportement, sans rôles).
- */
-async function whoIs(cookie) {
-  const res = await fetch(`${BASE}/api/merchant/role`, {
-    headers: { Accept: "application/json", ...(cookie ? { Cookie: cookie } : {}) },
-    cache: "no-store",
-    redirect: "manual",
-    signal: AbortSignal.timeout(10000),
-  });
-  const isJson = (res.headers.get("content-type") || "").includes("application/json");
-  if (!isJson && (res.status === 404 || res.status === 405)) return null;
-  const data = isJson ? await res.json().catch(() => null) : null;
-  if (!data || typeof data !== "object") throw new Error("role");
-  return { status: res.status, ...data };
-}
-
 async function relay(request, ctx) {
   const { chemin = "" } = await ctx.params;
   const route = Array.isArray(chemin) ? chemin.join("/") : String(chemin);
@@ -158,28 +141,7 @@ async function relay(request, ctx) {
   const cookie = cookieHeader(request);
   if (cookie) headers.Cookie = cookie;
 
-  // Rubriques du gérant : un employé (code PIN) est refusé ici, côté serveur
-  if (MANAGER_ONLY.has(route) || PASSWORD_ONLY.has(route)) {
-    let who;
-    try {
-      who = await whoIs(cookie);
-    } catch {
-      return json({ ok: false, error: "Le service est momentanément indisponible. Vérifiez votre connexion et réessayez." }, 502);
-    }
-    if (who) {
-      if (who.status === 401 || !who.ok) return json({ ok: false, error: vous(who.error) || "Session expirée : reconnectez-vous." }, 401);
-      const allowed = PASSWORD_ONLY.has(route) ? who.password === true : who.role === "gerant";
-      if (!allowed) {
-        return json({
-          ok: false,
-          forbidden: true,
-          error: PASSWORD_ONLY.has(route)
-            ? "Le mot de passe se change depuis une connexion par e-mail et mot de passe."
-            : "Réservé au gérant : connectez-vous avec votre e-mail et votre mot de passe.",
-        }, 403);
-      }
-    }
-  }
+  // Rubriques du gérant : le logiciel de cartes refuse lui-même (403) un employé connecté par code PIN.
   let body;
   if (request.method === "POST" || request.method === "DELETE") {
     body = await request.text();

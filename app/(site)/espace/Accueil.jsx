@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
-import { api, euro, fmtDay, gpToday, programLine, TZ } from "./outils";
+import { euro, fmtDay, gpToday, peek, programLine, swr, TZ } from "./outils";
 import { EventList } from "./Passages";
+import { SkelKpis } from "./Squelette";
 
 /**
  * Accueil de l'espace : les chiffres du jour, le gros bouton « Scanner une carte »,
@@ -11,9 +12,12 @@ import { EventList } from "./Passages";
  * Formule Essentiel : les chiffres simples de la liste des clients (pas de « stats »), pas de messages ni d'offres,
  * et la carte « Passer au Tout compris » (upgrade).
  */
+const monthOf = (s) => ({ visits: s.stats.visitsThisMonth, newCustomers: s.stats.newThisMonth, rewards: s.stats.rewardsThisMonth, total: s.stats.total, active30: s.stats.active30 });
+
 export default function Accueil({ me, today, refreshToday, guard, go, goScan, openClient, features, essentiel = false, upgrade = null }) {
-  const [month, setMonth] = useState(null);
-  const [remaining, setRemaining] = useState(null);
+  // Déjà en mémoire (retour sur l'accueil) : affiché tout de suite, puis remis à jour
+  const [month, setMonth] = useState(() => { const s = !essentiel && peek("stats"); return s?.ok ? monthOf(s) : null; });
+  const [remaining, setRemaining] = useState(() => peek("notifications")?.remaining ?? null);
 
   useEffect(() => {
     refreshToday();
@@ -21,20 +25,20 @@ export default function Accueil({ me, today, refreshToday, guard, go, goScan, op
 
   useEffect(() => {
     let live = true;
+    // Le mois en cours (adresse « stats ») et les messages restants : demandés EN MÊME TEMPS
+    const notif = me.canNotify && !essentiel
+      ? swr("notifications", (n) => { if (live && n.ok) setRemaining(n.remaining); })
+      : null;
     (async () => {
-      // Le mois en cours (adresse « stats »), sinon les chiffres simples de la liste des clients
-      const s = essentiel ? { ok: false, unavailable: true } : await api("stats");
+      const s = essentiel ? { ok: false, unavailable: true } : await swr("stats", (x) => { if (live && x.ok) setMonth(monthOf(x)); });
       if (!live || !guard(s)) return;
-      if (s.ok) setMonth({ visits: s.stats.visitsThisMonth, newCustomers: s.stats.newThisMonth, rewards: s.stats.rewardsThisMonth, total: s.stats.total, active30: s.stats.active30 });
-      else if (s.unavailable || s.upgrade) {
-        const c = await api("customers?q=");
-        if (!live || !guard(c)) return;
-        if (c.ok) setMonth({ visits: c.stats.stampsThisMonth, newCustomers: null, rewards: c.stats.rewardsRedeemed, total: c.stats.total, basic: true });
+      if (!s.ok && (s.unavailable || s.upgrade)) {
+        // Formule Essentiel (ou ancienne version) : les chiffres simples de la liste des clients
+        await swr("customers?q=", (c) => {
+          if (live && guard(c) && c.ok) setMonth({ visits: c.stats.stampsThisMonth, newCustomers: null, rewards: c.stats.rewardsRedeemed, total: c.stats.total, basic: true });
+        });
       }
-      if (me.canNotify && !essentiel) {
-        const n = await api("notifications");
-        if (live && n.ok) setRemaining(n.remaining);
-      }
+      await notif;
     })();
     return () => { live = false; };
   }, [guard, me.canNotify, essentiel]);
@@ -77,7 +81,7 @@ export default function Accueil({ me, today, refreshToday, guard, go, goScan, op
         ) : features.v13 === false ? (
           <p className="muted ec-small">Le détail de la journée arrive bientôt ici. En attendant, vos chiffres du mois sont ci-dessous.</p>
         ) : (
-          <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" />
+          <div role="status" aria-label="Chargement"><SkelKpis n={4} /></div>
         )}
         {today?.events?.length > 0 && (
           <>

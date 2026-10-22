@@ -29,6 +29,13 @@
  * « tout-compris » (ou pas de formule) = tout. Le logiciel de cartes refuse aussi côté serveur.
  * Gérant : « Exporter en Excel » dans Clients et Historique.
  *
+ * Retours du test d'Alexandre (20 oct.) :
+ * - Rapidité : mémoire des rubriques (affichage immédiat puis mise à jour, outils.js), pré-chargement des rubriques
+ *   probables juste après la connexion, squelettes au lieu d'écrans vides, rôle donné directement par « me ».
+ * - Gérant : « Retirer 1 tampon » (fiche client et résultat du scan, raison obligatoire, RetirerTampon.jsx) ;
+ *   Messages : limite de la semaine atteinte → « Envoyer quand même » avec avertissement + « J'ai compris » ;
+ *   Mon programme : nouveau nombre de tampons → ce que ça change pour les cartes déjà installées, AVANT d'enregistrer.
+ *
  * Versions plus simples, automatiques, si le logiciel de cartes n'a pas encore certaines adresses :
  * - sans login-password / password : seulement le lien + code PIN (comme avant) ;
  * - sans card / program / history / customer / insights : l'espace de la v12 (pas d'historique, fiche client simple…) ;
@@ -46,7 +53,28 @@ import Historique from "./Historique";
 import MaCarte from "./MaCarte";
 import Programme from "./Programme";
 import ExportButton from "./Export";
-import { api, euro, fmtAgo, fmtDate, fmtDateTime, fmtLongDate, fmtTime, gpToday, initials, post, TZ } from "./outils";
+import RetirerTampon from "./RetirerTampon";
+import Squelette, { SkelBox, SkelList } from "./Squelette";
+import {
+  afterVisitChange,
+  api,
+  clearCache,
+  euro,
+  fmtAgo,
+  fmtDate,
+  fmtDateTime,
+  fmtLongDate,
+  fmtTime,
+  getFresh,
+  gpToday,
+  initials,
+  invalidate,
+  peek,
+  post,
+  prefetch,
+  swr,
+  TZ,
+} from "./outils";
 
 const LS = "walty-espace-acces";
 /** Comment cet appareil s'est connecté la dernière fois : « password » (gérant) ou « pin » (caisse). */
@@ -183,7 +211,9 @@ export default function EspaceApp() {
       return setPhase("error");
     }
     if (r.loggedIn) {
-      // Gérant ou employé ? (vérifié par le logiciel de cartes ; la passerelle et le logiciel le revérifient à chaque action)
+      // Gérant ou employé ? « me » le dit directement (logiciel de cartes à jour) : pas de deuxième demande.
+      // Le logiciel de cartes le revérifie de toute façon à chaque action.
+      if (r.role === "gerant" || r.role === "employe") return enter({ ...r, role: r.role, password: !!r.password, via: mode });
       const w = await api("role");
       if (w.status === 401) return gate(tk, mode);
       const role = w.ok ? (w.role === "gerant" ? "gerant" : "employe") : w.unavailable ? "legacy" : "employe";
@@ -254,6 +284,7 @@ export default function EspaceApp() {
   async function forget() {
     // Changer de commerce : on oublie le lien ET on ferme la session éventuelle
     await post("logout");
+    clearCache();
     lsSet(null);
     setToken(null);
     setBusiness(null);
@@ -263,6 +294,7 @@ export default function EspaceApp() {
   }
   async function logout() {
     await post("logout");
+    clearCache();
     ssMust.set(null);
     tempPw.current = "";
     setMe(null);
@@ -270,13 +302,21 @@ export default function EspaceApp() {
     load(token, via);
   }
   const expired = useCallback(() => {
+    clearCache();
     setMe(null);
     setNotice(via === "password" ? EXPIRED_PW : EXPIRED);
     load(token, via);
   }, [load, token, via]);
+  /** « Mon programme » enregistré : l'accueil affiche tout de suite les nouvelles règles. */
+  const programSaved = useCallback((r) => {
+    const s = r?.settings;
+    if (!s) return;
+    setMe((m) => (m && m.program ? { ...m, program: { ...m.program, reward_threshold: s.reward_threshold, reward_description: s.reward_description, welcome_offer: s.welcome_offer || null, birthday_offer: s.birthday_offer || null } } : m));
+  }, []);
 
   /** Connexion réussie par mot de passe. */
   function passwordIn(login, password, mustChange) {
+    clearCache();
     lsMode.set("password");
     lsLogin.set(login);
     setVia("password");
@@ -292,6 +332,7 @@ export default function EspaceApp() {
   }
   /** Connexion réussie par code PIN. */
   function pinIn() {
+    clearCache();
     lsMode.set("pin");
     ssMust.set(null);
     setVia("pin");
@@ -300,6 +341,7 @@ export default function EspaceApp() {
   }
   /** Nouveau mot de passe choisi avec le lien reçu par e-mail. */
   function resetDone(r) {
+    clearCache();
     resetTok.current = "";
     ssMust.set(null);
     tempPw.current = "";
@@ -378,7 +420,7 @@ export default function EspaceApp() {
           onExpired={expired}
         />
       )}
-      {phase === "app" && me && <Dashboard me={me} onLogout={logout} onExpired={expired} />}
+      {phase === "app" && me && <Dashboard me={me} onLogout={logout} onExpired={expired} onProgramSaved={programSaved} />}
     </div>
   );
 }
@@ -841,7 +883,10 @@ const PASSWORD = { id: "motdepasse", label: "Changer mon mot de passe", icon: "s
 /** Ce qu'un employé (code PIN) voit : le scanner (QR code seulement) et les clients en lecture seule. */
 const EMPLOYEE_SECTIONS = new Set(["scan", "clients"]);
 
-function Dashboard({ me, onLogout, onExpired }) {
+/** La journée en cours (accueil ET historique du jour : même adresse, donc même mémoire). */
+const todayKey = () => `history?day=${gpToday()}&type=all`;
+
+function Dashboard({ me, onLogout, onExpired, onProgramSaved }) {
   const employee = me.role === "employe";
   const manager = me.role === "gerant";
   // Formule Essentiel : ni Chiffres, ni Offres, ni Messages (le logiciel de cartes les refuse aussi)
@@ -855,7 +900,7 @@ function Dashboard({ me, onLogout, onExpired }) {
   const [more, setMore] = useState(false);
   const [clientId, setClientId] = useState(null);
   const [scanAuto, setScanAuto] = useState(false);
-  const [today, setToday] = useState(null);
+  const [today, setToday] = useState(() => (employee ? null : peek(todayKey())));
   // v13 : null = on ne sait pas encore, false = adresses card / program / history… pas encore installées
   const [v13, setV13] = useState(null);
 
@@ -881,15 +926,38 @@ function Dashboard({ me, onLogout, onExpired }) {
     return true;
   }, [onExpired]);
 
-  // La journée en cours (accueil) : sert aussi à savoir si les adresses de la v13 sont installées
+  // La journée en cours (accueil) : sert aussi à savoir si les adresses de la v13 sont installées.
+  // Même adresse que l'historique du jour : la rubrique « Historique » s'ouvre tout de suite.
   const refreshToday = useCallback(async () => {
     if (employee) return; // l'historique est réservé au gérant
-    const r = await api("history?limit=8");
-    if (!guard(r)) return;
-    if (r.unavailable) { setV13(false); setToday(null); return; }
-    if (r.ok) { setV13(true); setToday(r); }
+    await swr(todayKey(), (r) => {
+      if (!guard(r)) return;
+      if (r.unavailable) { setV13(false); setToday(null); return; }
+      if (r.ok) { setV13(true); setToday(r); }
+    });
   }, [guard, employee]);
   // (appelée par l'accueil, la première rubrique affichée)
+
+  // Rapidité : juste après la connexion, les rubriques les plus probables sont chargées en arrière-plan,
+  // pour qu'elles s'ouvrent sans attente (voir la mémoire des rubriques dans outils.js).
+  useEffect(() => {
+    const essentielPlan = me.plan === "essentiel";
+    const t1 = setTimeout(() => {
+      const day = gpToday();
+      const list = ["customers?q="];
+      if (manager) {
+        list.push(`history?day=${day}&type=all`, `manual-log?day=${day}`, "program");
+        if (!essentielPlan) list.push("stats", "insights", "offers");
+        if (!essentielPlan && me.canNotify) list.push("notifications");
+      }
+      prefetch(list);
+    }, 300);
+    // « Ma carte » (QR code + image de la carte, plus lourd) un peu après
+    const t2 = manager ? setTimeout(() => prefetch(["card"]), 2500) : null;
+    return () => { clearTimeout(t1); if (t2) clearTimeout(t2); };
+    // une seule fois par connexion
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const go = useCallback((id) => {
     setTab(id);
@@ -950,14 +1018,14 @@ function Dashboard({ me, onLogout, onExpired }) {
           {current.id !== "accueil" && <h1 className="ec-page-title">{current.label}</h1>}
           {current.id === "accueil" && <Accueil me={me} today={today} refreshToday={refreshToday} guard={guard} go={go} goScan={goScan} openClient={openClient} features={{ v13 }} essentiel={essentiel} upgrade={upgrade ? <UpgradeCard me={me} wide /> : null} />}
           {current.id === "scan" && <Scanner guard={guard} manager={manager} employee={employee} autoStart={scanAuto} onAutoStarted={() => setScanAuto(false)} onDone={refreshToday} />}
-          {current.id === "clients" && <Clients guard={guard} say={say} program={me.program} clientId={clientId} openClient={openClient} readOnly={employee} badges={me.role !== "legacy"} exportable={manager} />}
+          {current.id === "clients" && <Clients guard={guard} say={say} program={me.program} clientId={clientId} openClient={openClient} readOnly={employee} badges={me.role !== "legacy"} exportable={manager} manager={manager} />}
           {current.id === "historique" && <Historique guard={guard} say={say} openClient={openClient} mode={me.program?.mode} onChanged={refreshToday} badges={me.role !== "legacy"} exportable={manager} />}
           {current.id === "carte" && <MaCarte me={me} guard={guard} say={say} />}
-          {current.id === "programme" && <Programme me={me} guard={guard} say={say} />}
+          {current.id === "programme" && <Programme me={me} guard={guard} say={say} onSaved={onProgramSaved} />}
           {current.id === "chiffres" && <Chiffres guard={guard} program={me.program} />}
           {current.id === "offres" && <Offres guard={guard} say={say} canSend={me.canNotify} />}
           {current.id === PASSWORD.id && showPassword && <MotDePasse guard={guard} say={say} />}
-          {current.id === "notifs" && me.canNotify && <Notifications guard={guard} say={say} max={me.maxNotificationsPerWeek} business={{ name: me.business?.name || "Votre commerce", logo_url: me.business?.logo_url || null }} />}
+          {current.id === "notifs" && me.canNotify && <Notifications guard={guard} say={say} max={me.maxNotificationsPerWeek} manager={manager} business={{ name: me.business?.name || "Votre commerce", logo_url: me.business?.logo_url || null }} />}
         </main>
       </div>
 
@@ -1169,6 +1237,8 @@ function Scanner({ guard, manager = false, employee = false, autoStart, onAutoSt
     setActed(action === "undo" ? null : action);
     setCanUndo(action === "stamp" || action === "purchase");
     if (action === "undo") setUndoLeft(0);
+    // l'historique, les clients et les chiffres déjà en mémoire seront rechargés
+    afterVisitChange();
     onDone?.();
     setAmount("");
     setUseAmount("");
@@ -1217,6 +1287,24 @@ function Scanner({ guard, manager = false, employee = false, autoStart, onAutoSt
     setOverOn(false);
     setReason("");
     success(r, action);
+  }
+  /**
+   * « Retirer 1 tampon » (gérant) après un scan ou depuis la liste : raison obligatoire, vérifié par le logiciel de cartes.
+   * Renvoie la réponse (le petit formulaire affiche l'erreur éventuelle).
+   */
+  async function removeStamp(reason, target) {
+    if (!target) return { ok: false, error: "Client introuvable." };
+    setBusy(true);
+    setConfirm(null);
+    const r = await post("manual", { customer_id: target.id, action: "remove_stamp", reason });
+    setBusy(false);
+    if (!guard(r)) return r;
+    if (!r.ok) return r;
+    setCard(r);
+    setOverOn(false);
+    setReason("");
+    success(r, "remove_stamp");
+    return r;
   }
   /** Client choisi dans la liste : on affiche sa carte (sans rien enregistrer). */
   function pick(c) {
@@ -1407,6 +1495,17 @@ function Scanner({ guard, manager = false, employee = false, autoStart, onAutoSt
                   )}
                 </div>
               )}
+              {/* Gérant : retirer 1 tampon à tout moment (erreur, fraude), avec une raison */}
+              {manager && who && card.stamps?.filled > 0 && (
+                <RetirerTampon
+                  key={`${who.id}-${card.stamps.filled}`}
+                  first={who.first || card.first_name}
+                  filled={card.stamps.filled}
+                  total={card.stamps.total}
+                  busy={busy}
+                  onRemove={(why) => removeStamp(why, who)}
+                />
+              )}
             </div>
           )}
 
@@ -1524,14 +1623,18 @@ function Scanner({ guard, manager = false, employee = false, autoStart, onAutoSt
 /* ═════════════════ Scanner : « Pas de QR code ? Trouver le client » (gérant) ═════════════════ */
 function ManualFinder({ guard, onPick, busy }) {
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState(null);
+  const [rows, setRows] = useState(() => peek("customers?q=")?.customers ?? null);
   const [error, setError] = useState("");
   const load = useCallback(async (search) => {
-    const r = await api(`customers?q=${encodeURIComponent(search)}`);
-    if (!guard(r)) return;
-    if (!r.ok) return setError(r.error || "Impossible de charger vos clients.");
-    setError("");
-    setRows(r.customers);
+    const apply = (r) => {
+      if (!guard(r)) return;
+      if (!r.ok) return setError(r.error || "Impossible de charger vos clients.");
+      setError("");
+      setRows(r.customers);
+    };
+    // la liste sans recherche est gardée en mémoire (affichée tout de suite) ; une recherche est toujours fraîche
+    if (!search) await swr("customers?q=", apply);
+    else apply(await api(`customers?q=${encodeURIComponent(search)}`));
   }, [guard]);
   useEffect(() => { load(""); }, [load]);
   // Recherche au fil de la frappe (petite pause pour ne pas charger à chaque lettre)
@@ -1552,7 +1655,7 @@ function ManualFinder({ guard, onPick, busy }) {
         <input value={q} onChange={(e) => setQ(e.target.value)} className="input" placeholder="Nom, téléphone ou e-mail" aria-label="Rechercher un client (nom, téléphone ou e-mail)" />
       </form>
       {error && <p className="ec-alert">{error}</p>}
-      {rows === null && !error && <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" />}
+      {rows === null && !error && <div role="status" aria-label="Chargement"><SkelList rows={3} /></div>}
       {rows && rows.length === 0 && <p className="muted ec-small">{q ? "Aucun client ne correspond." : "Pas encore de client."}</p>}
       {rows && rows.length > 0 && (
         <ul className="ec-clients ec-finder-list">
@@ -1578,23 +1681,27 @@ function ManualFinder({ guard, onPick, busy }) {
 }
 
 /* ═════════════════════════════ Clients ═════════════════════════════ */
-function Clients({ guard, say, clientId, openClient, readOnly = false, badges = false, exportable = false }) {
+function Clients({ guard, say, clientId, openClient, readOnly = false, badges = false, exportable = false, manager = false }) {
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState(null);
-  const [stats, setStats] = useState(null);
+  const [rows, setRows] = useState(() => peek("customers?q=")?.customers ?? null);
+  const [stats, setStats] = useState(() => peek("customers?q=")?.stats ?? null);
   const [error, setError] = useState("");
   const load = useCallback(async (search) => {
-    const r = await api(`customers?q=${encodeURIComponent(search)}`);
-    if (!guard(r)) return;
-    if (!r.ok) return setError(r.error || "Impossible de charger vos clients.");
-    setError("");
-    setRows(r.customers);
-    setStats(r.stats);
+    const apply = (r) => {
+      if (!guard(r)) return;
+      if (!r.ok) return setError(r.error || "Impossible de charger vos clients.");
+      setError("");
+      setRows(r.customers);
+      setStats(r.stats);
+    };
+    // la liste sans recherche est gardée en mémoire (affichée tout de suite, puis remise à jour) ; une recherche est toujours fraîche
+    if (!search) await swr("customers?q=", apply);
+    else apply(await api(`customers?q=${encodeURIComponent(search)}`));
   }, [guard]);
   useEffect(() => { load(""); }, [load]);
 
   if (clientId) {
-    return <ClientFiche id={clientId} row={rows?.find((r) => r.id === clientId) || null} guard={guard} say={say} onBack={() => openClient(null)} readOnly={readOnly} badges={badges} />;
+    return <ClientFiche id={clientId} row={rows?.find((r) => r.id === clientId) || null} guard={guard} say={say} onBack={() => openClient(null)} readOnly={readOnly} badges={badges} manager={manager} />;
   }
   return (
     <div className="ec-panel">
@@ -1611,7 +1718,7 @@ function Clients({ guard, say, clientId, openClient, readOnly = false, badges = 
         <button className="btn btn-dark btn-sm">Chercher</button>
       </form>
       {error && <p className="ec-alert">{error}</p>}
-      {rows === null && !error && <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" />}
+      {rows === null && !error && <div role="status" aria-label="Chargement"><SkelList rows={5} /></div>}
       {rows && rows.length === 0 && (
         <div className="esp-empty"><Icon name="users" size={26} /><p>{q ? "Aucun client ne correspond." : "Pas encore de client. Affichez votre QR code d'inscription en caisse : les premiers arrivent vite."}</p></div>
       )}
@@ -1651,18 +1758,19 @@ function Kpi({ label, value, sub, tone }) {
 
 /* ═════════════════════════════ Chiffres ═════════════════════════════ */
 function Chiffres({ guard, program }) {
-  const [s, setS] = useState(null);
+  const [s, setS] = useState(() => peek("stats")?.stats ?? null);
   const [basic, setBasic] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
     let live = true;
     (async () => {
-      const r = await api("stats");
+      // affichés tout de suite s'ils sont en mémoire, puis remis à jour
+      const r = await swr("stats", (x) => { if (live && x.ok) setS(x.stats); });
       if (!live || !guard(r)) return;
-      if (r.ok) return setS(r.stats);
+      if (r.ok) return;
       if (!r.unavailable) return setError(r.error || "Impossible de charger vos chiffres.");
       // Mode de base : les chiffres simples de la liste des clients
-      const c = await api("customers?q=");
+      const c = await getFresh("customers?q=");
       if (!live || !guard(c)) return;
       if (!c.ok) return setError(c.error || "Impossible de charger vos chiffres.");
       setBasic(c.stats || { total: 0, stampsThisMonth: 0, rewardsRedeemed: 0 });
@@ -1684,7 +1792,7 @@ function Chiffres({ guard, program }) {
       </div>
     );
   }
-  if (!s) return <div className="ec-panel"><div className="ec-spinner ec-spinner-sm" aria-label="Chargement" /></div>;
+  if (!s) return <Squelette kpis={4} rows={3} boxes={1} />;
 
   const diff = s.visitsThisMonth - s.visitsLastMonth;
   const max = Math.max(1, ...s.daily.map((d) => d.count));
@@ -1744,13 +1852,14 @@ const monthLabel = (m) => new Intl.DateTimeFormat("fr-FR", { month: "short", tim
 
 /** Chiffres détaillés : affluence, 6 derniers mois, fidélité, téléphones. Absents si l'adresse n'existe pas encore. */
 function Insights({ guard, mode }) {
-  const [d, setD] = useState(null);
+  const [d, setD] = useState(() => peek("insights")?.insights ?? null);
   useEffect(() => {
     let live = true;
-    api("insights").then((r) => { if (live && guard(r) && r.ok) setD(r.insights); });
+    swr("insights", (r) => { if (live && guard(r)) setD(r.ok ? r.insights : (cur) => cur || false); });
     return () => { live = false; };
   }, [guard]);
-  if (!d) return null;
+  if (d === false) return null; // pas de chiffres détaillés (ancienne version du logiciel de cartes)
+  if (!d) return <SkelBox lines={4} />;
   const maxW = Math.max(1, ...d.weekday);
   const best = d.weekday.indexOf(Math.max(...d.weekday));
   const first = d.hours.findIndex((n) => n > 0);
@@ -1830,7 +1939,7 @@ const DURATIONS = [
 const OFFER_IDEAS = ["-20 % sur tout ce week-end", "1 boisson offerte pour 1 achat", "Un petit cadeau pour votre fidélité", "-10 % sur votre prochain passage"];
 
 function Offres({ guard, say, canSend }) {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(() => peek("offers"));
   const [error, setError] = useState("");
   const [title, setTitle] = useState("");
   const [days, setDays] = useState(7);
@@ -1841,11 +1950,13 @@ function Offres({ guard, say, canSend }) {
   const [soon, setSoon] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await api("offers");
-    if (!guard(r)) return;
-    if (r.unavailable) return setSoon(true);
-    if (!r.ok) return setError(r.error || "Impossible de charger vos offres.");
-    setData(r);
+    await swr("offers", (r) => {
+      if (!guard(r)) return;
+      if (r.unavailable) return setSoon(true);
+      if (!r.ok) return setError(r.error || "Impossible de charger vos offres.");
+      setError("");
+      setData(r);
+    });
   }, [guard]);
   useEffect(() => { load(); }, [load]);
 
@@ -1860,6 +1971,8 @@ function Offres({ guard, say, canSend }) {
     say(r.warning || `Offre ajoutée sur la carte de ${r.count} client${r.count > 1 ? "s" : ""} ✓`);
     setTitle("");
     setNotify(false);
+    // la liste des offres, les fiches clients (offres sur leur carte) et les messages de la semaine changent
+    invalidate("offers", "customer?", "notifications");
     load();
   }
 
@@ -1916,6 +2029,7 @@ function Offres({ guard, say, canSend }) {
       )}
 
       {error && <p className="ec-alert">{error}</p>}
+      {!data && !error && <SkelBox title><SkelList rows={2} /></SkelBox>}
       {data && (
         <>
           {(data.welcome || data.birthday) && (
@@ -1974,9 +2088,14 @@ const IDEAS = [
 /** "2026-10-15T18:30" en heure de Guadeloupe, pour le champ date */
 const gpLocal = (t) => new Date(t - 4 * 3600e3).toISOString().slice(0, 16);
 
-function Notifications({ guard, say, business, max }) {
-  const [list, setList] = useState(null);
-  const [remaining, setRemaining] = useState(null);
+/** Le texte d'avertissement avant d'envoyer au-delà de la limite de la semaine (gérant). */
+const OVER_WARNING =
+  "Attention : trop de messages peuvent être bloqués par Google (pas plus de 3 par carte en 24 h) et vos clients risquent de couper les notifications ou de supprimer la carte. Nous conseillons 1 message par semaine.";
+
+function Notifications({ guard, say, business, max, manager = false }) {
+  const cached = peek("notifications");
+  const [list, setList] = useState(cached?.notifications ?? null);
+  const [info, setInfo] = useState(cached);
   const [msg, setMsg] = useState("");
   const [when, setWhen] = useState("now");
   const [at, setAt] = useState("");
@@ -1986,24 +2105,40 @@ function Notifications({ guard, say, business, max }) {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Limite de la semaine atteinte : « Envoyer quand même » (gérant) → avertissement → « J'ai compris » → envoi au-delà
+  const [warnOpen, setWarnOpen] = useState(false);
+  const [understood, setUnderstood] = useState(false);
+  const [over, setOver] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await api("notifications");
-    if (!guard(r)) return;
-    if (!r.ok) return setError(r.error || "Impossible de charger vos messages.");
-    setList(r.notifications);
-    setRemaining(r.remaining);
+    await swr("notifications", (r) => {
+      if (!guard(r)) return;
+      if (!r.ok) return setError(r.error || "Impossible de charger vos messages.");
+      setList(r.notifications);
+      setInfo(r);
+    });
   }, [guard]);
   useEffect(() => { load(); }, [load]);
+
+  const remaining = info ? info.remaining : null;
+  const weekMax = info?.max ?? max ?? 0;
+  const limitReached = remaining === 0;
+  const overridesLeft = info?.overridesLeft ?? 0;
+  const canOverride = manager && !!info?.canOverride && overridesLeft > 0;
 
   function check(e) {
     e.preventDefault();
     setError("");
     if (!msg.trim()) return setError("Écrivez votre message d'abord.");
-    if (remaining === 0) return setError("Vous avez utilisé vos messages de la semaine (du lundi au dimanche).");
+    if (limitReached && !over) return setError("Vous avez utilisé vos messages de la semaine (du lundi au dimanche).");
     if (when === "later" && (!at || at <= gpLocal(Date.now()))) return setError("Choisissez une date et une heure à venir.");
-    if (when === "later" && repeat && (every < 3 || every > 60)) return setError("La répétition doit être d'au moins 3 jours.");
+    if (when === "later" && repeat && !over && (every < 3 || every > 60)) return setError("La répétition doit être d'au moins 3 jours.");
     setConfirm(true);
+  }
+  function resetOver() {
+    setOver(false);
+    setWarnOpen(false);
+    setUnderstood(false);
   }
   async function send() {
     setBusy(true);
@@ -2012,24 +2147,29 @@ function Notifications({ guard, say, business, max }) {
       message: msg.trim(),
       when,
       sendAt: when === "later" ? at : undefined,
-      repeatEveryDays: when === "later" && repeat ? every : null,
-      repeatUntil: when === "later" && repeat && until ? `${until}T23:59` : null,
+      repeatEveryDays: when === "later" && repeat && !over ? every : null,
+      repeatUntil: when === "later" && repeat && !over && until ? `${until}T23:59` : null,
+      ...(over ? { override: true, understood: true } : {}),
     });
     setBusy(false);
     if (!guard(r)) return;
     setConfirm(false);
     if (!r.ok) return setError(r.error || "Le message n'a pas pu être enregistré.");
-    say(r.sentNow ? "Message envoyé ✓" : "Message programmé ✓");
+    say(r.sentNow ? (r.overLimit ? "Message envoyé (au-delà de la limite) ✓" : "Message envoyé ✓") : "Message programmé ✓");
     setMsg(""); setAt(""); setWhen("now"); setRepeat(false); setUntil("");
+    resetOver();
+    invalidate("notifications");
     load();
   }
   async function cancel(id) {
     const r = await api(`notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     if (!guard(r)) return;
     say(r.ok ? "Message annulé." : r.error || "Impossible d'annuler.");
+    invalidate("notifications");
     load();
   }
 
+  const formLocked = limitReached && !over;
   return (
     <div className="ec-panel">
       <div className="ec-notif-grid">
@@ -2038,34 +2178,76 @@ function Notifications({ guard, say, business, max }) {
             <h2 className="ec-h">Nouveau message</h2>
             {remaining !== null && (
               <span className="ec-quota">
-                {max ? <b className={`chip ${remaining ? "chip-orange" : ""}`}>{Math.max(0, max - remaining)} / {max} cette semaine</b> : null}
+                {weekMax ? <b className={`chip ${remaining ? "chip-orange" : ""}`}>{Math.max(0, weekMax - remaining)} / {weekMax} cette semaine</b> : null}
                 <span className="ec-quota-left">{remaining ? `Il vous en reste ${remaining} cette semaine` : "Plus d'envoi cette semaine"}</span>
               </span>
             )}
           </div>
+
+          {/* Limite de la semaine atteinte */}
+          {limitReached && !over && !warnOpen && (
+            <div className="ec-limit" role="status">
+              <b>Limite de {weekMax} message{weekMax > 1 ? "s" : ""} cette semaine atteinte</b>
+              <p>Vos clients reçoivent au plus {weekMax} message{weekMax > 1 ? "s" : ""} par semaine (du lundi au dimanche). Vous pourrez de nouveau leur écrire lundi.</p>
+              {canOverride && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setWarnOpen(true); setUnderstood(false); setError(""); }}>
+                  Envoyer quand même
+                </button>
+              )}
+              {manager && info?.canOverride && overridesLeft === 0 && (
+                <p>Vous avez déjà envoyé {info.overridesMax ?? 3} messages au-delà de la limite cette semaine : c'est le maximum.</p>
+              )}
+            </div>
+          )}
+          {/* Avertissement avant d'envoyer au-delà de la limite (gérant) */}
+          {warnOpen && !over && (
+            <div className="ec-warning" role="alertdialog" aria-labelledby="ec-warn-t">
+              <p id="ec-warn-t"><strong>Attention :</strong> {OVER_WARNING.replace(/^Attention : /, "")}</p>
+              <label className="ec-over-check">
+                <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
+                <span>J'ai compris</span>
+              </label>
+              <div className="ec-inline">
+                <button type="button" className="btn btn-primary" disabled={!understood} onClick={() => { setOver(true); setWarnOpen(false); setRepeat(false); }}>
+                  Continuer
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={resetOver}>Annuler</button>
+              </div>
+            </div>
+          )}
+
           {!confirm ? (
             <form className="ec-form" onSubmit={check}>
+              {over && (
+                <span className="ec-overflag">
+                  <Icon name="bell" size={14} /> Envoi au-delà de la limite{overridesLeft ? ` · encore ${overridesLeft} possible${overridesLeft > 1 ? "s" : ""} cette semaine` : ""}
+                </span>
+              )}
               <div className="field">
                 <label htmlFor="ec-msg">Votre message</label>
-                <textarea id="ec-msg" className="textarea" maxLength={180} value={msg} onChange={(e) => { setMsg(e.target.value); setError(""); }} placeholder="Ex. : Ce soir, le 2e bokit à moitié prix 🌅" style={{ minHeight: 96 }} />
+                <textarea id="ec-msg" className="textarea" maxLength={180} value={msg} disabled={formLocked} onChange={(e) => { setMsg(e.target.value); setError(""); }} placeholder="Ex. : Ce soir, le 2e bokit à moitié prix 🌅" style={{ minHeight: 96 }} />
                 <span className="field-hint">{msg.length}/180 · court et direct, ça marche mieux</span>
               </div>
-              <div className="wiz-suggest">{IDEAS.map((t) => <button type="button" key={t.label} onClick={() => setMsg(t.text)}>{t.label}</button>)}</div>
-              <fieldset className="field wiz-fieldset">
+              <div className="wiz-suggest">{IDEAS.map((t) => <button type="button" key={t.label} disabled={formLocked} onClick={() => setMsg(t.text)}>{t.label}</button>)}</div>
+              <fieldset className="field wiz-fieldset" disabled={formLocked}>
                 <legend>Quand ?</legend>
                 <div className="ec-seg">
                   <label><input type="radio" name="ec-when" checked={when === "now"} onChange={() => setWhen("now")} /><span>Maintenant</span></label>
                   <label><input type="radio" name="ec-when" checked={when === "later"} onChange={() => setWhen("later")} /><span>Programmer</span></label>
                 </div>
               </fieldset>
-              {when === "later" && (
+              {when === "later" && !formLocked && (
                 <div className="ec-later">
                   <div className="field">
                     <label htmlFor="ec-at">Date et heure (heure de Guadeloupe)</label>
                     <input id="ec-at" type="datetime-local" className="input" value={at} min={gpLocal(Date.now())} onChange={(e) => setAt(e.target.value)} />
                   </div>
-                  <label className="ec-check"><input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /><span>Répéter ce message</span></label>
-                  {repeat && (
+                  {over ? (
+                    <p className="field-hint">Un message au-delà de la limite ne se répète pas.</p>
+                  ) : (
+                    <label className="ec-check"><input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /><span>Répéter ce message</span></label>
+                  )}
+                  {repeat && !over && (
                     <div className="ec-inline">
                       <div className="field"><label htmlFor="ec-every">Tous les … jours</label><input id="ec-every" type="number" min={3} max={60} className="input" value={every} onChange={(e) => setEvery(Number(e.target.value))} /></div>
                       <div className="field"><label htmlFor="ec-until">Jusqu'au (facultatif)</label><input id="ec-until" type="date" className="input" value={until} onChange={(e) => setUntil(e.target.value)} /></div>
@@ -2074,12 +2256,19 @@ function Notifications({ guard, say, business, max }) {
                 </div>
               )}
               {error && <p className="field-error" role="alert">{error}</p>}
-              <button className="btn btn-primary btn-lg ec-full" disabled={remaining === 0}><Icon name="bell" size={18} /> {when === "later" ? "Programmer le message" : "Envoyer à mes clients"}</button>
+              <button className="btn btn-primary btn-lg ec-full" disabled={formLocked}><Icon name="bell" size={18} /> {when === "later" ? "Programmer le message" : over ? "Envoyer quand même" : "Envoyer à mes clients"}</button>
+              {over && <button type="button" className="ec-linkbtn ec-center-text" onClick={resetOver}>Ne pas envoyer au-delà de la limite</button>}
               <p className="field-hint">Envoyé uniquement aux clients qui ont accepté les offres à l'inscription. Il s'affiche sur leur téléphone, même écran éteint.</p>
             </form>
           ) : (
             <div className="ec-confirm" role="alertdialog" aria-label="Confirmer l'envoi">
-              <p>{when === "later" ? `Programmer ce message pour le ${fmtDateTime(`${at}:00-04:00`)}${repeat ? `, puis tous les ${every} jours` : ""} ?` : "Envoyer ce message maintenant à vos clients ?"}</p>
+              <p>
+                {when === "later"
+                  ? `Programmer ce message pour le ${fmtDateTime(`${at}:00-04:00`)}${repeat && !over ? `, puis tous les ${every} jours` : ""}${over ? " (au-delà de votre limite de la semaine)" : ""} ?`
+                  : over
+                    ? "Envoyer ce message maintenant, AU-DELÀ de votre limite de la semaine ?"
+                    : "Envoyer ce message maintenant à vos clients ?"}
+              </p>
               <blockquote>{msg}</blockquote>
               {error && <p className="field-error" role="alert">{error}</p>}
               <div className="ec-inline">
@@ -2106,7 +2295,7 @@ function Notifications({ guard, say, business, max }) {
 
       <section className="ec-box">
         <h3>Derniers messages</h3>
-        {list === null ? <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" /> : list.length === 0 ? <p className="muted ec-small">Aucun message pour l'instant.</p> : (
+        {list === null ? <SkelList rows={3} /> : list.length === 0 ? <p className="muted ec-small">Aucun message pour l'instant.</p> : (
           <ul className="ec-offers">
             {list.map((n) => {
               const [label, cls] = STATUS[n.status] || [n.status, ""];
@@ -2118,6 +2307,7 @@ function Notifications({ guard, say, business, max }) {
                   </div>
                   <div className="ec-offer-side">
                     <span className={`chip ${cls}`}>{label}</span>
+                    {n.over_limit && <span className="chip chip-orange">Au-delà de la limite</span>}
                     {n.status === "scheduled" && <button className="ec-linkbtn" onClick={() => cancel(n.id)}>Annuler</button>}
                   </div>
                 </li>

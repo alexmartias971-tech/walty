@@ -1,9 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { site } from "@/lib/site.config";
-import { api, euro, MODE_NAMES, post, programLine } from "./outils";
+import { euro, invalidate, MODE_NAMES, post, programLine, swr } from "./outils";
+import Squelette from "./Squelette";
+
+/**
+ * Nouveau nombre de tampons : ce que ça change pour les cartes DÉJÀ installées (montré AVANT d'enregistrer).
+ * cards = { total, installed, byStamps: { "8": 3, … } } (renvoyé par le logiciel de cartes, totaux seulement).
+ */
+function thresholdImpact(cards, oldT, newT) {
+  if (!cards || !(newT >= 2) || newT === oldT) return null;
+  const between = (lo, hi) => Object.entries(cards.byStamps || {}).reduce((sum, [k, n]) => (Number(k) >= lo && Number(k) < hi ? sum + Number(n) : sum), 0);
+  const total = Number(cards.total) || 0;
+  const clients = (n) => `${n} client${n > 1 ? "s" : ""}`;
+  const first = `Cette modification s'applique aussi aux cartes déjà installées (${clients(total)}).`;
+  if (newT > oldT) {
+    const m = between(oldT, newT);
+    return {
+      first,
+      second: m > 0
+        ? `${clients(m)} ${m > 1 ? "ont" : "a"} déjà ${oldT} tampons ou plus : avec ${newT}, ${m > 1 ? "leur" : "son"} cadeau ne sera plus prêt.`
+        : `Aucun client n'a aujourd'hui son cadeau prêt : personne ne perd de cadeau.`,
+      strong: m > 0,
+    };
+  }
+  const m = between(newT, oldT);
+  return {
+    first,
+    second: m > 0
+      ? `${clients(m)} ${m > 1 ? "ont" : "a"} déjà ${newT} tampons ou plus : avec ${newT}, ${m > 1 ? "leur" : "son"} cadeau sera prêt tout de suite.`
+      : `Aucun client n'a encore ${newT} tampons : rien ne change tout de suite.`,
+    strong: m > 0,
+  };
+}
 
 const LABELS = {
   reward_description: "Le cadeau",
@@ -45,18 +76,26 @@ export default function Programme({ me, guard, say, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState(false);
 
+  // version des réglages affichée dans le formulaire (date de dernière modification)
+  const shown = useRef(null);
   const fill = (r) => {
+    shown.current = r.updated_at;
     setData(r);
     setForm({ settings: { ...r.settings }, business: { ...r.business }, catalog: r.catalog.map((c) => ({ ...c })) });
   };
   const load = useCallback(async () => {
     setError("");
     setConflict(false);
-    const r = await api("program");
+    // en mémoire (pré-chargé à la connexion) : affiché tout de suite, puis remis à jour. Le formulaire n'est
+    // rempli à nouveau que si les réglages ont changé ailleurs entre-temps (sinon : seuls les chiffres se mettent à jour).
+    const r = await swr("program", (x) => {
+      if (!x.ok) return;
+      if (shown.current && shown.current === x.updated_at) setData((cur) => (cur ? { ...cur, cards: x.cards } : x));
+      else fill(x);
+    });
     if (!guard(r)) return;
     if (r.unavailable) return setSoon(true);
     if (!r.ok) return setError(r.error || "Impossible de charger votre programme.");
-    fill(r);
   }, [guard]);
   useEffect(() => { load(); }, [load]);
 
@@ -90,7 +129,7 @@ export default function Programme({ me, guard, say, onSaved }) {
     );
   }
   if (error && !data) return <div className="ec-panel"><p className="ec-alert">{error}</p></div>;
-  if (!data || !form) return <div className="ec-panel"><div className="ec-spinner ec-spinner-sm" aria-label="Chargement" /></div>;
+  if (!data || !form) return <Squelette kpis={0} rows={3} boxes={2} />;
 
   const L = data.locked;
   const mode = L.mode;
@@ -101,6 +140,8 @@ export default function Programme({ me, guard, say, onSaved }) {
   const setB = (k) => (e) => { const v = e.target.value; setForm((f) => ({ ...f, business: { ...f.business, [k]: v } })); setError(""); };
   const setCat = (i, k, v) => setForm((f) => ({ ...f, catalog: f.catalog.map((r, j) => (j === i ? { ...r, [k]: v } : r)) }));
   const boosted = Number(s.bonus_multiplier) > 1;
+  // Nouveau nombre de tampons : ce que ça change pour les cartes déjà installées (avant d'enregistrer)
+  const impact = mode === "stamps" ? thresholdImpact(data.cards, Number(data.settings.reward_threshold), Number(s.reward_threshold)) : null;
 
   function check(e) {
     e.preventDefault();
@@ -128,6 +169,8 @@ export default function Programme({ me, guard, say, onSaved }) {
     if (!r.ok) return setError(r.error || "Enregistrement impossible.");
     fill(r);
     say(r.done || "Enregistré ✓");
+    // l'aperçu de la carte, les soldes des clients (« 5 / 10 ») et la mémoire du programme changent
+    invalidate("program", "card", "customers", "customer?");
     onSaved?.(r);
   }
 
@@ -156,7 +199,12 @@ export default function Programme({ me, guard, say, onSaved }) {
             <div className="field">
               <label htmlFor="p-threshold">Nombre de passages pour l'obtenir</label>
               <input id="p-threshold" className="input ec-num" type="number" inputMode="numeric" min={2} max={50} value={s.reward_threshold} onChange={set("reward_threshold")} />
-              {Number(s.reward_threshold) !== Number(data.settings.reward_threshold) && (
+              {impact ? (
+                <div className="ec-impact" role="status" aria-live="polite">
+                  <p>{impact.first} Vos clients gardent leurs tampons.</p>
+                  <p>{impact.strong ? <strong>{impact.second}</strong> : impact.second}</p>
+                </div>
+              ) : Number(s.reward_threshold) !== Number(data.settings.reward_threshold) && (
                 <span className="field-hint ec-warn">Vos clients gardent leurs tampons.{Number(s.reward_threshold) < Number(data.settings.reward_threshold) ? " En baissant le nombre, certains peuvent débloquer leur cadeau tout de suite." : ""}</span>
               )}
             </div>
@@ -344,6 +392,12 @@ export default function Programme({ me, guard, say, onSaved }) {
             <div className="ec-confirm" role="alertdialog" aria-label="Confirmer les modifications">
               <p>Enregistrer ces changements ? Ils s'appliquent à la carte de tous vos clients.</p>
               <ul className="ec-changes">{changes.map((c) => <li key={c}>{c}</li>)}</ul>
+              {impact && (
+                <div className="ec-impact">
+                  <p>{impact.first}</p>
+                  <p>{impact.strong ? <strong>{impact.second}</strong> : impact.second}</p>
+                </div>
+              )}
               <div className="ec-inline">
                 <button type="button" className="btn btn-primary" onClick={save} disabled={busy}>{busy ? "Enregistrement…" : "Oui, enregistrer"}</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setConfirm(false)} disabled={busy}>Revenir</button>

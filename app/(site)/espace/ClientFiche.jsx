@@ -2,34 +2,62 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
-import { api, euro, fmtAgo, fmtDate, fmtLongDate, initials, post } from "./outils";
+import { afterVisitChange, euro, fmtAgo, fmtDate, fmtLongDate, getFresh, initials, peek, post } from "./outils";
 import { EventList } from "./Passages";
+import RetirerTampon from "./RetirerTampon";
+import { SkelBox, SkelList } from "./Squelette";
 
-/** Fiche d'un client : état de sa carte, ses chiffres, ses offres et son historique. */
-export default function ClientFiche({ id, row, guard, say, onBack, readOnly = false, badges = false }) {
-  const [data, setData] = useState(null);
+const keysOf = (id) => [`customer?id=${encodeURIComponent(id)}`, `manual-log?customer=${encodeURIComponent(id)}`];
+/** Badges « ajouté à la main » / « hors limite » / « retiré par le gérant » posés sur les passages du client. */
+const withBadges = (r, m) => {
+  const items = m?.ok ? m.items || {} : {};
+  return { ...r, history: (r.history || []).map((e) => (items[e.id] ? { ...e, manual: items[e.id] } : e)) };
+};
+
+/**
+ * Fiche d'un client : état de sa carte, ses chiffres, ses offres et son historique.
+ * Gérant : « Retirer 1 tampon » (à tout moment, raison obligatoire).
+ */
+export default function ClientFiche({ id, row, guard, say, onBack, readOnly = false, badges = false, manager = false }) {
+  const [data, setData] = useState(() => { const [ck, mk] = keysOf(id); const c = peek(ck); return c ? withBadges(c, peek(mk)) : null; });
   const [error, setError] = useState("");
   const [soon, setSoon] = useState(false);
 
   const load = useCallback(async () => {
-    const [r, m] = await Promise.all([
-      api(`customer?id=${encodeURIComponent(id)}`),
-      badges ? api(`manual-log?customer=${encodeURIComponent(id)}`) : null,
-    ]);
+    const [ck, mk] = keysOf(id);
+    // fiche déjà ouverte : affichée tout de suite, puis remise à jour
+    const cached = peek(ck);
+    if (cached) setData(withBadges(cached, badges ? peek(mk) : null));
+    const [r, m] = await Promise.all([getFresh(ck), badges ? getFresh(mk) : null]);
     if (!guard(r)) return;
     if (r.unavailable) return setSoon(true);
     if (!r.ok) return setError(r.error || "Impossible de charger ce client.");
     setError("");
-    const items = m?.ok ? m.items || {} : {};
-    setData({ ...r, history: (r.history || []).map((e) => (items[e.id] ? { ...e, manual: items[e.id] } : e)) });
+    setData(withBadges(r, m));
   }, [id, guard, badges]);
-  useEffect(() => { setData(null); setSoon(false); load(); }, [load]);
+  useEffect(() => {
+    if (!peek(keysOf(id)[0])) setData(null);
+    setSoon(false);
+    load();
+  }, [load, id]);
 
   async function undo(e) {
     const r = await post("history", { action: "undo", event_id: e.id });
     if (!guard(r)) return;
     say(r.ok ? r.done || "Passage annulé ✓" : r.error || "Annulation impossible.");
+    afterVisitChange();
     load();
+  }
+  /** Gérant : retirer 1 tampon (la raison est notée dans l'historique). */
+  async function removeStamp(reason) {
+    const r = await post("manual", { customer_id: id, action: "remove_stamp", reason });
+    if (!guard(r)) return { ...r, status: 401 };
+    if (r.ok) {
+      say(r.done || "Tampon retiré ✓");
+      afterVisitChange();
+      load();
+    }
+    return r;
   }
 
   const c = data?.customer;
@@ -63,7 +91,12 @@ export default function ClientFiche({ id, row, guard, say, onBack, readOnly = fa
           </>
         )}
         {error && <p className="ec-alert">{error}</p>}
-        {!data && !soon && !error && <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" />}
+        {!data && !soon && !error && (
+          <div role="status" aria-label="Chargement" className="ec-skel-col">
+            <span className="ec-skel ec-skel-line" style={{ width: "40%", height: 22 }} />
+            <span className="ec-skel ec-skel-line" style={{ width: "70%" }} />
+          </div>
+        )}
 
         {card && (
           <>
@@ -78,6 +111,16 @@ export default function ClientFiche({ id, row, guard, say, onBack, readOnly = fa
             )}
             {card.reward_ready && <p className="ec-ok"><Icon name="gift" size={18} /> Cadeau débloqué : <b>{card.reward}</b> — à remettre au prochain passage (scannez sa carte).</p>}
             <p className="muted ec-small ec-center-text">{card.sentence}</p>
+            {/* Gérant : retirer 1 tampon à tout moment (erreur, fraude), avec une raison */}
+            {manager && !readOnly && card.mode === "stamps" && card.stamps?.filled > 0 && (
+              <RetirerTampon
+                key={card.stamps.filled}
+                first={c?.first_name || row?.first_name}
+                filled={card.stamps.filled}
+                total={card.stamps.total}
+                onRemove={removeStamp}
+              />
+            )}
             {card.next_tier && <p className="field-hint ec-center-text">Niveau {card.next_tier.name} dans {card.next_tier.remaining}.</p>}
             {card.streak && <p className="ec-small ec-center-text">🔥 Série : {card.streak.count} semaine{card.streak.count > 1 ? "s" : ""} (record {card.streak.best})</p>}
             {card.best_lap && <p className="ec-small ec-center-text">⏱️ Record : {card.best_lap}{card.rank ? ` · P${card.rank.pos} / ${card.rank.total}` : ""}</p>}
@@ -124,6 +167,7 @@ export default function ClientFiche({ id, row, guard, say, onBack, readOnly = fa
         </section>
       )}
 
+      {!data && !soon && !error && <SkelBox title><SkelList rows={4} /></SkelBox>}
       {data && (
         <section className="ec-box">
           <h3>Son historique</h3>

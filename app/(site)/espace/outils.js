@@ -21,6 +21,82 @@ export async function api(path, init = {}) {
 }
 export const post = (path, body) => api(path, { method: "POST", body: JSON.stringify(body || {}) });
 
+/* ─────────────── Mémoire des rubriques (plus d'écran blanc en passant d'une rubrique à l'autre) ───────────────
+ * « Stale-while-revalidate », en mémoire seulement (jamais sur le disque de l'appareil) :
+ * - on affiche TOUT DE SUITE la dernière réponse connue de la rubrique, puis on la remet à jour en arrière-plan ;
+ * - une rubrique pré-chargée il y a moins de FRESH_MS n'est pas redemandée ;
+ * - deux demandes de la même adresse en même temps n'en font qu'une ;
+ * - seules les réponses réussies (ok) sont gardées ; tout est effacé à la connexion, à la déconnexion
+ *   et quand la session expire (clearCache) ;
+ * - après une action (tampon, offre, message, réglages…), invalidate() marque les rubriques concernées à recharger. */
+const FRESH_MS = 4000;
+const memo = new Map(); // adresse -> { at, data }
+const inflight = new Map(); // adresse -> Promise
+let generation = 0; // change à chaque clearCache : une réponse arrivée après une déconnexion n'est pas gardée
+
+/** Dernière réponse connue (ou null). */
+export const peek = (path) => memo.get(path)?.data ?? null;
+
+/** Demande l'adresse (une seule fois si plusieurs écrans la veulent en même temps) et garde la réponse si elle est réussie. */
+export function fetchFresh(path) {
+  if (inflight.has(path)) return inflight.get(path);
+  const gen = generation;
+  const p = api(path).then((r) => {
+    if (gen !== generation) return r;
+    inflight.delete(path);
+    if (r && r.ok) memo.set(path, { at: Date.now(), data: r });
+    return r;
+  });
+  inflight.set(path, p);
+  return p;
+}
+
+/** La réponse en mémoire si elle vient d'être chargée (moins de FRESH_MS), sinon une demande fraîche. */
+export function getFresh(path) {
+  const hit = memo.get(path);
+  if (hit && Date.now() - hit.at < FRESH_MS) return Promise.resolve(hit.data);
+  return fetchFresh(path);
+}
+
+/**
+ * Affiche d'abord la réponse en mémoire (onData(réponse, true)), puis la réponse fraîche (onData(réponse, false)).
+ * Renvoie la réponse fraîche (ou la réponse en mémoire si elle vient d'être chargée).
+ */
+export async function swr(path, onData) {
+  const hit = memo.get(path);
+  if (hit) {
+    onData(hit.data, true);
+    if (Date.now() - hit.at < FRESH_MS) return hit.data;
+  }
+  const r = await fetchFresh(path);
+  // une réponse identique à celle déjà affichée ne redessine rien
+  if (!hit || hit.data !== r) onData(r, false);
+  return r;
+}
+
+/** Pré-charge des rubriques en arrière-plan (sans rien afficher). */
+export function prefetch(paths) {
+  for (const p of paths) {
+    const hit = memo.get(p);
+    if (!hit || Date.now() - hit.at >= FRESH_MS) fetchFresh(p).catch(() => {});
+  }
+}
+
+/** Marque à recharger toutes les adresses qui commencent par l'un de ces débuts (elles restent affichées en attendant). */
+export function invalidate(...prefixes) {
+  for (const [key, v] of memo) if (prefixes.some((p) => key.startsWith(p))) memo.set(key, { ...v, at: 0 });
+}
+
+/** Oublie tout (connexion, déconnexion, session expirée) : rien d'un compte ne reste pour le suivant. */
+export function clearCache() {
+  generation++;
+  memo.clear();
+  inflight.clear();
+}
+
+/** Après un passage (tampon, cadeau, offre utilisée, annulation, tampon retiré) : ce qui change à l'écran. */
+export const afterVisitChange = () => invalidate("history", "manual-log", "customers", "customer?", "stats", "insights");
+
 /** « Exporter en Excel » : télécharge le fichier CSV préparé par le logiciel de cartes (clients ou passages). */
 export async function downloadExport(type) {
   try {

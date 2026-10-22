@@ -3,43 +3,60 @@
 import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import { site } from "@/lib/site.config";
-import { api, euro, fmtDay, gpToday, post, shiftDay } from "./outils";
+import { afterVisitChange, euro, fmtDay, getFresh, gpToday, peek, post, shiftDay } from "./outils";
 import ExportButton from "./Export";
 import { EventList } from "./Passages";
+import { SkelList } from "./Squelette";
 
 const FILTERS = [
   { id: "all", label: "Tout" },
   { id: "visits", label: "Passages" },
   { id: "rewards", label: "Récompenses" },
-  { id: "bonus", label: "Bonus" },
+  { id: "bonus", label: "Bonus et retraits" },
   { id: "undone", label: "Annulés" },
 ];
 
-/** Historique des passages, jour par jour, avec filtres et annulation (10 minutes). Gérant : « Exporter en Excel ». */
+/** Badges « ajouté à la main » / « hors limite » / « retiré par le gérant » posés sur les passages. */
+const withBadges = (r, m) => {
+  const items = m?.ok ? m.items || {} : {};
+  return { ...r, events: r.events.map((e) => (items[e.id] ? { ...e, manual: items[e.id] } : e)) };
+};
+
+/**
+ * Historique des passages, jour par jour, avec filtres et annulation (10 minutes). Gérant : « Exporter en Excel ».
+ * La journée déjà vue (ou pré-chargée à la connexion) s'affiche tout de suite, puis se met à jour.
+ */
 export default function Historique({ guard, say, openClient, mode, onChanged, badges = false, exportable = false }) {
   const today = gpToday();
   const [day, setDay] = useState(today);
   const [type, setType] = useState("all");
-  const [data, setData] = useState(null);
+  const keys = (d, t) => [`history?day=${d}&type=${t}`, `manual-log?day=${d}`];
+  const [data, setData] = useState(() => { const [hk, mk] = keys(today, "all"); const h = peek(hk); return h ? withBadges(h, peek(mk)) : null; });
   const [error, setError] = useState("");
   const [soon, setSoon] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
-    const [r, m] = await Promise.all([api(`history?day=${day}&type=${type}`), badges ? api(`manual-log?day=${day}`) : null]);
+    const [hk, mk] = [`history?day=${day}&type=${type}`, `manual-log?day=${day}`];
+    // en mémoire : affiché tout de suite
+    const cached = peek(hk);
+    if (cached) setData(withBadges(cached, badges ? peek(mk) : null));
+    const [r, m] = await Promise.all([getFresh(hk), badges ? getFresh(mk) : null]);
     if (!guard(r)) return;
     if (r.unavailable) return setSoon(true);
     if (!r.ok) return setError(r.error || "Impossible de charger l'historique.");
-    // Badges « ajouté à la main » / « hors limite » (actions du gérant sans QR code)
-    const items = m?.ok ? m.items || {} : {};
-    setData({ ...r, events: r.events.map((e) => (items[e.id] ? { ...e, manual: items[e.id] } : e)) });
+    setData(withBadges(r, m));
   }, [day, type, guard, badges]);
-  useEffect(() => { setData(null); load(); }, [load]);
+  useEffect(() => {
+    if (!peek(`history?day=${day}&type=${type}`)) setData(null);
+    load();
+  }, [load, day, type]);
 
   async function undo(e) {
     const r = await post("history", { action: "undo", event_id: e.id });
     if (!guard(r)) return;
     say(r.ok ? r.done || "Passage annulé ✓" : r.error || "Annulation impossible.");
+    afterVisitChange();
     load();
     onChanged?.();
   }
@@ -84,7 +101,7 @@ export default function Historique({ guard, say, openClient, mode, onChanged, ba
 
       {error && <p className="ec-alert">{error}</p>}
       <section className="ec-box">
-        {!data && !error && <div className="ec-spinner ec-spinner-sm" aria-label="Chargement" />}
+        {!data && !error && <div role="status" aria-label="Chargement"><SkelList rows={5} /></div>}
         {data && data.events.length === 0 && (
           <div className="esp-empty"><Icon name="clock" size={26} /><p>{type === "all" ? "Aucun passage ce jour-là." : "Rien à afficher avec ce filtre."}</p></div>
         )}
@@ -92,7 +109,7 @@ export default function Historique({ guard, say, openClient, mode, onChanged, ba
         {data?.more && <p className="field-hint ec-center-text">Les {data.events.length} passages les plus récents de la journée sont affichés.</p>}
       </section>
       {exportable && <ExportButton type="passages" label="Exporter tous les passages (Excel)" guard={guard} say={say} />}
-      <p className="field-hint">Une erreur ? Un tampon ou un achat s'annule pendant 10 minutes, avec l'accès qui l'a enregistré (bouton « Annuler »). Au-delà, appelez Walty au {site.contact.phone}.</p>
+      <p className="field-hint">Une erreur ? Un tampon ou un achat s'annule pendant 10 minutes, avec l'accès qui l'a enregistré (bouton « Annuler »). Au-delà, le gérant peut retirer un tampon depuis la fiche du client (« Retirer 1 tampon », avec une raison). Besoin d'aide : {site.contact.phone}.</p>
     </div>
   );
 }
