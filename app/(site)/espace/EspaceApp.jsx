@@ -2123,8 +2123,8 @@ function Notifications({ guard, say, business, max, manager = false }) {
   const remaining = info ? info.remaining : null;
   const weekMax = info?.max ?? max ?? 0;
   const limitReached = remaining === 0;
-  const overridesLeft = info?.overridesLeft ?? 0;
-  const canOverride = manager && !!info?.canOverride && overridesLeft > 0;
+  // plus de plafond pour le gérant (23 oct.) : prévenu deux fois, il décide
+  const canOverride = manager && !!info?.canOverride;
 
   function check(e) {
     e.preventDefault();
@@ -2156,6 +2156,8 @@ function Notifications({ guard, say, business, max, manager = false }) {
     setConfirm(false);
     if (!r.ok) return setError(r.error || "Le message n'a pas pu être enregistré.");
     say(r.sentNow ? (r.overLimit ? "Message envoyé (au-delà de la limite) ✓" : "Message envoyé ✓") : "Message programmé ✓");
+    // plus de 3 messages en 24 h : Google (Android) peut ne pas l'afficher, Apple l'affiche
+    if (r.googleWarning) setError("Envoyé. Attention : déjà 3 messages en 24 heures, les téléphones Android (Google) risquent de ne pas l'afficher. Les iPhone l'affichent.");
     setMsg(""); setAt(""); setWhen("now"); setRepeat(false); setUntil("");
     resetOver();
     invalidate("notifications");
@@ -2194,9 +2196,6 @@ function Notifications({ guard, say, business, max, manager = false }) {
                   Envoyer quand même
                 </button>
               )}
-              {manager && info?.canOverride && overridesLeft === 0 && (
-                <p>Vous avez déjà envoyé {info.overridesMax ?? 3} messages au-delà de la limite cette semaine : c'est le maximum.</p>
-              )}
             </div>
           )}
           {/* Avertissement avant d'envoyer au-delà de la limite (gérant) */}
@@ -2220,7 +2219,7 @@ function Notifications({ guard, say, business, max, manager = false }) {
             <form className="ec-form" onSubmit={check}>
               {over && (
                 <span className="ec-overflag">
-                  <Icon name="bell" size={14} /> Envoi au-delà de la limite{overridesLeft ? ` · encore ${overridesLeft} possible${overridesLeft > 1 ? "s" : ""} cette semaine` : ""}
+                  <Icon name="bell" size={14} /> Envoi au-delà de la limite · c'est vous qui décidez
                 </span>
               )}
               <div className="field">
