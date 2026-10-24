@@ -682,7 +682,7 @@ export default function CreerWizard() {
             </button>
           </div>
         </form>
-        <p className="faint" style={{ fontSize: 14, marginTop: 18 }}>Besoin d'aide ? <Link href="/contact" className="text-link" style={{ fontSize: 14 }}>Réservez une démo : on crée votre carte avec vous</Link></p>
+        <p className="faint" style={{ fontSize: 14, marginTop: 18 }}>Besoin d'aide ? <Link href="/contact" className="text-link" style={{ fontSize: 14 }}>Réservez une démo : on prépare votre carte pour vous</Link></p>
       </div>
 
       {/* Aperçu */}

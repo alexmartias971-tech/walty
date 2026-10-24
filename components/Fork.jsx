@@ -17,7 +17,7 @@ export default function Fork({ title = "Comment voulez-vous commencer ?" }) {
             <h3>On vient chez vous</h3>
             <ul>
               <li><Icon name="check" size={18} stroke={2.4} /> Démo gratuite, à l'heure qui vous arrange</li>
-              <li><Icon name="check" size={18} stroke={2.4} /> On crée votre carte pendant la démo</li>
+              <li><Icon name="check" size={18} stroke={2.4} /> Votre carte préparée avant la démo</li>
               {trialDays > 0 && <li><Icon name="check" size={18} stroke={2.4} /> {trialDays} jours offerts, sans engagement</li>}
             </ul>
             <Link href="/contact" className="btn btn-light btn-lg stretch">Réserver une démo <span className="arrow"><Icon name="arrow" size={16} /></span></Link>

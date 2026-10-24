@@ -7,7 +7,7 @@ import { site, TODO } from "@/lib/site.config";
 
 export const metadata = {
   title: "Contact",
-  description: "Demandez une démo gratuite de Walty : on se déplace dans toute la Guadeloupe et on crée votre carte de fidélité digitale pendant le rendez-vous. Dès 9 € par mois, 14 jours d'essai gratuit.",
+  description: "Demandez une démo gratuite de Walty : on prépare votre carte de fidélité digitale à l'avance et on se déplace dans toute la Guadeloupe pour vous la montrer. Dès 9 € par mois, 14 jours d'essai gratuit.",
 };
 
 export default function ContactPage() {
@@ -17,7 +17,7 @@ export default function ContactPage() {
       <PageHero
         label="Contact"
         title={<>On passe <span className="serif">vous voir</span>{" "}?</>}
-        lead="Une démo gratuite, chez vous. On crée votre carte pendant le rendez-vous, et vous l'essayez 14 jours. Sans engagement."
+        lead="Une démo gratuite, chez vous. On prépare votre carte avant de venir, on vous la montre au rendez-vous, et vous l'essayez 14 jours. Sans engagement."
       />
       <section className="frame">
         <div className="rails section" style={{ paddingTop: 64 }}>
@@ -43,7 +43,7 @@ export default function ContactPage() {
               <div className="info-card glass">
                 <h2 className="display-s" style={{ fontSize: 20 }}>Et après ?</h2>
                 <ol className="list">
-                  {["On vous rappelle sous 24 h ouvrées.", "On passe chez vous, à l'heure creuse.", "On crée votre carte pendant la démo.", "Vous l'essayez 14 jours, gratuitement.", "Vous décidez. Sans pression."].map((t, i) => (
+                  {["On vous rappelle sous 24 h ouvrées.", "On prépare votre carte à vos couleurs.", "On passe chez vous vous la montrer, à l'heure creuse.", "Vous l'essayez 14 jours, gratuitement.", "Vous décidez. Sans pression."].map((t, i) => (
                     <li key={t}><span className="check">{i + 1}</span>{t}</li>
                   ))}
                 </ol>

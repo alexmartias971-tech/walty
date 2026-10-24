@@ -91,7 +91,7 @@ export default function Home() {
             </li>
           </ol>
           <div className="how-foot">
-            <p>Pas le temps ou pas à l'aise avec le téléphone ? On installe tout pour vous : à distance avec Essentiel, chez vous avec Tout compris.</p>
+            <p>Pas le temps ou pas à l'aise avec le téléphone ? On prépare votre carte et on installe tout pour vous, gratuitement, dans les deux formules.</p>
             <Link href="/contact" className="btn btn-dark btn-sm">Réserver une démo</Link>
           </div>
         </div>
@@ -195,7 +195,7 @@ export default function Home() {
           <div className="faq">
             {[
               { q: "Mes clients doivent-ils télécharger une appli ?", a: "Non. La carte va dans le portefeuille du téléphone : Apple Wallet sur iPhone, Google Wallet sur Android (déjà installé sur la plupart des téléphones)." },
-              { q: "Je ne suis pas à l'aise avec la technique.", a: "Pas de souci : réservez une démo. On crée votre carte avec vous pendant le rendez-vous, puis on l'installe pour vous. Vous n'avez qu'à tamponner." },
+              { q: "Je ne suis pas à l'aise avec la technique.", a: "Pas de souci : réservez une démo. On prépare votre carte avant de venir, on vous la montre au rendez-vous, puis on l'installe pour vous. Vous n'avez qu'à tamponner." },
               { q: "Combien ça coûte ?", a: "Essentiel : 9 € par mois. Tout compris : 15 € par mois, avec toutes les options et un SAV sous 48 h garanti. Sans engagement, et les 14 premiers jours sont gratuits." },
               { q: "Un client peut-il tricher ?", a: "C'est votre équipe qui tamponne la carte, avec son propre accès. Le client ne peut pas s'ajouter de tampon lui-même." },
               { q: "Et si j'arrête ?", a: "Aucun engagement. Vous arrêtez à la fin du mois, et vous gardez la liste de vos clients." },
