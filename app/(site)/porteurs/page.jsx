@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function Porteurs() {
   return (
-    <LegalPage index="L6" label="Légal" title="Vos données de porteur de carte" updated="20 octobre 2026">
+    <LegalPage index="L6" label="Légal" title="Vos données de porteur de carte" updated="23 octobre 2026">
       <p>Vous avez ajouté dans votre téléphone (Apple Wallet ou Google Wallet) la carte de fidélité d'un commerce qui fonctionne avec Walty ? Voici ce que deviennent vos données, expliqué simplement.</p>
 
       <div className="porteurs-tldr">
@@ -28,7 +28,6 @@ export default function Porteurs() {
       <h2>2. Quelles données ?</h2>
       <ul>
         <li>Votre prénom, votre nom (facultatif), votre téléphone et/ou votre e-mail.</li>
-        <li>Votre date de naissance, seulement si vous la donnez (pour une surprise le jour J).</li>
         <li>L'historique de votre carte : tampons, récompenses, dates de passage.</li>
         <li>Vos choix : accord ou non pour recevoir les offres et, si le commerce propose un classement, accord ou non pour y apparaître.</li>
         <li>Un identifiant technique de la carte et de votre téléphone, fourni par Apple ou Google, pour pouvoir mettre la carte à jour.</li>
@@ -44,7 +43,6 @@ export default function Porteurs() {
           <tbody>
             <tr><td>Faire fonctionner votre carte : tampons, récompenses, et les messages de service (« +1 tampon », « votre cadeau est prêt »)</td><td>Les conditions du programme de fidélité que vous avez rejoint (6.1.b)</td></tr>
             <tr><td>Vous envoyer les offres du commerce par notification</td><td>Votre accord (6.1.a), que vous pouvez retirer à tout moment</td></tr>
-            <tr><td>Vous faire une surprise pour votre anniversaire</td><td>Votre accord, en donnant ou non votre date de naissance (6.1.a)</td></tr>
             <tr><td>Vous faire apparaître au classement, si le commerce en propose un</td><td>Votre accord (6.1.a)</td></tr>
             <tr><td>Donner au commerce ses chiffres (passages, récompenses distribuées) et empêcher la triche sur les tampons</td><td>L'intérêt légitime du commerce (6.1.f)</td></tr>
           </tbody>

@@ -147,7 +147,6 @@ export default function ClientFiche({ id, row, guard, say, onBack, readOnly = fa
             <ul className="ec-facts">
               {c.phone && <li><span>Téléphone</span><b><a href={`tel:${c.phone.replace(/[^\d+]/g, "")}`}>{c.phone}</a></b></li>}
               {c.email && <li><span>E-mail</span><b className="ec-break"><a href={`mailto:${c.email}`}>{c.email}</a></b></li>}
-              {c.birthday && <li><span>Anniversaire</span><b>{c.birthday}</b></li>}
               <li><span>Accepte les offres et messages</span><b>{c.marketing_optin ? "Oui" : "Non"}</b></li>
               <li><span>Sa carte</span><b>{card.wallet}</b></li>
             </ul>

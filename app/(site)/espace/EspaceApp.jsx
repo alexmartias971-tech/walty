@@ -311,7 +311,7 @@ export default function EspaceApp() {
   const programSaved = useCallback((r) => {
     const s = r?.settings;
     if (!s) return;
-    setMe((m) => (m && m.program ? { ...m, program: { ...m.program, reward_threshold: s.reward_threshold, reward_description: s.reward_description, welcome_offer: s.welcome_offer || null, birthday_offer: s.birthday_offer || null } } : m));
+    setMe((m) => (m && m.program ? { ...m, program: { ...m.program, reward_threshold: s.reward_threshold, reward_description: s.reward_description, welcome_offer: s.welcome_offer || null } } : m));
   }, []);
 
   /** Connexion réussie par mot de passe. */
@@ -2032,12 +2032,11 @@ function Offres({ guard, say, canSend }) {
       {!data && !error && <SkelBox title><SkelList rows={2} /></SkelBox>}
       {data && (
         <>
-          {(data.welcome || data.birthday) && (
+          {data.welcome && (
             <section className="ec-box">
               <h3>Offres automatiques</h3>
               <ul className="ec-facts">
-                {data.welcome && <li><span><Icon name="sparkle" size={16} /> Bienvenue (à l'inscription)</span><b>{data.welcome}</b></li>}
-                {data.birthday && <li><span><Icon name="cake" size={16} /> Anniversaire</span><b>{data.birthday}</b></li>}
+                <li><span><Icon name="sparkle" size={16} /> Bienvenue (à l'inscription)</span><b>{data.welcome}</b></li>
               </ul>
               <p className="field-hint">Pour les modifier, contactez Walty.</p>
             </section>

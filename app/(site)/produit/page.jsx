@@ -8,7 +8,7 @@ import Fork from "@/components/Fork";
 
 export const metadata = {
   title: "Le produit",
-  description: "Carte de fidélité à tampons dans Apple Wallet et Google Wallet : tampons sécurisés, un produit offert ou une remise au bout. Avec Tout compris : statistiques, notifications, anniversaire, avis Google.",
+  description: "Carte de fidélité à tampons dans Apple Wallet et Google Wallet : tampons sécurisés, un produit offert ou une remise au bout. Avec Tout compris : statistiques, notifications, avis Google.",
 };
 
 /* Ce que fait la carte, avec la formule qui le comprend. */
@@ -19,7 +19,6 @@ const features = [
   { i: "sparkle", t: "Carte sur mesure", d: "Vos photos, des visuels de saison.", plan: "tc" },
   { i: "chart", t: "Vos statistiques", d: "Clients qui reviennent, passages, cadeaux, argent rapporté (estimé).", plan: "tc" },
   { i: "bell", t: "Vos offres sur leur téléphone", d: "Jusqu'à 4 notifications par semaine. Vous écrivez, on envoie.", plan: "tc" },
-  { i: "cake", t: "Offre d'anniversaire", d: "Le jour J, l'offre arrive toute seule sur sa carte.", plan: "tc" },
   { i: "heart", t: "Avis Google et parrainage", d: "Un lien vers votre fiche Google sur la carte. Et vos clients font venir leurs amis.", plan: "tc" },
 ];
 const chip = { both: ["chip", "Les 2 formules"], tc: ["chip chip-violet", "Tout compris"] };
@@ -50,9 +49,9 @@ export default function ProduitPage() {
         <div className="rails section">
           <div className="section-head">
             <span className="label">Ce qu'elle fait</span>
-            <h2 className="display-l">8 choses, <span className="serif">pas plus</span>.</h2>
+            <h2 className="display-l">7 choses, <span className="serif">pas plus</span>.</h2>
           </div>
-          <div className="grid cols-4">
+          <div className="grid cols-4 grid-plein">
             {features.map((f, i) => (
               <div key={f.t} className="cell feature reveal" data-delay={(i % 4) + 1}>
                 <span className="step-icon"><Icon name={f.i} size={20} /></span>
@@ -159,7 +158,7 @@ export default function ProduitPage() {
           </div>
           <div className="grid cols-2">
             {[
-              { i: "shield", t: "Le strict minimum", d: "Prénom et téléphone. L'anniversaire si le client veut." },
+              { i: "shield", t: "Le strict minimum", d: "Prénom et téléphone." },
               { i: "download", t: "Votre liste", d: "En fichier Excel, quand vous voulez." },
               { i: "users", t: "Les accès de l'équipe", d: "1 accès avec Essentiel, autant que vous voulez avec Tout compris. Vous les coupez quand vous voulez." },
               { i: "shield", t: "Protégé", d: "Connexion chiffrée, mot de passe pour chaque accès." },

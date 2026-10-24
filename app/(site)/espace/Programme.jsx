@@ -44,7 +44,6 @@ const LABELS = {
   max_purchase_amount: "Le montant maximum d'un achat",
   max_stamps_per_day: "Les passages par jour",
   welcome_offer: "L'offre de bienvenue",
-  birthday_offer: "L'offre d'anniversaire",
   signup_bonus: "Le bonus d'inscription",
   referral_bonus: "Le bonus de parrainage",
   bonus_multiplier: "Les heures boostées",
@@ -64,7 +63,7 @@ const mailWalty = (biz) =>
 
 /**
  * « Mon programme » : les règles de la carte, à lire et à modifier (ce qui est risqué reste chez Walty).
- * Formule Essentiel : pas d'offre d'anniversaire, de parrainage ni de lien d'avis Google ici (Tout compris).
+ * Formule Essentiel : pas de parrainage ni de lien d'avis Google ici (Tout compris).
  * Carte à tampons (la seule vendue aujourd'hui) : rien sur les points, la cagnotte, les niveaux ni le catalogue.
  */
 export default function Programme({ me, guard, say, onSaved }) {
@@ -119,7 +118,6 @@ export default function Programme({ me, guard, say, onSaved }) {
               <li><span>Fonctionnement</span><b>{MODE_NAMES[p.mode] || p.mode}</b></li>
               <li><span>Récompense</span><b>{programLine(p)}</b></li>
               <li><span>Offre de bienvenue</span><b>{p.welcome_offer || "Aucune"}</b></li>
-              <li><span>Offre d'anniversaire</span><b>{p.birthday_offer || "Aucune"}</b></li>
             </ul>
           ) : <p className="muted">Les règles de votre carte s'afficheront ici.</p>}
           <p className="ec-info">Bientôt, vous pourrez modifier ici votre cadeau, vos offres et vos heures boostées. En attendant, Walty le fait pour vous : {site.contact.phone}.</p>
@@ -267,13 +265,6 @@ export default function Programme({ me, guard, say, onSaved }) {
           <label htmlFor="p-welcome">Offre de bienvenue (à l'inscription)</label>
           <input id="p-welcome" className="input" maxLength={120} value={s.welcome_offer} onChange={set("welcome_offer")} placeholder="Ex. : -10 % sur votre premier achat (vide = aucune)" />
         </div>
-        {!essentiel && (
-          <div className="field">
-            <label htmlFor="p-birthday">Offre d'anniversaire</label>
-            <input id="p-birthday" className="input" maxLength={120} value={s.birthday_offer} onChange={set("birthday_offer")} placeholder="Ex. : 1 dessert offert (vide = aucune)" />
-            <span className="field-hint">Ajoutée sur la carte des clients qui ont donné leur date de naissance, le mois de leur anniversaire.</span>
-          </div>
-        )}
         {mode !== "cashback" && (
           <div className="field">
             <label htmlFor="p-signup">Bonus d'inscription ({mode === "stamps" ? "tampons" : "points"} offerts)</label>
@@ -287,7 +278,7 @@ export default function Programme({ me, guard, say, onSaved }) {
             <span className="field-hint">0 = pas de parrainage.</span>
           </div>
         )}
-        {essentiel && <p className="field-hint">Offre d'anniversaire, parrainage et lien d'avis Google : avec la formule Tout compris (15 €/mois). Appelez Walty au {site.contact.phone}.</p>}
+        {essentiel && <p className="field-hint">Parrainage et lien d'avis Google : avec la formule Tout compris (15 €/mois). Appelez Walty au {site.contact.phone}.</p>}
       </fieldset>
 
       <fieldset className="ec-box ec-fs" disabled={ro}>

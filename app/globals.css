@@ -121,6 +121,8 @@ p { margin: 0; }
 .cols-2, .cols-3, .cols-4 { grid-template-columns: 1fr; }
 @media (min-width: 720px) { .cols-2, .cols-4, .cols-3 { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { .cols-3 { grid-template-columns: repeat(3, 1fr); } .cols-4 { grid-template-columns: repeat(4, 1fr); } }
+/* Nombre impair de cases (ex. /produit, « 7 choses ») : la dernière prend la place restante, pas de trou dans la grille */
+.grid.cols-4.grid-plein > :last-child:nth-child(odd) { grid-column: span 2; }
 .cell { position: relative; padding: clamp(22px, 2.6vw, 34px); }
 .cell .idx { font-family: var(--f-display); font-size: 12px; color: var(--faint); letter-spacing: 0.1em; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--card-shadow); }
