@@ -1,0 +1,21 @@
+{
+  "id": "/espace?caisse=1",
+  "name": "Walty Caisse",
+  "short_name": "Caisse",
+  "description": "Tamponnez les cartes de fidélité de vos clients en 2 secondes : visez le QR code, c'est fait.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/espace?caisse=1",
+  "scope": "/espace",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#110c18",
+  "background_color": "#110c18",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/caisse/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/caisse/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/caisse/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/caisse/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" }
+  ]
+}

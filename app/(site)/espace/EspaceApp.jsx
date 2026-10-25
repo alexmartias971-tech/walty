@@ -25,6 +25,11 @@
  * Scanner : « fiche éclair » après un scan (bandeau vert / orange / rouge calculé par le logiciel de cartes,
  * client depuis…, tampons, UN gros bouton), tampon automatique au scan (réglage de l'appareil, choisi par le gérant,
  * avec « Annuler » 5 secondes), aide en 3 gestes à la première ouverture.
+ * Walty Caisse (24 oct.) : mode caisse plein écran (Caisse.jsx : caméra allumée en continu, tampon ajouté dès le scan,
+ * écran vert / orange / rouge, « Annuler » 5 s), ouvert par l'application installée (caisse.webmanifest, start_url
+ * /espace?caisse=1) ou par le bouton « Mode caisse » du Scanner ; installation (Installer.jsx : bouton Android, guide
+ * iPhone) ; appareil mémorisé 90 jours (cookie signé par le logiciel de cartes, renouvelé par la passerelle) ;
+ * « Déconnecter tous les appareils » (gérant, rubrique « Mot de passe et appareils »).
  * Formules (me.plan) : « essentiel » = sans Chiffres, Offres ni Messages (carte « Passer au Tout compris ») ;
  * « tout-compris » (ou pas de formule) = tout. Le logiciel de cartes refuse aussi côté serveur.
  * Gérant : « Exporter en Excel » dans Clients et Historique.
@@ -53,6 +58,10 @@ import Historique from "./Historique";
 import MaCarte from "./MaCarte";
 import Programme from "./Programme";
 import ExportButton from "./Export";
+import Caisse from "./Caisse";
+import InstallCard from "./Installer";
+import ScanKit from "./ScanKit";
+import { isStandalone, registerCaisseWorker } from "./installation";
 import RetirerTampon from "./RetirerTampon";
 import Squelette, { SkelBox, SkelList } from "./Squelette";
 import {
@@ -119,8 +128,19 @@ const readReset = (text) => {
   return m ? m[1] : null;
 };
 
-const EXPIRED = "Votre session a expiré (12 heures) : retapez votre code PIN.";
-const EXPIRED_PW = "Votre session a expiré (12 heures) : reconnectez-vous.";
+const EXPIRED = "Votre connexion a expiré : retapez votre code PIN.";
+const EXPIRED_PW = "Votre connexion a expiré : reconnectez-vous.";
+/** L'appareil mémorisé a été refusé par le logiciel de cartes (réponse deviceSignedOut de la passerelle). */
+const DEVICE_OUT =
+  "Cet appareil a été déconnecté (code PIN ou mot de passe changé, accès désactivé, ou « Déconnecter tous les appareils »). Reconnectez-vous.";
+/** Le mode caisse est demandé par l'adresse (/espace?caisse=1, application installée). */
+const wantsCaisse = () => {
+  try {
+    return /[?&]caisse=1(?:&|$)/.test(window.location.search);
+  } catch {
+    return false;
+  }
+};
 
 /* ═════════════════════════════ Entrée ═════════════════════════════ */
 export default function EspaceApp() {
@@ -210,6 +230,7 @@ export default function EspaceApp() {
       setNotice(r.error || "Le service ne répond pas.");
       return setPhase("error");
     }
+    if (r.deviceSignedOut) setNotice(DEVICE_OUT);
     if (r.loggedIn) {
       // Gérant ou employé ? « me » le dit directement (logiciel de cartes à jour) : pas de deuxième demande.
       // Le logiciel de cartes le revérifie de toute façon à chaque action.
@@ -227,13 +248,16 @@ export default function EspaceApp() {
     // Le lien d'accès peut arriver dans l'adresse : walty.fr/espace?acces=… ou #acces=…
     // On le garde sur cet appareil (jamais le code PIN), puis on l'efface de l'adresse : il ouvre le code PIN.
     const { search, hash, pathname } = window.location;
+    // Application « Walty Caisse » installable (service worker sans aucune donnée, portée /espace)
+    registerCaisseWorker();
+    const keep = wantsCaisse() ? `${pathname}?caisse=1` : pathname;
     // Lien « Choisir un nouveau mot de passe » (e-mail) : on garde le jeton en mémoire et on l'efface aussitôt de l'adresse
     const reset = readReset(`${search} ${hash}`);
     if (reset) window.history.replaceState(null, "", pathname);
     const fromUrl = reset ? null : readToken(`${search} ${hash}`);
     if (fromUrl) {
       lsSet(fromUrl);
-      window.history.replaceState(null, "", pathname);
+      window.history.replaceState(null, "", keep);
     }
     const tk = fromUrl || readToken(lsGet());
     const mode = fromUrl ? "pin" : lsMode.get() === "password" ? "password" : "pin";
@@ -403,7 +427,7 @@ export default function EspaceApp() {
         <PinScreen
           token={token}
           business={business}
-          notice={notice === EXPIRED ? notice : ""}
+          notice={notice === EXPIRED || notice === DEVICE_OUT ? notice : ""}
           onIn={pinIn}
           onInvalid={invalidLink}
           onForget={forget}
@@ -525,6 +549,7 @@ function LoginScreen({ notice, onIn, onQuick, startForgot = false }) {
           </div>
           {error && <p className="ec-alert" role="alert">{error}</p>}
           <button className="btn btn-primary btn-lg ec-full" disabled={busy || !login.trim() || !password}>{busy ? "Connexion…" : "Se connecter"}</button>
+          <p className="field-hint ec-center-text">Cet appareil reste connecté 90 jours (« Quitter » pour l'oublier).</p>
         </form>
         <button type="button" className="ec-linkbtn" aria-expanded={forgot} onClick={() => setForgot((f) => !f)}>Mot de passe oublié ?</button>
         {forgot && <ForgotForm initialEmail={login.includes("@") ? login.trim().toLowerCase() : ""} />}
@@ -749,10 +774,11 @@ function PasswordForm({ initialOld = "", submitLabel = "Changer mon mot de passe
 }
 
 /** Rubrique « Changer mon mot de passe » (menu de l'espace). */
-function MotDePasse({ guard, say }) {
+function MotDePasse({ guard, say, manager = false }) {
   const [state, setState] = useState("form"); // form | done
   return (
     <div className="ec-pw-page">
+      {manager && <Appareils guard={guard} say={say} />}
       {state === "done" ? (
         <p className="ec-ok" role="status"><Icon name="check" size={18} /> Votre mot de passe est changé. Utilisez-le à votre prochaine connexion.</p>
       ) : (
@@ -768,10 +794,49 @@ function MotDePasse({ guard, say }) {
   );
 }
 
+/** « Déconnecter tous les appareils » (gérant) : téléphone perdu, employé parti… Cet appareil-ci reste connecté. */
+function Appareils({ guard, say }) {
+  const [ask, setAsk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  async function run() {
+    setBusy(true);
+    const r = await post("devices", {});
+    setBusy(false);
+    setAsk(false);
+    if (!guard(r)) return;
+    if (!r.ok) return setMsg({ ok: false, text: r.error || "Rien n'a été changé. Réessayez." });
+    setMsg({ ok: true, text: "Tous les autres appareils sont déconnectés : ils devront retaper le code PIN ou le mot de passe." });
+    say("Appareils déconnectés.");
+  }
+  return (
+    <section className="ec-box ec-devices" aria-labelledby="ec-devices-title">
+      <h3 id="ec-devices-title">Appareils connectés</h3>
+      <p className="muted">Chaque téléphone ou tablette reste connecté 90 jours après la connexion. Téléphone perdu, employé parti ? Déconnectez-les tous : il faudra retaper le code PIN ou le mot de passe. Cet appareil-ci reste connecté.</p>
+      {msg && <p className={msg.ok ? "ec-ok" : "ec-alert"} role="status">{msg.ok && <Icon name="check" size={18} />}<span style={{ flex: 1, minWidth: 0 }}>{msg.text}</span></p>}
+      {ask ? (
+        <div className="ec-confirm" role="alertdialog" aria-label="Confirmation">
+          <p>Déconnecter tous les autres appareils (caisse, téléphones de l'équipe) ?</p>
+          <div className="ec-inline">
+            <button disabled={busy} onClick={run} className="btn btn-primary">{busy ? "Un instant…" : "Oui, déconnecter"}</button>
+            <button disabled={busy} onClick={() => setAsk(false)} className="btn btn-ghost">Annuler</button>
+          </div>
+        </div>
+      ) : (
+        <button className="btn btn-dark ec-full" onClick={() => { setMsg(null); setAsk(true); }}>Déconnecter tous les appareils</button>
+      )}
+    </section>
+  );
+}
+
 /* ═════════════════════════ Connexion rapide : pas encore de lien ═════════════════════════ */
 function AccessScreen({ notice, onLink, onPassword }) {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
+  // « Scanner le QR code de mon kit » (surtout pour l'application installée sur iPhone, qui ne voit pas la mémoire de Safari)
+  const [kit, setKit] = useState(false);
+  const [camOk, setCamOk] = useState(false);
+  useEffect(() => { setCamOk(!!navigator.mediaDevices?.getUserMedia); }, []);
   function submit(e) {
     e.preventDefault();
     const tk = readToken(text);
@@ -788,6 +853,12 @@ function AccessScreen({ notice, onLink, onPassword }) {
           Ouvrez le <b>lien d'accès</b> que Walty vous a remis (ou scannez le QR code de votre kit en caisse), puis tapez votre code PIN.
         </p>
         {notice && <p className="ec-alert" role="alert">{notice}</p>}
+        {camOk && (
+          <button type="button" className="btn btn-primary btn-lg ec-full" onClick={() => setKit(true)}>
+            Scanner le QR code de mon kit
+          </button>
+        )}
+        {kit && <ScanKit readToken={readToken} onToken={(tk) => { setKit(false); onLink(tk); }} onClose={() => setKit(false)} />}
         <form onSubmit={submit} className="ec-form">
           <div className="field">
             <label htmlFor="ec-link">Ou collez votre lien d'accès ici</label>
@@ -857,6 +928,7 @@ function PinScreen({ token, business, notice, onIn, onInvalid, onForget, onPassw
         </div>
         {error && <p className="ec-alert" role="alert">{error}</p>}
         <button className="btn btn-primary btn-lg ec-full" disabled={busy || pin.length < 4}>{busy ? "Vérification…" : "Entrer"}</button>
+        <p className="field-hint">Cet appareil reste connecté 90 jours : pas besoin de retaper le code PIN.</p>
         <button type="button" className="ec-linkbtn" onClick={onForget}>{business?.name ? "Ce n'est pas votre commerce ? Changer d'accès" : "Changer de lien d'accès"}</button>
         {onPassword && <button type="button" className="ec-linkbtn" onClick={onPassword}>Se connecter avec un e-mail et un mot de passe</button>}
         <p className="faint ec-help">Code PIN oublié ? Appelez Walty au <a href={site.contact.phoneHref}>{site.contact.phone}</a>.</p>
@@ -879,7 +951,7 @@ const SECTIONS = [
 ];
 /* tout: true = rubrique de la formule Tout compris (masquée pour la formule Essentiel). */
 /** Rubrique du menu sans onglet : « Changer mon mot de passe » (compte du gérant). */
-const PASSWORD = { id: "motdepasse", label: "Changer mon mot de passe", icon: "shield" };
+const PASSWORD = { id: "motdepasse", label: "Mot de passe et appareils", icon: "shield" };
 /** Ce qu'un employé (code PIN) voit : le scanner (QR code seulement) et les clients en lecture seule. */
 const EMPLOYEE_SECTIONS = new Set(["scan", "clients"]);
 
@@ -901,6 +973,8 @@ function Dashboard({ me, onLogout, onExpired, onProgramSaved }) {
   const [clientId, setClientId] = useState(null);
   const [scanAuto, setScanAuto] = useState(false);
   const [today, setToday] = useState(() => (employee ? null : peek(todayKey())));
+  // Mode caisse : ouvert d'office par l'application installée ou par /espace?caisse=1
+  const [caisse, setCaisse] = useState(() => isStandalone() || wantsCaisse());
   // v13 : null = on ne sait pas encore, false = adresses card / program / history… pas encore installées
   const [v13, setV13] = useState(null);
 
@@ -972,6 +1046,16 @@ function Dashboard({ me, onLogout, onExpired, onProgramSaved }) {
     try { window.scrollTo({ top: 0 }); } catch {}
   }, []);
   const goScan = useCallback(() => { setScanAuto(true); go("scan"); }, [go]);
+  /** Mode caisse : l'adresse devient /espace?caisse=1 (« Sur l'écran d'accueil » d'iPhone ouvrira la caisse). */
+  const openCaisse = useCallback(() => {
+    try { window.history.replaceState(null, "", "/espace?caisse=1"); } catch {}
+    setCaisse(true);
+  }, []);
+  const exitCaisse = useCallback((to) => {
+    try { window.history.replaceState(null, "", "/espace"); } catch {}
+    setCaisse(false);
+    if (to === "scan" || employee) go("scan");
+  }, [go, employee]);
   // Fermer le menu « Plus » avec la touche Échap
   useEffect(() => {
     if (!more) return;
@@ -979,6 +1063,10 @@ function Dashboard({ me, onLogout, onExpired, onProgramSaved }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [more]);
+
+  if (caisse) {
+    return <Caisse me={me} guard={guard} manager={manager} onExit={exitCaisse} onDone={refreshToday} />;
+  }
 
   const navButton = (t, extra = "") => (
     <button key={t.id} className={`${current.id === t.id ? "on" : ""} ${extra}`} aria-current={current.id === t.id ? "page" : undefined} onClick={() => (t.id === "clients" ? openClient(null) : go(t.id))}>
@@ -1017,14 +1105,14 @@ function Dashboard({ me, onLogout, onExpired, onProgramSaved }) {
           )}
           {current.id !== "accueil" && <h1 className="ec-page-title">{current.label}</h1>}
           {current.id === "accueil" && <Accueil me={me} today={today} refreshToday={refreshToday} guard={guard} go={go} goScan={goScan} openClient={openClient} features={{ v13 }} essentiel={essentiel} upgrade={upgrade ? <UpgradeCard me={me} wide /> : null} />}
-          {current.id === "scan" && <Scanner guard={guard} manager={manager} employee={employee} autoStart={scanAuto} onAutoStarted={() => setScanAuto(false)} onDone={refreshToday} />}
+          {current.id === "scan" && <Scanner guard={guard} manager={manager} employee={employee} autoStart={scanAuto} onAutoStarted={() => setScanAuto(false)} onDone={refreshToday} onCaisse={openCaisse} />}
           {current.id === "clients" && <Clients guard={guard} say={say} program={me.program} clientId={clientId} openClient={openClient} readOnly={employee} badges={me.role !== "legacy"} exportable={manager} manager={manager} />}
           {current.id === "historique" && <Historique guard={guard} say={say} openClient={openClient} mode={me.program?.mode} onChanged={refreshToday} badges={me.role !== "legacy"} exportable={manager} />}
           {current.id === "carte" && <MaCarte me={me} guard={guard} say={say} />}
           {current.id === "programme" && <Programme me={me} guard={guard} say={say} onSaved={onProgramSaved} />}
           {current.id === "chiffres" && <Chiffres guard={guard} program={me.program} />}
           {current.id === "offres" && <Offres guard={guard} say={say} canSend={me.canNotify} />}
-          {current.id === PASSWORD.id && showPassword && <MotDePasse guard={guard} say={say} />}
+          {current.id === PASSWORD.id && showPassword && <MotDePasse guard={guard} say={say} manager={manager} />}
           {current.id === "notifs" && me.canNotify && <Notifications guard={guard} say={say} max={me.maxNotificationsPerWeek} manager={manager} business={{ name: me.business?.name || "Votre commerce", logo_url: me.business?.logo_url || null }} />}
         </main>
       </div>
@@ -1179,7 +1267,7 @@ function ScanHelp({ onClose }) {
   );
 }
 
-function Scanner({ guard, manager = false, employee = false, autoStart, onAutoStarted, onDone }) {
+function Scanner({ guard, manager = false, employee = false, autoStart, onAutoStarted, onDone, onCaisse }) {
   const scannerRef = useRef(null);
   const [scanning, setScanning] = useState(false);
   const [serial, setSerial] = useState(null);
@@ -1418,6 +1506,17 @@ function Scanner({ guard, manager = false, employee = false, autoStart, onAutoSt
           <span>Visez le QR code de la carte du client</span>
         </button>
       )}
+      {!scanning && !card && onCaisse && (
+        <button type="button" className="cz-entry" onClick={async () => { await stopCamera(); onCaisse(); }}>
+          <img src="/caisse/icon-192.png" alt="" width="52" height="52" />
+          <span>
+            <b>Mode caisse</b>
+            <span>Plein écran, caméra toujours allumée : le tampon s'ajoute tout seul en 2 secondes.</span>
+          </span>
+          <Icon name="arrow" size={22} stroke={2} />
+        </button>
+      )}
+      {!scanning && !card && onCaisse && <InstallCard />}
       {scanning && <button onClick={stopCamera} className="btn btn-ghost ec-full">Arrêter la caméra</button>}
       {busy && <p className="ec-wait" aria-live="polite">Un instant…</p>}
 

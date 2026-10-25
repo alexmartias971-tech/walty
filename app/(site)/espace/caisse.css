@@ -1,0 +1,124 @@
+/* ═══════════════════════════════════════════════════════════════
+   WALTY CAISSE (mode caisse de l'espace commerçant) — plein écran,
+   caméra allumée en continu, résultats lisibles de loin.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cz { position: fixed; inset: 0; z-index: 200; overflow: hidden; background: #050308; color: #fff; display: grid; grid-template-rows: auto 1fr auto; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.cz-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #050308; }
+.cz-video.is-mirror { transform: scaleX(-1); }
+
+/* Cadre de visée (même carré que celui que lit le décodeur) */
+.cz-frame { position: absolute; left: 50%; top: 50%; width: min(72vw, 52vh, 420px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 28px; box-shadow: 0 0 0 100vmax rgba(5, 3, 8, .46); pointer-events: none; }
+.cz-frame i { position: absolute; width: 22%; height: 22%; border: 6px solid #fff; border-radius: 6px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.45)); }
+.cz-frame i:nth-child(1) { left: -3px; top: -3px; border-right: 0; border-bottom: 0; border-top-left-radius: 30px; }
+.cz-frame i:nth-child(2) { right: -3px; top: -3px; border-left: 0; border-bottom: 0; border-top-right-radius: 30px; }
+.cz-frame i:nth-child(3) { right: -3px; bottom: -3px; border-left: 0; border-top: 0; border-bottom-right-radius: 30px; }
+.cz-frame i:nth-child(4) { left: -3px; bottom: -3px; border-right: 0; border-top: 0; border-bottom-left-radius: 30px; }
+.cz-laser { position: absolute; left: 8%; right: 8%; top: 50%; height: 3px; border-radius: 3px; background: linear-gradient(90deg, transparent, #ff8b52 20%, #ff2e7e 80%, transparent); box-shadow: 0 0 18px 2px rgba(255, 91, 31, .7); animation: cz-laser 2.2s ease-in-out infinite; }
+@keyframes cz-laser { 0%, 100% { transform: translateY(-120px); opacity: .25; } 50% { transform: translateY(120px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cz-laser { animation: none; opacity: .8; } }
+
+/* Barre du haut */
+.cz-top { position: relative; z-index: 2; display: flex; align-items: center; gap: 10px; padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); background: linear-gradient(180deg, rgba(5,3,8,.82), rgba(5,3,8,0)); }
+.cz-top-icon { flex: none; border-radius: 10px; }
+.cz-top-biz { min-width: 0; flex: 1; display: grid; line-height: 1.2; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+.cz-top-biz b { font: 650 16px/1.2 var(--f-display); letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cz-top-biz span { font-size: 13px; color: rgba(255,255,255,.72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cz-tools { display: flex; gap: 8px; flex: none; }
+.cz-tool { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 16px; border: 1px solid rgba(255,255,255,.22); background: rgba(5,3,8,.5); color: rgba(255,255,255,.8); cursor: pointer; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.cz-tool.on { color: #fff; border-color: rgba(255,255,255,.5); }
+.cz-tool:focus-visible, .cz-btn:focus-visible, .cz-undo:focus-visible { outline: 3px solid #b9a0ff; outline-offset: 2px; }
+.cz-close { background: rgba(255,255,255,.12); color: #fff; }
+
+/* Bas de l'écran */
+.cz-bottom { position: relative; z-index: 2; grid-row: 3; display: grid; justify-items: center; gap: 8px; padding: 18px 16px; padding-bottom: max(18px, env(safe-area-inset-bottom)); background: linear-gradient(0deg, rgba(5,3,8,.88), rgba(5,3,8,0)); text-align: center; }
+.cz-hint { margin: 0; font: 650 clamp(18px, 4.6vw, 24px)/1.25 var(--f-display); letter-spacing: -.02em; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.cz-count { margin: 0; font-size: 14.5px; font-weight: 700; color: rgba(255,255,255,.75); }
+.cz-sound-hint { margin: 0; font-size: 13px; color: rgba(255,255,255,.6); }
+.cz-undo { display: inline-flex; align-items: center; justify-content: space-between; gap: 16px; width: min(520px, 100%); min-height: 64px; padding: 0 22px; border: 2px solid #fff; border-radius: 20px; background: rgba(5,3,8,.72); color: #fff; font: 800 19px/1.2 var(--f-body); cursor: pointer; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.cz-undo b { font: 700 18px/1 var(--f-display); opacity: .85; }
+.cz-undo-res { position: absolute; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(520px, calc(100% - 32px)); background: rgba(0,0,0,.22); }
+.cz-install-pill { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 16px 6px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(5,3,8,.6); color: #fff; font: 800 15px/1 var(--f-body); cursor: pointer; }
+.cz-install-pill img { border-radius: 8px; }
+
+/* Lecture en cours */
+.cz-busy { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; pointer-events: none; }
+.cz-spin { width: 64px; height: 64px; border-radius: 50%; border: 5px solid rgba(255,255,255,.25); border-top-color: #fff; animation: ec-spin .7s linear infinite; }
+
+/* Démarrage / caméra bloquée */
+.cz-start { position: absolute; inset: 0; z-index: 4; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; background: #110c18; }
+.cz-start img { border-radius: 18px; }
+.cz-start h2 { margin: 0; font: 650 26px/1.2 var(--f-display); }
+.cz-start p { margin: 0; max-width: 460px; color: rgba(255,255,255,.78); font-size: 16px; line-height: 1.5; }
+.cz-start .btn { max-width: 420px; }
+
+/* ───────── Résultat plein écran ───────── */
+.cz-res { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 24px 18px 110px; padding-top: max(24px, env(safe-area-inset-top)); text-align: center; animation: cz-in .16s ease-out; }
+@keyframes cz-in { from { opacity: 0; transform: scale(1.03); } to { opacity: 1; transform: none; } }
+.cz-res.is-green { background: radial-gradient(120% 90% at 50% 20%, #22c55e 0%, #15803d 70%, #0f5f2e 100%); }
+.cz-res.is-orange { background: radial-gradient(120% 90% at 50% 20%, #ffae3d 0%, #f77f00 65%, #c25e00 100%); }
+.cz-res.is-red { background: radial-gradient(120% 90% at 50% 20%, #f04444 0%, #c1121f 70%, #8d0d17 100%); }
+.cz-res.is-neutral { background: radial-gradient(120% 90% at 50% 20%, #3a2d52 0%, #1c1527 100%); }
+.cz-res-body { width: min(640px, 100%); display: grid; justify-items: center; gap: 10px; }
+.cz-res-icon { width: 96px; height: 96px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.2); border: 3px solid rgba(255,255,255,.85); }
+.cz-bang { font: 800 58px/1 var(--f-display); }
+.cz-res-line { margin: 0; display: grid; justify-items: center; gap: 2px; }
+.cz-res-line .cz-sep { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.cz-big { font: 700 clamp(30px, 9vw, 56px)/1.05 var(--f-display); letter-spacing: -.03em; }
+.cz-name { font: 800 clamp(46px, 15vw, 104px)/1 var(--f-display); letter-spacing: -.04em; max-width: 100%; overflow-wrap: anywhere; }
+.cz-count-big { font: 700 clamp(34px, 11vw, 72px)/1.05 var(--f-display); letter-spacing: -.02em; opacity: .95; }
+.cz-res-kicker { margin: 0; font: 700 clamp(24px, 7vw, 40px)/1.15 var(--f-display); letter-spacing: -.02em; }
+.cz-res-title { margin: 0; font: 800 clamp(30px, 9.5vw, 64px)/1.05 var(--f-display); letter-spacing: -.03em; overflow-wrap: anywhere; }
+.cz-res-name { margin: 0; font: 700 clamp(22px, 6.5vw, 34px)/1.2 var(--f-display); }
+.cz-res-sub { margin: 0; max-width: 560px; font-size: clamp(16px, 4.4vw, 20px); font-weight: 700; line-height: 1.4; color: rgba(255,255,255,.92); }
+.cz-small { font-size: 15px; opacity: .85; }
+.cz-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 420px; margin: 4px 0; }
+.cz-dots i { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255,255,255,.75); }
+.cz-dots i.on { background: #fff; border-color: #fff; }
+.cz-actions { width: min(520px, 100%); display: grid; gap: 12px; margin-top: 10px; }
+.cz-btn { min-height: 68px; padding: 0 20px; border-radius: 20px; font: 800 20px/1.2 var(--f-body); cursor: pointer; border: 2px solid #fff; }
+.cz-btn:disabled { opacity: .55; cursor: default; }
+.cz-btn-main { background: #fff; color: #1c1527; }
+.is-orange .cz-btn-main { color: #8a3b00; }
+.is-red .cz-btn-main { color: #8d0d17; }
+.cz-btn-ghost { background: rgba(0,0,0,.16); color: #fff; }
+.cz-btn-light { background: #fff; color: #8d0d17; }
+.cz-over { display: grid; gap: 10px; text-align: left; padding: 14px; border-radius: 18px; background: rgba(0,0,0,.22); }
+.cz-over label { font-weight: 800; font-size: 15px; }
+.cz-over .input { min-height: 54px; font-size: 18px; }
+
+/* Guide iPhone / carte d'installation */
+.cz-sheet-back { position: fixed; inset: 0; z-index: 300; display: grid; align-items: end; justify-items: center; background: rgba(5,3,8,.66); padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+@media (min-width: 700px) { .cz-sheet-back { align-items: center; } }
+.cz-sheet { width: min(460px, 100%); display: grid; justify-items: center; gap: 14px; padding: 24px 20px; border-radius: 28px; background: var(--surface); border: 1px solid var(--line-strong); color: var(--ink); text-align: center; box-shadow: 0 30px 60px -30px rgba(0,0,0,.8); }
+.cz-sheet h2 { margin: 0; font: 650 20px/1.25 var(--f-display); letter-spacing: -.02em; }
+.cz-sheet-icon { border-radius: 16px; }
+.cz-steps { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 10px; text-align: left; }
+.cz-steps li { display: grid; grid-template-columns: 30px 48px 1fr; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: var(--tint); border: 1px solid var(--line); }
+.cz-steps b { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: var(--flamboyant); color: #fff; font: 700 15px var(--f-display); }
+.cz-glyph { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 14px; background: #fff; color: #0a84ff; }
+.cz-steps strong { display: block; font-size: 16px; }
+.cz-steps em { display: block; font-style: normal; font-size: 14px; color: var(--muted); margin-top: 2px; }
+.cz-sheet-note { margin: 0; font-size: 14.5px; color: var(--muted); line-height: 1.5; }
+.cz-install-card { display: grid; grid-template-columns: auto 1fr; gap: 12px 14px; align-items: center; padding: 16px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--card-shadow); }
+.cz-install-card img { border-radius: 14px; }
+.cz-install-card b { display: block; font: 650 16px/1.25 var(--f-display); letter-spacing: -.02em; }
+.cz-install-card span { display: block; font-size: 14.5px; color: var(--muted); margin-top: 2px; }
+.cz-install-card .btn { grid-column: 1 / -1; justify-content: center; }
+
+/* Entrée « Mode caisse » dans le Scanner */
+.cz-entry { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; width: 100%; padding: 16px; border-radius: 22px; border: 0; background: var(--grad-sunset); color: #fff; text-align: left; cursor: pointer; box-shadow: 0 18px 40px -22px rgba(255, 46, 126, .7); }
+.cz-entry img { border-radius: 14px; box-shadow: 0 6px 16px -8px rgba(0,0,0,.5); }
+.cz-entry b { display: block; font: 700 18px/1.2 var(--f-display); letter-spacing: -.02em; }
+.cz-entry span { display: block; font-size: 14.5px; font-weight: 700; opacity: .92; margin-top: 2px; }
+.cz-entry svg { opacity: .9; }
+
+/* Appareils (compte du gérant) */
+.ec-devices { margin-top: 18px; }
+.ec-devices p { margin: 0; }
+
+@media (min-width: 760px) {
+  .cz-res { padding-bottom: 120px; }
+  .cz-res-icon { width: 120px; height: 120px; }
+  .cz-dots i { width: 28px; height: 28px; }
+}
