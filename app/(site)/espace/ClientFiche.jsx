@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
-import { afterVisitChange, euro, fmtAgo, fmtDate, fmtLongDate, getFresh, initials, peek, post } from "./outils";
+import { afterVisitChange, copyText, euro, fmtAgo, fmtDate, fmtLongDate, getFresh, initials, peek, post } from "./outils";
 import { EventList } from "./Passages";
 import RetirerTampon from "./RetirerTampon";
 import { SkelBox, SkelList } from "./Squelette";
@@ -13,6 +13,46 @@ const withBadges = (r, m) => {
   const items = m?.ok ? m.items || {} : {};
   return { ...r, history: (r.history || []).map((e) => (items[e.id] ? { ...e, manual: items[e.id] } : e)) };
 };
+
+/**
+ * « Lui renvoyer sa carte » : le client a supprimé sa carte, changé de téléphone ou ne se souvient plus du prénom donné
+ * à l'inscription. Il scanne ce QR code avec son téléphone (ou reçoit le lien par SMS) : sa carte s'ouvre, avec tous ses
+ * tampons, prête à remettre dans Apple Wallet ou Google Wallet. Lien et QR fournis par le logiciel de cartes (fiche client).
+ */
+function RenvoyerCarte({ lien, qr, first, phone, say }) {
+  const [ouvert, setOuvert] = useState(false);
+  const numero = (phone || "").replace(/[^\d+]/g, "");
+  const texte = `Bonjour${first ? ` ${first}` : ""}, voici ta carte de fidélité : ${lien}`;
+  return (
+    <section className="ec-box ec-renvoi">
+      <div className="ec-box-head">
+        <h3>Lui renvoyer sa carte</h3>
+        {!ouvert && <button type="button" className="btn btn-ghost" onClick={() => setOuvert(true)}>Afficher le QR code</button>}
+      </div>
+      {!ouvert ? (
+        <p className="field-hint">Carte supprimée, nouveau téléphone, prénom oublié : le client la récupère avec tous ses tampons.</p>
+      ) : (
+        <>
+          {qr && <img className="ec-renvoi-qr" src={qr} alt={`QR code de la carte de ${first || "ce client"}`} />}
+          <p className="ec-small ec-center-text">
+            Le client scanne ce QR code avec l&apos;appareil photo de son téléphone : sa carte s&apos;ouvre, il touche
+            « Ajouter à Apple Wallet » ou « Google Wallet ».
+          </p>
+          <div className="ec-actions">
+            {numero && (
+              <a className="btn btn-dark" href={`sms:${numero}?&body=${encodeURIComponent(texte)}`}>
+                <Icon name="phone" size={18} /> Envoyer par SMS
+              </a>
+            )}
+            <button type="button" className="btn btn-ghost" onClick={async () => say((await copyText(lien)) ? "Lien copié ✓" : "Copie impossible : sélectionnez le lien à la main.")}>
+              Copier le lien
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
 /**
  * Fiche d'un client : état de sa carte, ses chiffres, ses offres et son historique.
@@ -152,6 +192,11 @@ export default function ClientFiche({ id, row, guard, say, onBack, readOnly = fa
             </ul>
           </section>
         </div>
+      )}
+
+      {/* aussi pour les employés (lecture seule) : c'est souvent eux, en caisse, qui aident le client */}
+      {c && card?.lien && (
+        <RenvoyerCarte key={card.lien} lien={card.lien} qr={card.lien_qr} first={c.first_name} phone={c.phone} say={say} />
       )}
 
       {card?.coupons?.length > 0 && (
