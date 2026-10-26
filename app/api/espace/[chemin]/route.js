@@ -38,6 +38,12 @@
  * deviceSignedOut: true (l'espace affiche alors pourquoi il faut se reconnecter). walty.fr ne lit ni ne fabrique ce cookie.
  * - caisse : mode caisse (scan → tampon en une demande) ; devices : « Déconnecter tous les appareils » (gérant).
  *
+ * - entree (26 oct. 2026) : l'entrée Walty d'Alexandre. Le CRM ouvre walty.fr/espace#entree=<ticket à usage unique, 2 minutes>
+ *   (après « # » : jamais envoyé aux serveurs) ; l'espace l'envoie ici (POST, depuis walty.fr seulement) ; le logiciel de cartes
+ *   l'échange contre une session « Walty » (rubriques du gérant, 2 h) et efface l'appareil mémorisé : la connexion précédente de
+ *   ce navigateur (un autre commerce) est remplacée.
+ * - X-Walty-Commerce : le commerce affiché par l'onglet, relayé tel quel (identifiant vérifié) ; voir setCommerce dans outils.js.
+ *
  * Variable facultative : CARTEDEFID_URL (par défaut https://cartedefid.vercel.app).
  */
 
@@ -58,20 +64,22 @@ const ROUTES = new Set([
   // Walty Caisse : mode caisse et « Déconnecter tous les appareils » (le renouvellement de l'appareil mémorisé est fait
   // par la passerelle elle-même, voir renewSession : le navigateur ne l'appelle jamais directement)
   "caisse", "devices",
+  // entrée Walty depuis le CRM (ticket à usage unique)
+  "entree",
 ]);
 /** Adresses en lecture seule (GET). */
 const GET_ONLY = new Set(["export"]);
 /** Adresses qui n'acceptent que POST (jamais de mot de passe dans une adresse GET). */
-const POST_ONLY = new Set(["login-password", "password", "login-gerant", "manual", "reset-complete", "caisse", "devices"]);
+const POST_ONLY = new Set(["login-password", "password", "login-gerant", "manual", "reset-complete", "caisse", "devices", "entree"]);
 const COOKIE = "commercant_session";
 /** Preuve « gérant » (connexion par mot de passe), signée par le logiciel de cartes, liée au badge de session. */
 const ROLE_COOKIE = "commercant_role";
 /** Appareil mémorisé 90 jours (Walty Caisse), signé par le logiciel de cartes. */
 const DEVICE_COOKIE = "commercant_appareil";
 const COOKIES = [COOKIE, ROLE_COOKIE, DEVICE_COOKIE];
-const LOGIN_ROUTES = new Set(["login", "login-password", "login-gerant"]);
+const LOGIN_ROUTES = new Set(["login", "login-password", "login-gerant", "entree"]);
 /** Adresses qui ne déclenchent jamais le renouvellement automatique de la session. */
-const NO_RENEW = new Set(["login", "login-password", "login-gerant", "logout", "reset-request", "reset-complete"]);
+const NO_RENEW = new Set(["login", "login-password", "login-gerant", "logout", "reset-request", "reset-complete", "entree"]);
 
 export const dynamic = "force-dynamic";
 // Région : Paris (cdg1), réglée pour tout le site dans vercel.json (à côté du logiciel de cartes).
@@ -188,6 +196,9 @@ async function relay(request, ctx) {
 
   const url = new URL(request.url);
   const headers = { Accept: "application/json" };
+  // le commerce affiché par l'onglet (voir setCommerce dans outils.js) : le logiciel de cartes refuse une action sur un autre
+  const commerce = request.headers.get("x-walty-commerce");
+  if (commerce && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(commerce)) headers["X-Walty-Commerce"] = commerce;
   const jar = readJar(request);
   const secure = url.protocol === "https:" ? "; Secure" : "";
 

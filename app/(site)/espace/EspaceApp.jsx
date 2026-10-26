@@ -81,6 +81,7 @@ import {
   peek,
   post,
   prefetch,
+  setCommerce,
   swr,
   TZ,
 } from "./outils";
@@ -108,6 +109,18 @@ const lsLogin = store(LS_LOGIN);
 const ssMust = store(SS_MUST, true);
 const lsGet = lsToken.get;
 const lsSet = lsToken.set;
+
+/** Les onglets de l'espace dans ce navigateur : après une connexion (ou une entrée Walty, ou « Quitter »), les autres se rechargent. */
+const CANAL = "walty-espace";
+function annoncer() {
+  try {
+    const c = new BroadcastChannel(CANAL);
+    c.postMessage("session");
+    c.close();
+  } catch {
+    // navigateur sans BroadcastChannel : chaque action reste protégée par X-Walty-Commerce
+  }
+}
 
 /** "38,412" / "1:02.345" → millisecondes */
 function parseLap(text) {
@@ -222,6 +235,7 @@ export default function EspaceApp() {
   /** mode « password » : la session du gérant ne dépend d'aucun lien d'accès (on n'envoie pas le lien). */
   const load = useCallback(async (tk, mode = "pin") => {
     setPhase("loading");
+    setCommerce(null);
     const withToken = tk && mode !== "password";
     const r = await api(`me${withToken ? `?token=${tk}` : ""}`);
     if (r.unavailable) return loadBasic(tk, mode);
@@ -231,6 +245,7 @@ export default function EspaceApp() {
       return setPhase("error");
     }
     if (r.deviceSignedOut) setNotice(DEVICE_OUT);
+    if (r.loggedIn) setCommerce(r.businessId);
     if (r.loggedIn) {
       // Gérant ou employé ? « me » le dit directement (logiciel de cartes à jour) : pas de deuxième demande.
       // Le logiciel de cartes le revérifie de toute façon à chaque action.
@@ -254,7 +269,12 @@ export default function EspaceApp() {
     // Lien « Choisir un nouveau mot de passe » (e-mail) : on garde le jeton en mémoire et on l'efface aussitôt de l'adresse
     const reset = readReset(`${search} ${hash}`);
     if (reset) window.history.replaceState(null, "", pathname);
-    const fromUrl = reset ? null : readToken(`${search} ${hash}`);
+    // Entrée Walty (26 oct. 2026) : Alexandre ouvre l'espace d'un commerce depuis son CRM (walty.fr/espace?entree=…, ticket à usage
+    // unique, 2 minutes). Le ticket est effacé de l'adresse tout de suite, puis échangé contre une session « Walty » (rubriques du
+    // gérant) qui remplace la connexion précédente de ce navigateur (un autre commerce, l'appareil mémorisé).
+    const entree = reset ? null : /(?:^|[?#&])entree=([A-Za-z0-9_-]{40,64})(?![A-Za-z0-9_-])/.exec(`${search} ${hash}`)?.[1] || null;
+    if (entree) window.history.replaceState(null, "", pathname);
+    const fromUrl = reset || entree ? null : readToken(`${search} ${hash}`);
     if (fromUrl) {
       lsSet(fromUrl);
       window.history.replaceState(null, "", keep);
@@ -266,6 +286,23 @@ export default function EspaceApp() {
     if (reset) {
       resetTok.current = reset;
       setPhase("reset");
+    } else if (entree) {
+      setPhase("loading");
+      post("entree", { jeton: entree, cible: "gerant" }).then((r) => {
+        clearCache();
+        ssMust.set(null);
+        if (!r.ok) {
+          setNotice(r.error || "Lien d'entrée expiré : rouvrez-le depuis le CRM.");
+          return load(tk, mode);
+        }
+        // la session Walty ne dépend d'aucun lien d'accès gardé sur cet appareil ; les autres onglets de l'espace se rechargent
+        annoncer();
+        lsSet(null);
+        lsMode.set("password");
+        setToken(null);
+        setVia("password");
+        load(null, "password");
+      });
     } else {
       load(tk, mode);
     }
@@ -289,7 +326,17 @@ export default function EspaceApp() {
       load(t, "pin");
     };
     window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    let canal = null;
+    try {
+      canal = new BroadcastChannel(CANAL);
+      canal.onmessage = (e) => { if (e.data === "session") window.location.reload(); };
+    } catch {
+      canal = null;
+    }
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      if (canal) canal.close();
+    };
   }, [load]);
 
   // La connexion par mot de passe est-elle disponible ? (pour proposer le lien depuis l'écran du code PIN)
@@ -319,6 +366,7 @@ export default function EspaceApp() {
   async function logout() {
     await post("logout");
     clearCache();
+    annoncer();
     ssMust.set(null);
     tempPw.current = "";
     setMe(null);
@@ -341,6 +389,7 @@ export default function EspaceApp() {
   /** Connexion réussie par mot de passe. */
   function passwordIn(login, password, mustChange) {
     clearCache();
+    annoncer();
     lsMode.set("password");
     lsLogin.set(login);
     setVia("password");
@@ -357,6 +406,7 @@ export default function EspaceApp() {
   /** Connexion réussie par code PIN. */
   function pinIn() {
     clearCache();
+    annoncer();
     lsMode.set("pin");
     ssMust.set(null);
     setVia("pin");
@@ -1081,7 +1131,7 @@ function Dashboard({ me, onLogout, onExpired, onProgramSaved }) {
         <Link href="/" prefetch={false} className="ec-top-mark" aria-label="Walty, accueil du site"><LogoMark size={34} /></Link>
         <div className="ec-top-biz">
           <b>{bizName}</b>
-          <span>{me.label || "Connecté"}</span>
+          <span>{me.admin ? "Accès Walty (admin)" : me.label || "Connecté"}</span>
         </div>
         <button className="ec-top-scan" onClick={goScan} aria-label="Scanner une carte"><Icon name="qr" size={18} /> <span>Scanner</span></button>
         <button className="ec-top-out" onClick={onLogout} aria-label="Quitter"><Icon name="logout" size={18} /> <span>Quitter</span></button>

@@ -5,13 +5,28 @@
 
 export const TZ = "America/Guadeloupe";
 
+/**
+ * Le commerce affiché par CET onglet (donné par « me »). Il part avec chaque action (en-tête X-Walty-Commerce) : si une autre
+ * connexion a eu lieu entre-temps dans le navigateur (un autre commerce, entrée Walty), le logiciel de cartes refuse l'action
+ * comme une session expirée et l'espace se recharge sur le bon commerce, au lieu d'agir sur l'autre.
+ */
+let commerce = null;
+export function setCommerce(id) {
+  commerce = typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null;
+}
+
 export async function api(path, init = {}) {
   try {
+    const write = !!init.method && init.method !== "GET";
     const res = await fetch(`/api/espace/${path}`, {
       ...init,
       cache: "no-store",
       credentials: "same-origin",
-      headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...(init.headers || {}) },
+      headers: {
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...(write && commerce ? { "X-Walty-Commerce": commerce } : {}),
+        ...(init.headers || {}),
+      },
     });
     const data = await res.json().catch(() => ({ ok: false, error: "Réponse illisible. Réessayez." }));
     return { ...data, status: res.status, unavailable: !!data.unavailable || res.status === 501 };
