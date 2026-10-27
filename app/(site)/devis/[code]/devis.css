@@ -1,0 +1,73 @@
+/* Le devis : une feuille blanche lisible (et imprimable) sur le fond de nuit du site */
+.devis-zone { padding-top: clamp(96px, 14vw, 140px); padding-bottom: 80px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; max-width: 860px; }
+.devis-bandeau { margin: 0; padding: 14px 18px; border-radius: 16px; background: var(--tint); border: 1px solid var(--line-strong); color: var(--ink); font-weight: 600; }
+.devis-bandeau-non { border-color: rgba(255, 46, 126, .5); }
+.devis-bandeau a { color: var(--accent-ink); }
+
+.devis-feuille {
+  background: #fffdf9; color: #1d1726; border-radius: 22px; padding: clamp(22px, 5vw, 48px);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .8); display: grid; gap: 26px; font-size: 15.5px; line-height: 1.5;
+}
+.devis-feuille a { color: #b8400c; }
+.devis-tete { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: start; }
+.devis-marque { margin: 0 0 6px; font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: -.02em; background: var(--grad-sunset); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.devis-titre { margin: 0 0 6px; font-family: var(--f-display); font-size: clamp(26px, 6vw, 34px); letter-spacing: -.02em; color: #1d1726; }
+.devis-ref { text-align: right; }
+.devis-petit { margin: 0; font-size: 13.5px; color: #5d5468; line-height: 1.55; }
+.devis-etiquette { margin: 0 0 4px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #8a7f96; }
+.devis-client p:last-child { margin: 0; }
+
+.devis-table { width: 100%; border-collapse: collapse; }
+.devis-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #8a7f96; border-bottom: 2px solid #1d1726; padding: 8px 6px; }
+.devis-table td { border-bottom: 1px solid #ebe4da; padding: 12px 6px; vertical-align: top; }
+.devis-table .num { text-align: right; white-space: nowrap; }
+.devis-detail { display: block; font-size: 13.5px; color: #5d5468; }
+.devis-par { font-size: 12.5px; color: #5d5468; }
+.devis-points { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; color: #3c3446; }
+
+.devis-totaux { justify-self: end; min-width: min(100%, 340px); display: grid; gap: 6px; }
+.devis-totaux p { margin: 0; display: flex; justify-content: space-between; gap: 18px; }
+.devis-totaux b { white-space: nowrap; }
+.devis-totaux p:first-child { font-size: 18px; padding-bottom: 6px; border-bottom: 2px solid #1d1726; }
+.devis-essai b { color: #0f8f7a; }
+.devis-conditions ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.devis-note { margin: 10px 0 0; padding: 12px 14px; border-radius: 12px; background: #f6efe6; white-space: pre-line; }
+.devis-accord { border-top: 1px dashed #d6ccbf; padding-top: 16px; }
+.devis-ok { margin: 0; color: #0d6e5e; font-weight: 600; }
+.devis-imprime { display: none; }
+
+/* Accepter, payer, PDF */
+.devis-actions { display: grid; gap: 14px; }
+.devis-carte { display: grid; gap: 14px; padding: clamp(18px, 4vw, 28px); border-radius: 22px; background: var(--surface); border: 1px solid var(--line-strong); color: var(--ink); }
+.devis-carte p { margin: 0; }
+.devis-carte .devis-petit { color: var(--muted); }
+.devis-champ { display: grid; gap: 6px; font-weight: 700; }
+.devis-champ input { height: 54px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 17px; }
+.devis-case { display: grid; grid-template-columns: 24px 1fr; gap: 10px; align-items: start; font-size: 15px; }
+.devis-case input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--cta); }
+.devis-case a, .devis-carte a:not(.btn) { color: var(--accent-ink); }
+.devis-erreur { color: #ff8fb4; font-weight: 600; }
+.devis-payer { justify-self: start; white-space: normal; height: auto; min-height: 58px; padding-top: 12px; padding-bottom: 12px; text-align: center; line-height: 1.25; }
+.devis-pdf { justify-self: center; background: none; border: 0; color: var(--muted); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; padding: 10px; }
+
+@media (max-width: 560px) {
+  .devis-tete { grid-template-columns: 1fr; }
+  .devis-ref { text-align: left; }
+  .devis-table th:nth-child(2), .devis-table td:nth-child(2), .devis-table th:nth-child(3), .devis-table td:nth-child(3) { display: none; }
+  .devis-feuille { padding: 22px 18px; }
+  .devis-payer { justify-self: stretch; text-align: center; }
+}
+
+/* À l'impression (ou « Enregistrer en PDF ») : la feuille seule, sans le site autour */
+@media print {
+  @page { margin: 0; }
+  html, body { background: #fff !important; }
+  body > *:not(#contenu), .devis-zone > *:not(.devis-feuille) { display: none !important; }
+  .devis-zone { padding: 12mm 14mm; max-width: none; background: #fff; }
+  .devis-feuille { box-shadow: none; border-radius: 0; padding: 0 2mm 0 0; background: #fff; gap: 14px; font-size: 12.5px; }
+  .devis-petit, .devis-detail, .devis-points, .devis-conditions ul { font-size: 11.5px; }
+  .devis-table td { padding: 7px 6px; }
+  .devis-totaux p:first-child { font-size: 15px; }
+  .devis-imprime { display: block; min-height: 60px; }
+  .devis-marque { background: none; color: #f4520f; -webkit-text-fill-color: #f4520f; }
+}

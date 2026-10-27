@@ -18,7 +18,8 @@ export default function StickyCta() {
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
   }, [pathname]);
-  if (["/contact", "/creer"].includes(pathname) || pathname?.startsWith("/espace")) return null;
+  // (pas sur l'espace commerçant ni sur un devis : le commerçant y a déjà ce qu'il lui faut)
+  if (["/contact", "/creer"].includes(pathname) || pathname?.startsWith("/espace") || pathname?.startsWith("/devis")) return null;
   return (
     <div className={`sticky-cta ${show ? "on" : ""}`} aria-hidden={!show}>
       <Link href="/contact" className="btn btn-primary" tabIndex={show ? 0 : -1}>Réserver une démo</Link>

@@ -19,7 +19,7 @@ const features = [
   { i: "sparkle", t: "Carte sur mesure", d: "Vos photos, des visuels de saison.", plan: "tc" },
   { i: "chart", t: "Vos statistiques", d: "Clients qui reviennent, passages, cadeaux, argent rapporté (estimé).", plan: "tc" },
   { i: "bell", t: "Vos offres sur leur téléphone", d: "Jusqu'à 4 notifications par semaine. Vous écrivez, on envoie.", plan: "tc" },
-  { i: "heart", t: "Avis Google et parrainage", d: "Un lien vers votre fiche Google sur la carte. Et vos clients font venir leurs amis.", plan: "tc" },
+  { i: "heart", t: "Avis Google", d: "Un lien vers votre fiche Google sur la carte : vos clients fidèles vous laissent un avis.", plan: "tc" },
 ];
 const chip = { both: ["chip", "Les 2 formules"], tc: ["chip chip-violet", "Tout compris"] };
 

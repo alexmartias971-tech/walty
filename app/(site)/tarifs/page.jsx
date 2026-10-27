@@ -18,7 +18,7 @@ function Val({ v }) {
 
 const faq = [
   { q: "Comment se passe l'essai gratuit ?", a: `On prépare votre carte avant la démo, on vous la montre au rendez-vous, et vous l'utilisez ${trialDays || 14} jours sans payer. Ensuite, vous choisissez de continuer ou non.` },
-  { q: "Quelle différence entre les deux formules ?", a: "Essentiel remplace vos cartes en carton : une carte à tampons à votre logo et à vos couleurs. Tout compris ajoute ce qui fait revenir vos clients : statistiques, notifications, lien d'avis Google et parrainage. Avec un SAV sous 48 h garanti." },
+  { q: "Quelle différence entre les deux formules ?", a: "Essentiel remplace vos cartes en carton : une carte à tampons à votre logo et à vos couleurs. Tout compris ajoute ce qui fait revenir vos clients : statistiques, notifications et lien d'avis Google. Avec un SAV sous 48 h garanti." },
   { q: "Comment marche le SAV sous 48 h ?", a: `Avec Tout compris, votre demande est prise en charge en moins de ${sav.delay}, ${sav.hours}. ${sav.sunday} Avec Essentiel, on vous aide par WhatsApp ou par e-mail, sans délai garanti.` },
   { q: "Combien de notifications je peux envoyer ?", a: "Avec Tout compris, jusqu'à 4 par semaine. Vous écrivez votre message, on l'envoie sur le téléphone de vos clients. Notre conseil : une par semaine suffit, pour ne pas les lasser." },
   { q: "Je peux changer de formule ?", a: "Oui. Passer au Tout compris, c'est immédiat. Revenir à l'Essentiel se fait au mois suivant." },

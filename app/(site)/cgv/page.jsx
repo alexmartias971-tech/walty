@@ -10,7 +10,7 @@ const toutCompris = planById["tout-compris"];
 
 export default function CGV() {
   return (
-    <LegalPage index="L3" label="Légal" title="Conditions générales de vente" updated="23 octobre 2026">
+    <LegalPage index="L3" label="Légal" title="Conditions générales de vente" updated="26 octobre 2026">
       <p>Les présentes conditions générales de vente (« CGV ») s'appliquent à toutes les prestations fournies par <strong>Walty</strong>, exploité par <V v={legal.ownerName} />, {legal.legalFormInline}, <V v={legal.address} />, SIRET <V v={legal.siret} /> (« Walty »), à ses clients professionnels (« le Client »). Elles constituent, conformément à l'article L441-1 du Code de commerce, le socle unique de la relation commerciale.</p>
 
       <h2>1. Champ d'application</h2>
@@ -25,8 +25,8 @@ export default function CGV() {
       </ul>
       <p>Le contenu de chaque formule est celui décrit sur la page <Link href="/tarifs">Tarifs</Link> à la date de la commande. En particulier :</p>
       <ul>
-        <li><strong>Formule {essentiel.name}.</strong> Carte à tampons au logo et aux couleurs du Client, tampons sécurisés, messages automatiques de la carte (tampon ajouté, récompense disponible), 1 accès équipe pour tamponner, installation offerte, aide par WhatsApp ou e-mail sans délai garanti. Ne comprend pas : statistiques, notifications, lien d'avis Google, parrainage, import du fichier clients.</li>
-        <li><strong>Formule {toutCompris.name}.</strong> Tout le contenu de la formule {essentiel.name}, avec une carte sur mesure (photos, visuels de saison), des statistiques, des notifications, un lien d'avis Google sur la carte, le parrainage, l'import du fichier clients offert, des accès équipe illimités, et le SAV sous {sav.delay} garanti décrit ci-dessous.</li>
+        <li><strong>Formule {essentiel.name}.</strong> Carte à tampons au logo et aux couleurs du Client, tampons sécurisés, messages automatiques de la carte (tampon ajouté, récompense disponible), 1 accès équipe pour tamponner, installation offerte, aide par WhatsApp ou e-mail sans délai garanti, export de la liste de ses clients (fichier Excel) depuis son espace. Ne comprend pas : statistiques, notifications, lien d'avis Google.</li>
+        <li><strong>Formule {toutCompris.name}.</strong> Tout le contenu de la formule {essentiel.name}, avec une carte sur mesure (photos, visuels de saison), des statistiques, des notifications, un lien d'avis Google sur la carte, des accès équipe illimités, et le SAV sous {sav.delay} garanti décrit ci-dessous.</li>
         <li><strong>Notifications.</strong> La formule {essentiel.name} ne permet pas d'envoyer de notifications aux porteurs (seuls les messages automatiques de la carte sont envoyés). La formule {toutCompris.name} permet jusqu'à 4 notifications par semaine (du lundi au dimanche), non reportables. Le Client rédige ses messages depuis son espace ; Walty les envoie à sa demande, en principe le jour même, entre 8 h et 18 h, et peut refuser ou reporter un message illicite, trompeur ou contraire aux règles d'Apple et de Google. Ces règles peuvent limiter le nombre de notifications affichées (par exemple, Google n'en affiche pas plus de 3 par carte en 24 heures) : Walty peut alors étaler les envois.</li>
         <li><strong>Accord des porteurs.</strong> Les messages de service de la carte (tampon ajouté, récompense disponible, changement des conditions du programme) sont envoyés à tous les porteurs. Les messages commerciaux (offres, promotions, nouveautés) ne sont envoyés qu'aux porteurs qui l'ont accepté en cochant, lors de leur inscription, une case non cochée par défaut. Ce filtre est appliqué automatiquement par Walty. Un porteur peut retirer son accord à tout moment ; il ne reçoit alors plus aucune offre, dès la prise en compte de sa demande. Les informations données aux porteurs figurent sur la page <Link href="/porteurs">vos données de porteur de carte</Link>.</li>
         <li><strong>Mise en place.</strong> Walty prépare et installe la carte sans frais, dans les deux formules. Les porteurs ajoutent la carte en scannant un QR code imprimé sur une feuille posée au comptoir.</li>
@@ -58,7 +58,7 @@ export default function CGV() {
       <h2>7. Durée et résiliation</h2>
       <p>L'abonnement est <strong>sans engagement</strong>. Il se renouvelle chaque mois et peut être résilié à tout moment par écrit (e-mail ou message) ; la résiliation prend effet à la fin du mois en cours. Le mois commencé reste dû.</p>
       <p>En cas de manquement grave de l'une des parties, non réparé 15 jours après une mise en demeure écrite, l'autre partie peut résilier le contrat de plein droit.</p>
-      <p><strong>Fin du contrat.</strong> À la fin du contrat, la carte cesse de fonctionner pour les porteurs. Le Client garde la liste de ses clients : Walty lui remet, sur demande formulée dans les 30 jours, l'export de son fichier clients dans un format courant (CSV), puis supprime les données dans les conditions de l'article 11.</p>
+      <p><strong>Fin du contrat.</strong> À la fin du contrat, la carte cesse de fonctionner pour les porteurs. Le Client garde la liste de ses clients : il peut l'exporter à tout moment depuis son espace (fichier Excel), et Walty la lui remet aussi, sur demande formulée dans les 30 jours, dans un format courant (CSV), puis supprime les données dans les conditions de l'article 11.</p>
 
       <h2>8. Obligations de Walty</h2>
       <p>Walty s'engage à créer la carte du Client (préparée avant la démo et présentée au rendez-vous, ou, pour une carte sur mesure, dans un délai indicatif de 7 jours ouvrés après réception des éléments du Client : logo, photos, récompense), à activer une carte créée en ligne dans un délai indicatif de 24 heures ouvrées, à la mettre en place selon la formule choisie et à assurer l'assistance prévue à l'article 2. Walty est tenu d'une obligation de moyens, sauf pour le délai de prise en charge du SAV de la formule {toutCompris.name}.</p>
@@ -67,7 +67,7 @@ export default function CGV() {
       <ul>
         <li>Fournir des éléments (logo, photos, textes) dont il détient les droits, et garantir Walty contre toute réclamation à ce titre.</li>
         <li>Rédiger ou valider des notifications licites, loyales et non trompeuses, et honorer les récompenses et offres annoncées aux porteurs.</li>
-        <li>N'adresser d'offres commerciales qu'aux porteurs ayant donné leur accord, ne pas contourner ce filtre (par exemple en glissant une promotion dans un message de service) et respecter sans délai tout retrait d'accord qui lui serait signalé directement. Les clients importés depuis un fichier existant ne reçoivent d'offres qu'après avoir installé la carte et donné leur accord.</li>
+        <li>N'adresser d'offres commerciales qu'aux porteurs ayant donné leur accord, ne pas contourner ce filtre (par exemple en glissant une promotion dans un message de service) et respecter sans délai tout retrait d'accord qui lui serait signalé directement.</li>
         <li>Garder confidentiels les accès caisse de son personnel et signaler sans délai toute perte ou usage anormal.</li>
         <li>Informer les porteurs de carte du traitement de leurs données : Walty affiche pour lui la mention d'information dans le formulaire d'inscription à la carte et la publie sur la page <Link href="/porteurs">vos données de porteur de carte</Link>.</li>
       </ul>

@@ -63,7 +63,7 @@ const mailWalty = (biz) =>
 
 /**
  * « Mon programme » : les règles de la carte, à lire et à modifier (ce qui est risqué reste chez Walty).
- * Formule Essentiel : pas de parrainage ni de lien d'avis Google ici (Tout compris).
+ * Formule Essentiel : pas de lien d'avis Google ici (Tout compris). Plus de parrainage (arrêté par Walty le 26 oct. 2026).
  * Carte à tampons (la seule vendue aujourd'hui) : rien sur les points, la cagnotte, les niveaux ni le catalogue.
  */
 export default function Programme({ me, guard, say, onSaved }) {
@@ -271,14 +271,7 @@ export default function Programme({ me, guard, say, onSaved }) {
             <input id="p-signup" className="input ec-num" type="number" inputMode="numeric" min={0} max={1000} value={s.signup_bonus} onChange={set("signup_bonus")} />
           </div>
         )}
-        {!essentiel && (
-          <div className="field">
-            <label htmlFor="p-ref">Bonus de parrainage ({mode === "stamps" ? "tampons" : mode === "points" ? "points" : "€"} pour le parrain)</label>
-            <input id="p-ref" className="input ec-num" type="number" inputMode="numeric" min={0} max={1000} value={s.referral_bonus} onChange={set("referral_bonus")} />
-            <span className="field-hint">0 = pas de parrainage.</span>
-          </div>
-        )}
-        {essentiel && <p className="field-hint">Parrainage et lien d'avis Google : avec la formule Tout compris (15 €/mois). Appelez Walty au {site.contact.phone}.</p>}
+        {essentiel && <p className="field-hint">Lien d'avis Google : avec la formule Tout compris (15 €/mois). Appelez Walty au {site.contact.phone}.</p>}
       </fieldset>
 
       <fieldset className="ec-box ec-fs" disabled={ro}>
