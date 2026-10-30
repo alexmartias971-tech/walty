@@ -210,6 +210,8 @@ export default function Caisse({ me, guard, manager = false, onExit, onDone }) {
     if (!aliveRef.current) return;
     const name = r.first_name || "";
     const v = r.visit || null;
+    // Carte pas encore dans le téléphone du client : sans Wallet, il ne reçoit aucune notification (29 oct. 2026)
+    const sansWallet = r.in_wallet === false ? "📲 Pas encore dans son téléphone : dites-lui d'appuyer sur « Ajouter » sur sa carte." : "";
     if (r.status === 0) {
       lastRef.current = { key: "", at: 0 };
       beep("err");
@@ -242,7 +244,7 @@ export default function Caisse({ me, guard, manager = false, onExit, onDone }) {
           stamps: r.stamps,
           kicker: r.added > 1 ? `+${r.added} tampons` : "+1 tampon",
           sub: [r.reward_ready ? "🎁 Cadeau débloqué !" : "", visitLine(v)].filter(Boolean).join(" · "),
-          note: /Heures boostées|parrain/.test(r.done || "") ? r.done.replace(/^Tampon ajouté ✓\s*/, "") : "",
+          note: [/Heures boostées|parrain/.test(r.done || "") ? r.done.replace(/^Tampon ajouté ✓\s*/, "") : "", sansWallet].filter(Boolean).join(" · "),
           after: next,
         }, GREEN_MS);
         return measure(meta, "stamped");
@@ -265,6 +267,7 @@ export default function Caisse({ me, guard, manager = false, onExit, onDone }) {
           kicker: v?.today_last_at ? `Déjà passé à ${hhmm(v.today_last_at)}` : "Déjà passé aujourd'hui",
           sub: v ? `${v.today_last_at ? `${agoShort(v.today_last_at)} · ` : ""}${v.today_count} fois aujourd'hui${left > 0 ? ` · encore ${left} possible${left > 1 ? "s" : ""}` : ""}` : "",
           canForce: left > 0,
+          note: sansWallet,
         }, 9000);
         return measure(meta, "today");
       }
