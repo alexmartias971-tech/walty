@@ -97,8 +97,7 @@ export default function MaCarte({ me, guard, say }) {
             <h2 className="ec-h">Votre carte, côté client</h2>
             {card && !card.isActive && <span className="chip chip-orange">En pause</span>}
           </div>
-          {card ? <WalletPreview name={name} logo={data.business.logo_url} card={card} /> : <p className="ec-info">Votre carte n'est pas encore créée. Contactez Walty.</p>}
-          {card && <p className="field-hint ec-center-text">Exemple avec une cliente, Marie, à mi-parcours. La vraie carte s'affiche dans Apple Wallet (iPhone) ou Google Wallet (Android).</p>}
+          {card ? <Modeles name={name} logo={data.business.logo_url} card={card} /> : <p className="ec-info">Votre carte n'est pas encore créée. Contactez Walty.</p>}
           {totalCards > 0 && (
             <ul className="ec-facts">
               <li><span><Icon name="phone" size={16} /> Cartes dans un iPhone</span><b>{w.apple}</b></li>
@@ -151,7 +150,7 @@ export default function MaCarte({ me, guard, say }) {
       {data.rules?.length > 0 && (
         <section className="ec-box">
           <h2 className="ec-h">Ce que lisent vos clients</h2>
-          <p className="muted ec-small">Les règles affichées au dos de leur carte (à modifier dans « Mon programme »).</p>
+          <p className="muted ec-small">Ils le lisent au dos de leur carte, dans leur téléphone : sur iPhone, en touchant « ⋯ » puis « Détails » ; sur Android, en faisant défiler leur carte vers le bas. À modifier dans « Mon programme ».</p>
           <ul className="ec-rules">
             {data.rules.map((r) => <li key={r.title}><span aria-hidden="true">{r.icon}</span><div><b>{r.title}</b><p>{r.text}</p></div></li>)}
           </ul>
@@ -168,7 +167,73 @@ export default function MaCarte({ me, guard, say }) {
   );
 }
 
-/** Aperçu de la carte telle qu'elle apparaît dans le téléphone du client. */
+/** Les 3 modèles de la carte (6 nov. 2026) : iPhone récent (iOS 27, la carte en grand), iPhone (Apple Wallet), Android (Google Wallet).
+ *  Un modèle que le logiciel de cartes n'a pas pu dessiner n'est pas proposé. */
+const MODELES = [
+  ["recent", "iPhone récent", "Sur un iPhone récent (iOS 27) : la carte en grand."],
+  ["iphone", "iPhone", "Sur iPhone, dans Apple Wallet."],
+  ["android", "Android", "Sur Android, dans Google Wallet."],
+];
+function Modeles({ name, logo, card }) {
+  const dispo = MODELES.filter(([k]) => k === "iphone" || (k === "recent" ? card.poster : card.google));
+  const [vue, setVue] = useState(dispo[0][0]);
+  const actif = dispo.find(([k]) => k === vue) || dispo[0];
+  return (
+    <>
+      {dispo.length > 1 && (
+        <div className="ec-seg ec-modeles" role="radiogroup" aria-label="Modèle de téléphone">
+          {dispo.map(([k, t]) => (
+            <label key={k}><input type="radio" name="ec-modele" checked={actif[0] === k} onChange={() => setVue(k)} /><span>{t}</span></label>
+          ))}
+        </div>
+      )}
+      {actif[0] === "recent" ? <PosterPreview name={name} logo={logo} card={card} /> : actif[0] === "android" ? <AndroidPreview name={name} logo={logo} card={card} /> : <WalletPreview name={name} logo={logo} card={card} />}
+      <p className="field-hint ec-center-text">{actif[2]} Exemple avec une cliente, Marie, à mi-parcours.</p>
+    </>
+  );
+}
+
+/** iPhone récent (iOS 27) : la photo de la carte en grand, avec ses tampons, et les champs par-dessus. */
+function PosterPreview({ name, logo, card }) {
+  const { colors, labels, sample } = card;
+  return (
+    <div className="ec-wallet ec-wallet-recent" style={{ background: colors.background, color: colors.foreground, "--ec-fond": colors.background }} role="img" aria-label={`Aperçu de la carte ${card.programName} sur un iPhone récent`}>
+      <img className="ec-recent-photo" src={card.poster} alt="" />
+      <div className="ec-wallet-top">
+        <span className="ec-wallet-logo">{logo ? <img src={logo} alt="" /> : <i>{initials(name)}</i>}</span>
+        {card.showLogoText && <b className="ec-wallet-name">{name}</b>}
+        <span className="ec-wallet-field right"><em style={{ color: colors.label }}>{labels.balance}</em><strong>{sample.balanceValue}</strong></span>
+      </div>
+      <div className="ec-wallet-qr ec-recent-qr"><span><Icon name="qr" size={46} stroke={1.4} /></span></div>
+      <div className="ec-wallet-fields ec-recent-bas">
+        <span className="ec-wallet-field"><em style={{ color: colors.label }}>{labels.customer}</em><strong>{sample.name}</strong></span>
+        {card.reward && labels.reward && <span className="ec-wallet-field right"><em style={{ color: colors.label }}>{labels.reward}</em><strong>{card.reward}</strong></span>}
+      </div>
+    </div>
+  );
+}
+
+/** Android (Google Wallet) : le logo et le nom, le compteur, le QR code, puis l'image de la carte en bas. */
+function AndroidPreview({ name, logo, card }) {
+  const { colors, labels, sample } = card;
+  return (
+    <div className="ec-wallet ec-wallet-android" style={{ background: colors.background, color: colors.foreground }} role="img" aria-label={`Aperçu de la carte ${card.programName} sur Android`}>
+      <div className="ec-android-tete">
+        <span className="ec-android-logo">{logo ? <img src={logo} alt="" /> : <i>{initials(name)}</i>}</span>
+        <b>{name}</b>
+      </div>
+      <p className="ec-android-titre">{card.programName}</p>
+      <div className="ec-wallet-fields">
+        <span className="ec-wallet-field"><em style={{ color: colors.label }}>{labels.balance}</em><strong>{sample.balanceValue}</strong></span>
+        {card.reward && labels.reward && <span className="ec-wallet-field right"><em style={{ color: colors.label }}>{labels.reward}</em><strong>{card.reward}</strong></span>}
+      </div>
+      <div className="ec-wallet-qr"><span><Icon name="qr" size={54} stroke={1.4} /></span><small>QR code personnel du client</small></div>
+      <img className="ec-android-photo" src={card.google} alt="" />
+    </div>
+  );
+}
+
+/** Aperçu de la carte telle qu'elle apparaît dans le téléphone du client (iPhone, Apple Wallet). */
 function WalletPreview({ name, logo, card }) {
   const { colors, labels, sample } = card;
   return (

@@ -362,6 +362,7 @@ export default function Programme({ me, guard, say, onSaved }) {
       {data.rules?.length > 0 && (
         <details className="ec-box ec-details">
           <summary className="ec-h">Ce que lisent vos clients</summary>
+          <p className="muted ec-small ec-dos">Ils le lisent au dos de leur carte, dans leur téléphone : sur iPhone, en touchant « ⋯ » puis « Détails » ; sur Android, en faisant défiler leur carte vers le bas.</p>
           <ul className="ec-rules">
             {data.rules.map((r) => <li key={r.title}><span aria-hidden="true">{r.icon}</span><div><b>{r.title}</b><p>{r.text}</p></div></li>)}
           </ul>
