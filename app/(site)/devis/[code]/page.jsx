@@ -40,13 +40,19 @@ export default async function DevisPage({ params }) {
     );
   }
 
-  const plan = planById[d.plan] || planById["tout-compris"];
+  // (5 nov. 2026) un devis peut proposer la carte (abonnement), un site internet (payé une fois, avec ou sans remise), ou les deux
+  const plan = d.plan ? planById[d.plan] || planById["tout-compris"] : null;
+  const siteWeb = d.site && Number(d.site.prix_base) > 0 ? d.site : null;
+  const remise = siteWeb && Number(siteWeb.remise_pct) > 0 && Number(siteWeb.prix) < Number(siteWeb.prix_base);
   const lignes = Array.isArray(d.lignes) ? d.lignes : [];
   const mensuelEnPlus = lignes.filter((l) => l.type === "mensuel").reduce((t, l) => t + Number(l.prix) * Number(l.quantite || 1), 0);
-  const unique = lignes.filter((l) => l.type !== "mensuel").reduce((t, l) => t + Number(l.prix) * Number(l.quantite || 1), 0);
-  const mensuel = Number(d.prix_formule) + mensuelEnPlus;
+  const uniqueLignes = lignes.filter((l) => l.type !== "mensuel").reduce((t, l) => t + Number(l.prix) * Number(l.quantite || 1), 0);
+  const unique = uniqueLignes + (siteWeb ? Number(siteWeb.prix) : 0);
+  const mensuel = (plan ? Number(d.prix_formule) : 0) + mensuelEnPlus;
   const c = d.client || {};
   const ouvert = d.statut === "envoye" && !d.expire;
+  const moyen = d.paiement === "virement" ? "par virement bancaire" : `par carte bancaire (paiement sécurisé par ${d.paiement === "sumup" ? "SumUp" : "Stripe"})`;
+  const pct = (n) => String(Number(n)).replace(".", ",");
 
   return (
     <section className="devis-zone wrap">
@@ -100,24 +106,52 @@ export default async function DevisPage({ params }) {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>
-                <b>Abonnement Walty {plan.name}</b>
-                <span className="devis-detail">Carte de fidélité Apple Wallet et Google Wallet, sans engagement.</span>
-                <ul className="devis-points">
-                  {(highlights[plan.id] || []).filter(([ok]) => ok).map(([, t]) => <li key={t}>{t}</li>)}
-                </ul>
-              </td>
-              <td className="num">1</td>
-              <td className="num">{euro(d.prix_formule)}<span className="devis-par"> / mois</span></td>
-              <td className="num">{euro(d.prix_formule)}<span className="devis-par"> / mois</span></td>
-            </tr>
-            <tr>
-              <td><b>Installation et mise en place de la carte</b><span className="devis-detail">Préparation de la carte à vos couleurs, QR code du comptoir.</span></td>
-              <td className="num">1</td>
-              <td className="num">Offerte</td>
-              <td className="num">{euro(0)}</td>
-            </tr>
+            {plan && (
+              <tr>
+                <td>
+                  <b>Abonnement Walty {plan.name}</b>
+                  <span className="devis-detail">Carte de fidélité Apple Wallet et Google Wallet, sans engagement.</span>
+                  <ul className="devis-points">
+                    {(highlights[plan.id] || []).filter(([ok]) => ok).map(([, t]) => <li key={t}>{t}</li>)}
+                  </ul>
+                </td>
+                <td className="num">1</td>
+                <td className="num">{euro(d.prix_formule)}<span className="devis-par"> / mois</span></td>
+                <td className="num">{euro(d.prix_formule)}<span className="devis-par"> / mois</span></td>
+              </tr>
+            )}
+            {plan && (
+              <tr>
+                <td><b>Installation et mise en place de la carte</b><span className="devis-detail">Préparation de la carte à vos couleurs, QR code du comptoir.</span></td>
+                <td className="num">1</td>
+                <td className="num">Offerte</td>
+                <td className="num">{euro(0)}</td>
+              </tr>
+            )}
+            {siteWeb && (
+              <tr>
+                <td>
+                  <b>Site internet{siteWeb.titre ? ` : ${siteWeb.titre}` : ""}</b>
+                  <span className="devis-detail">Conception et mise en ligne par Walty.</span>
+                  {Array.isArray(siteWeb.details) && siteWeb.details.length > 0 && (
+                    <ul className="devis-points">
+                      {siteWeb.details.map((t, i) => <li key={i}>{t}</li>)}
+                    </ul>
+                  )}
+                </td>
+                <td className="num">1</td>
+                <td className="num">
+                  {remise ? (
+                    <>
+                      <s className="devis-barre">{euro(siteWeb.prix_base)}</s>
+                      <span className="devis-remise">− {pct(siteWeb.remise_pct)} %</span>
+                      {euro(siteWeb.prix)}
+                    </>
+                  ) : euro(siteWeb.prix_base)}
+                </td>
+                <td className="num">{euro(remise ? siteWeb.prix : siteWeb.prix_base)}</td>
+              </tr>
+            )}
             {lignes.map((l, i) => (
               <tr key={i}>
                 <td><b>{l.libelle}</b></td>
@@ -130,17 +164,19 @@ export default async function DevisPage({ params }) {
         </table>
 
         <div className="devis-totaux">
-          <p><span>Abonnement mensuel</span><b>{euro(mensuel)} / mois</b></p>
-          {unique !== 0 && <p><span>Frais uniques</span><b>{euro(unique)}</b></p>}
-          {d.essai_jours > 0 && <p className="devis-essai"><span>Essai gratuit</span><b>{d.essai_jours} jours</b></p>}
+          {(plan || mensuel !== 0) && <p><span>Abonnement mensuel</span><b>{euro(mensuel)} / mois</b></p>}
+          {siteWeb && remise && <p className="devis-economie"><span>Remise sur le site ({pct(siteWeb.remise_pct)} %)</span><b>− {euro(Number(siteWeb.prix_base) - Number(siteWeb.prix))}</b></p>}
+          {unique !== 0 && <p><span>{siteWeb && uniqueLignes === 0 ? "Site internet (à payer une fois)" : "À payer une fois"}</span><b>{euro(unique)}</b></p>}
+          {plan && d.essai_jours > 0 && <p className="devis-essai"><span>Essai gratuit</span><b>{d.essai_jours} jours</b></p>}
           <p className="devis-petit">Prix nets en euros. {legal.vat}.</p>
         </div>
 
         <div className="devis-conditions">
           <p className="devis-etiquette">Conditions</p>
           <ul>
-            {d.essai_jours > 0 && <li>Essai gratuit de {d.essai_jours} jours à compter de l&apos;activation de la carte.</li>}
-            <li>Abonnement payé au mois, par carte bancaire (paiement sécurisé par Stripe), sans engagement : résiliable à tout moment par écrit, effet à la fin du mois en cours.</li>
+            {plan && d.essai_jours > 0 && <li>Essai gratuit de {d.essai_jours} jours à compter de l&apos;activation de la carte.</li>}
+            {plan && <li>Abonnement payé au mois, {moyen}, sans engagement : résiliable à tout moment par écrit, effet à la fin du mois en cours.</li>}
+            {unique !== 0 && <li>{siteWeb ? "Site internet et frais uniques" : "Frais uniques"} payés {moyen}.</li>}
             <li>Ce devis vaut commande une fois accepté (bon pour accord), selon nos <Link href="/cgv">conditions générales de vente</Link>, qui précisent aussi le droit de rétractation des petites entreprises (article 4).</li>
           </ul>
           {d.note && <p className="devis-note">{d.note}</p>}
@@ -150,7 +186,7 @@ export default async function DevisPage({ params }) {
           {d.statut === "accepte" || d.statut === "paye" ? (
             <p className="devis-ok">
               Bon pour accord : devis accepté le {jour(d.accepte_at)} par <b>{d.accepte_par}</b>.
-              {d.statut === "paye" && <> Abonnement activé le {jour(d.paye_at)}.</>}
+              {d.statut === "paye" && <> {plan ? "Abonnement activé" : "Payé"} le {jour(d.paye_at)}.</>}
             </p>
           ) : (
             <p className="devis-petit devis-imprime">Bon pour accord, date et signature :</p>
@@ -158,7 +194,9 @@ export default async function DevisPage({ params }) {
         </div>
       </article>
 
-      <AccepterDevis code={code} ouvert={ouvert} accepte={d.statut === "accepte"} paye={d.statut === "paye"} lienPaiement={d.lien_paiement} total={euro(mensuel)} />
+      <AccepterDevis code={code} ouvert={ouvert} accepte={d.statut === "accepte"} paye={d.statut === "paye"} lienPaiement={d.lien_paiement}
+        paiement={d.paiement || "stripe"} paiementInfo={d.paiement_info || ""} abonnement={!!plan}
+        total={plan ? `${euro(mensuel)} / mois` : euro(unique)} />
     </section>
   );
 }

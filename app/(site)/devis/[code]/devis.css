@@ -71,3 +71,9 @@
   .devis-imprime { display: block; min-height: 60px; }
   .devis-marque { background: none; color: #f4520f; -webkit-text-fill-color: #f4520f; }
 }
+
+/* site internet (5 nov. 2026) : prix de base barré, remise, prix remisé ; texte du virement */
+.devis-barre { display: block; color: #8a8494; font-size: 0.85em; }
+.devis-remise { display: block; color: #c2410c; font-weight: 700; font-size: 0.85em; }
+.devis-economie b { color: #c2410c; }
+.devis-virement { white-space: pre-line; background: #fff7ed; border-radius: 10px; padding: 10px 12px; }
