@@ -14,6 +14,7 @@ export default function Footer() {
             <p className="muted" style={{ maxWidth: 340 }}>
               La carte de fidélité des commerces de Guadeloupe, dans le téléphone de vos clients.
             </p>
+            <p style={{ fontSize: 15 }}><a href="https://sites.walty.fr" style={{ fontWeight: 800 }}>Walty fait aussi les sites internet →</a></p>
             <p className="footer-contact" style={{ fontSize: 15 }}>
               <a href={site.contact.phoneHref}>{site.contact.phone}</a>
               <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
@@ -26,6 +27,7 @@ export default function Footer() {
               <li><Link href="/produit">Le produit</Link></li>
               <li><Link href="/tarifs">Tarifs</Link></li>
               <li><Link href="/a-propos">À propos</Link></li>
+              <li><a href="https://sites.walty.fr">Sites internet</a></li>
             </ul>
           </div>
           <div>

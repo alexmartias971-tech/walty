@@ -9,6 +9,7 @@ export const navLinks = [
   { href: "/", label: "Accueil" },
   { href: "/#comment", label: "Comment ça marche" },
   { href: "/tarifs", label: "Tarifs" },
+  { href: "https://sites.walty.fr", label: "Sites internet" },
 ];
 
 export default function Header() {
