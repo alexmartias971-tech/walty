@@ -6,6 +6,7 @@ import { afterVisitChange, copyText, euro, fmtAgo, fmtDate, fmtLongDate, getFres
 import { EventList } from "./Passages";
 import RetirerTampon from "./RetirerTampon";
 import { SkelBox, SkelList } from "./Squelette";
+import SupprimerClient from "./SupprimerClient";
 
 const keysOf = (id) => [`customer?id=${encodeURIComponent(id)}`, `manual-log?customer=${encodeURIComponent(id)}`];
 /** Badges « ajouté à la main » / « hors limite » / « retiré par le gérant » posés sur les passages du client. */
@@ -58,7 +59,7 @@ function RenvoyerCarte({ lien, qr, first, phone, say }) {
  * Fiche d'un client : état de sa carte, ses chiffres, ses offres et son historique.
  * Gérant : « Retirer 1 tampon » (à tout moment, raison obligatoire).
  */
-export default function ClientFiche({ id, row, guard, say, onBack, readOnly = false, badges = false, manager = false }) {
+export default function ClientFiche({ id, row, guard, say, onBack, onDeleted, readOnly = false, badges = false, manager = false }) {
   const [data, setData] = useState(() => { const [ck, mk] = keysOf(id); const c = peek(ck); return c ? withBadges(c, peek(mk)) : null; });
   const [error, setError] = useState("");
   const [soon, setSoon] = useState(false);
@@ -96,6 +97,17 @@ export default function ClientFiche({ id, row, guard, say, onBack, readOnly = fa
       say(r.done || "Tampon retiré ✓");
       afterVisitChange();
       load();
+    }
+    return r;
+  }
+  /** Gérant : supprimer ce client (définitif). */
+  async function deleteClient() {
+    const r = await post("manual", { customer_id: id, action: "delete_customer", confirm: "SUPPRIMER" });
+    if (!guard(r)) return { ...r, status: 401 };
+    if (r.ok) {
+      say(r.done || "Client supprimé ✓");
+      afterVisitChange();
+      onDeleted?.();
     }
     return r;
   }
@@ -216,6 +228,12 @@ export default function ClientFiche({ id, row, guard, say, onBack, readOnly = fa
         <section className="ec-box">
           <h3>Son historique</h3>
           {data.history.length === 0 ? <p className="muted ec-small">Pas encore de passage.</p> : <EventList events={data.history} onUndo={readOnly ? null : undo} showDate showCustomer={false} />}
+        </section>
+      )}
+      {c && manager && !readOnly && (
+        <section className="ec-box">
+          <h3>Supprimer ce client</h3>
+          <SupprimerClient name={name} onDelete={deleteClient} />
         </section>
       )}
       {c && <p className="field-hint">Ce client souhaite que ses données soient supprimées ou exportées (RGPD) ? Transmettez sa demande à Walty, qui s'en occupe.</p>}

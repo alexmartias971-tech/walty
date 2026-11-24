@@ -1850,7 +1850,7 @@ function Clients({ guard, say, clientId, openClient, readOnly = false, badges = 
   useEffect(() => { load(""); }, [load]);
 
   if (clientId) {
-    return <ClientFiche id={clientId} row={rows?.find((r) => r.id === clientId) || null} guard={guard} say={say} onBack={() => openClient(null)} readOnly={readOnly} badges={badges} manager={manager} />;
+    return <ClientFiche id={clientId} row={rows?.find((r) => r.id === clientId) || null} guard={guard} say={say} onBack={() => openClient(null)} onDeleted={() => { setRows((l) => l?.filter((r) => r.id !== clientId) ?? l); openClient(null); load(q); }} readOnly={readOnly} badges={badges} manager={manager} />;
   }
   return (
     <div className="ec-panel">
